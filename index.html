@@ -12,18 +12,18 @@ p{color:#c1cbe0;line-height:1.5}button{border:1px solid #6982b0;border-radius:7p
 <p>Immersive soundscape · Frecuencias convertidas en geometría, partículas y luz.</p>
 <button id="start">INICIAR EXPERIENCIA</button><button id="pause">PAUSAR</button>
 <label>INTENSIDAD AUDIOVISUAL<input id="intensity" type="range" min=".2" max="3" step=".1" value="1.3"></label>
-<div id="status">Preparado. El audio se reproduce desde atmosphere.mp3.</div></div>
+<div id="status">Preparado. El audio se reproduce desde atmosphereADM_binaural.mp3.</div></div>
 <div id="links"><a target="_blank" rel="noopener" href="https://open.spotify.com/track/7JTEfJqz2rBNOkRB7A9w4K">Spotify</a><a target="_blank" rel="noopener" href="https://music.apple.com/us/search?term=Oktopus%20Atmosphere">Apple Music ↗</a></div>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
 const $=id=>document.getElementById(id),start=$('start'),pause=$('pause'),status=$('status'),intensity=$('intensity');
-const audio=new Audio('./atmosphere.mp3');audio.preload='metadata';audio.crossOrigin='anonymous';
+const audio=new Audio('./atmosphereADM_binaural.mp3');audio.preload='metadata';audio.crossOrigin='anonymous';
 let ctx,analyser,fft,source,started=false,bass=0,mid=0,high=0,energy=0;
 async function initAudio(){if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.78;fft=new Uint8Array(analyser.frequencyBinCount);source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination)}await ctx.resume()}
-start.onclick=async()=>{try{await initAudio();if(!started){audio.currentTime=0;started=true}await audio.play();start.textContent='REPRODUCIENDO';pause.style.display='block';pause.textContent='PAUSAR';status.textContent='Audio FFT activo · graves / medios / agudos'}catch(e){status.textContent='No se pudo reproducir atmosphere.mp3. Comprueba que esté en la raíz del repositorio. '+e.message}};
+start.onclick=async()=>{try{await initAudio();if(!started){audio.currentTime=0;started=true}await audio.play();start.textContent='REPRODUCIENDO';pause.style.display='block';pause.textContent='PAUSAR';status.textContent='Audio FFT activo · graves / medios / agudos'}catch(e){status.textContent='No se pudo reproducir atmosphereADM_binaural.mp3. Comprueba que esté en la raíz del repositorio. '+e.message}};
 pause.onclick=async()=>{if(audio.paused){await ctx.resume();await audio.play();pause.textContent='PAUSAR'}else{audio.pause();pause.textContent='REANUDAR'}};
 audio.onended=()=>{started=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
-audio.onerror=()=>{status.textContent='No se encuentra atmosphere.mp3 o el formato no es compatible.'};
+audio.onerror=()=>{status.textContent='No se encuentra atmosphereADM_binaural.mp3 o el formato no es compatible.'};
 function band(a,b){const nyquist=ctx.sampleRate/2;let lo=Math.max(0,Math.floor(a/nyquist*fft.length)),hi=Math.min(fft.length,Math.ceil(b/nyquist*fft.length)),s=0;for(let i=lo;i<hi;i++)s+=fft[i];return s/Math.max(1,hi-lo)/255}
 function analyse(){if(analyser&&!audio.paused&&!audio.ended){analyser.getByteFrequencyData(fft);bass+=(band(20,160)-bass)*.25;mid+=(band(160,2000)-mid)*.25;high+=(band(2000,12000)-high)*.25;energy=bass*.5+mid*.35+high*.15}else{bass*=.94;mid*=.94;high*=.94;energy*=.94}}
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x020309);scene.fog=new THREE.FogExp2(0x020309,.012);
