@@ -23,6 +23,10 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 #prologue .english{font-size:clamp(20px,3.5vw,36px);max-width:740px;line-height:1.4;font-weight:300;letter-spacing:.03em}
 #prologue .spanish{font-size:clamp(13px,2vw,18px);margin-top:13px;color:#a5b5d0;max-width:690px;line-height:1.5}
 #skipIntro{margin-top:25px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}#enterExperience{display:none;margin-top:24px;letter-spacing:2px}#prologue .eyebrow{text-shadow:0 1px 12px #000}#prologue .english,#prologue .spanish{text-shadow:0 2px 16px #000}#prologue .credit{font-size:12px;color:#9eb2cf;max-width:660px;line-height:1.6;margin-top:17px}#prologue .credit a{color:#c5ddff;text-decoration:none;border-bottom:1px solid #566c8e}
+
+#voiceViz{display:none;width:min(620px,85vw);height:84px;margin:18px 0 0;pointer-events:none}
+#musicViz{display:none;position:fixed;left:50%;bottom:15px;transform:translateX(-50%);z-index:3;width:min(700px,65vw);height:88px;pointer-events:none;opacity:.8;filter:drop-shadow(0 0 8px #395a9a44)}
+@media(max-width:700px){#musicViz{bottom:75px;width:87vw;height:62px}}
 </style>
 </head><body>
 <div id="landing"><h1>ATMOSPHERE</h1><div class="sub">OKTOPUS ART STUDIO · IMMERSIVE SOUNDSCAPE</div>
@@ -39,8 +43,8 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 <a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
 </div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
 </div>
-<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
-<div id="vr"></div><button id="collapse">CONTROLES</button>
+<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><canvas id="voiceViz" width="720" height="120" aria-label="Actividad de la narración"></canvas><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
+<canvas id="musicViz" width="1024" height="160" aria-label="Espectro real de la música"></canvas><div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
 
@@ -74,6 +78,37 @@ const lines=[
  {en:'Ricardo P. Tapia Fernández · Oktopus Art Studio',es:'Arte, naturaleza y tecnología.'}
 ];
 let introActive=false,introTimeouts=[],introCounter=0,introFinished=false,voiceActuallyStarted=false,voiceAttempted=false;
+let narrationActive=false,narrationPulse=0,narrationClock=0;
+const voiceViz=$('voiceViz'),voiceCtx=voiceViz.getContext('2d');
+const musicViz=$('musicViz'),musicCtx=musicViz.getContext('2d');
+function drawVoiceActivity(dt){
+ if(!narrationActive||voiceViz.style.display==='none')return;
+ narrationClock+=dt;narrationPulse*=Math.exp(-dt*6);
+ voiceCtx.clearRect(0,0,720,120);
+ for(let i=0;i<72;i++){
+  const x=(i+.5)*10;
+  const window=Math.pow(Math.max(0,1-Math.abs(i-35.5)/37),1.5);
+  const modulation=.55+.25*Math.sin(narrationClock*17+i*.37)+.15*Math.sin(narrationClock*9-i*.61);
+  const amount=7+(22+36*narrationPulse)*window*Math.max(.1,modulation);
+  voiceCtx.fillStyle='rgba(150,202,255,'+(.30+window*.6)+')';
+  voiceCtx.fillRect(x-2,60-amount/2,4,amount);
+ }
+}
+function drawMusicSpectrum(){
+ if(!musicCtx)return;
+ musicCtx.clearRect(0,0,1024,160);
+ if(!analyser||audio.paused||audio.ended)return;
+ const count=120,nyquist=ctx.sampleRate/2,gain=Number($('visual').value);
+ for(let i=0;i<count;i++){
+  const hz=45*Math.pow(12000/45,i/(count-1));
+  const bin=Math.min(fft.length-1,Math.max(0,Math.round(hz/nyquist*fft.length)));
+  const amp=Math.min(1,(fft[bin]/255)*3.1*gain);
+  const shaped=Math.pow(amp,.78),height=4+shaped*126;
+  const x=(i+.5)*1024/count;
+  musicCtx.fillStyle='rgba(144,207,255,'+(.24+.72*shaped)+')';
+  musicCtx.fillRect(x-2,80-height/2,4,height);
+ }
+}
 let ambienceCtx=null,ambienceGain=null,ambienceNodes=[];
 function introCaption(i){
  const p=lines[i];if(!p)return;
@@ -120,14 +155,16 @@ function speakPrologue(){
   u.lang='en-US';u.rate=.78;u.pitch=1.04;u.volume=1;
   const voices=speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
   u.voice=voices.find(v=>/natural|enhanced|neural/i.test(v.name))||voices[0]||null;
-  u.onstart=()=>{voiceActuallyStarted=true};
-  u.onerror=()=>{if(introActive&&!introFinished)$('voiceStart').textContent='REINTENTAR VOZ'};
+  u.onstart=()=>{voiceActuallyStarted=true;narrationActive=true;narrationPulse=.8;voiceViz.style.display='block'};
+  u.onboundary=()=>{narrationPulse=1};
+  u.onend=()=>{narrationActive=false;voiceViz.style.display='none'};
+  u.onerror=()=>{narrationActive=false;voiceViz.style.display='none';if(introActive&&!introFinished)$('voiceStart').textContent='REINTENTAR VOZ'};
   speechSynthesis.speak(u);
  }catch(e){$('voiceStart').textContent='REINTENTAR VOZ'}
 }
 function finishIntro(){
  if(introFinished)return;
- introFinished=true;cancelIntroTimers();$('voiceStart').style.display='none';
+ introFinished=true;narrationActive=false;voiceViz.style.display='none';cancelIntroTimers();$('voiceStart').style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
  introEn.textContent='Enter the atmosphere.';introEs.textContent='Entra en la atmósfera.';
  credit.style.display='block';drawIntroPanel({en:'Enter the atmosphere.',es:'Entra en la atmósfera.'});
@@ -140,7 +177,7 @@ function startIntro(){
  skip.style.display='block';enter.style.display='none';credit.style.display='none';
  $('voiceStart').style.display='block';$('voiceStart').textContent='START';
  introCaption(0);
- voiceActuallyStarted=false;voiceAttempted=false;
+ narrationActive=false;voiceViz.style.display='none';voiceActuallyStarted=false;voiceAttempted=false;
 }
 // Voice and ambience begin inside the explicit user gesture.
 $('voiceStart').onclick=()=>{
@@ -169,12 +206,12 @@ async function enterWorld(){
   introGain.gain.setValueAtTime(1,ctx.currentTime);
   const playback=audio.play();
   await Promise.all([audioReady,playback]);
-  ambientStop();introActive=false;introFinished=true;cancelIntroTimers();
+  ambientStop();narrationActive=false;voiceViz.style.display='none';introActive=false;introFinished=true;cancelIntroTimers();
   if('speechSynthesis' in window)speechSynthesis.cancel();
   prologue.style.display='none';intro3D.visible=false;
   $('landing').style.display=renderer.xr.isPresenting?'none':'block';
   if(renderer.xr.isPresenting)vrPanel.visible=true;
-  playing=true;start.textContent='REPRODUCIENDO';
+  musicViz.style.display=renderer.xr.isPresenting?'none':'block';playing=true;start.textContent='REPRODUCIENDO';
   pause.style.display='block';pause.textContent='PAUSAR';
   status.textContent='Escucha inmersiva · FFT y ecualización activos';
  }catch(e){status.textContent='Error de reproducción: '+e.message;introEs.textContent='No se pudo iniciar el audio: '+e.message}
@@ -182,7 +219,7 @@ async function enterWorld(){
 enter.onclick=enterWorld;
 start.onclick=async()=>{await enterWorld()};
 pause.onclick=async()=>{if(audio.paused){try{await ctx.resume();await audio.play();pause.textContent='PAUSAR'}catch(e){status.textContent=e.message}}else{audio.pause();pause.textContent='REANUDAR'}};
-audio.onended=()=>{playing=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
+audio.onended=()=>{musicViz.style.display='none';playing=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
 audio.onerror=()=>status.textContent='Error: no se pudo cargar atmosphereADM_binaural.mp3.';
 let low=0,mid=0,high=0;
 function band(a,b){if(!ctx)return 0;const ny=ctx.sampleRate/2,lo=Math.max(0,Math.floor(a/ny*fft.length)),hi=Math.min(fft.length,Math.ceil(b/ny*fft.length));let s=0;for(let i=lo;i<hi;i++)s+=fft[i];return s/Math.max(1,hi-lo)/255}
@@ -207,10 +244,10 @@ async function setupVR(){
     await renderer.xr.setSession(session);button.textContent='SALIR DE VR';
    }catch(err){status.textContent='No se pudo iniciar VR: '+err.message}
   };
-  renderer.xr.addEventListener('sessionend',()=>{button.textContent='ENTRAR EN VR'});
+  renderer.xr.addEventListener('sessionend',()=>{musicViz.style.display=!audio.paused&&!audio.ended&&!introActive?'block':'none';button.textContent='ENTRAR EN VR'});
  }catch(e){/* Browser without immersive mode: keep conventional 3D view */}}
 setupVR();
-renderer.xr.addEventListener('sessionstart',()=>{intro3D.visible=introActive; $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=!introActive;status.textContent='Modo VR activo'});
+renderer.xr.addEventListener('sessionstart',()=>{musicViz.style.display='none';intro3D.visible=introActive; $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=!introActive;status.textContent='Modo VR activo'});
 renderer.xr.addEventListener('sessionend',()=>{intro3D.visible=false; $('landing').style.display=introActive?'none':'block';vrPanel.visible=false });
 const world=new THREE.Group();scene.add(world);
 // ENTORNO INTERIOR 360: las esferas no son objetos frontales.
@@ -347,6 +384,36 @@ function updateReactiveAccents(t,lo,me,hi){
  haloMaterial.opacity=Math.min(.85,.13+e*.43);
 }
 
+// 360° true FFT spectral crown surrounding the listener, not just amplitude pulses.
+const SPECTRAL_BARS=144,spectralGeometry=new THREE.CylinderGeometry(.012,.012,1,4,1);
+const spectralMaterial=new THREE.MeshBasicMaterial({color:0x99d4ff,transparent:true,opacity:.73,depthWrite:false});
+const spectralMesh=new THREE.InstancedMesh(spectralGeometry,spectralMaterial,SPECTRAL_BARS);
+spectralMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+spectralMesh.frustumCulled=false;world.add(spectralMesh);
+const spectrumDummy=new THREE.Object3D(),spectrumAxis=new THREE.Vector3(0,1,0),spectrumLevels=new Float32Array(SPECTRAL_BARS);
+function updateSpectralCrown(t){
+ const playing=analyser&&!audio.paused&&!audio.ended;
+ const ny=ctx?ctx.sampleRate/2:22050;
+ for(let i=0;i<SPECTRAL_BARS;i++){
+  const theta=i/SPECTRAL_BARS*Math.PI*2;
+  const frequency=45*Math.pow(12000/45,i/(SPECTRAL_BARS-1));
+  const bin=playing?Math.min(fft.length-1,Math.round(frequency/ny*fft.length)):0;
+  const raw=playing?fft[bin]/255:0;
+  spectrumLevels[i]+=(raw-spectrumLevels[i])*.28;
+  // Curved belts around the viewer, offset in latitude to remain visible from all sides.
+  const y=Math.sin(i*.47)*1.2;
+  const r=2.6+.5*Math.sin(i*.29);
+  const direction=new THREE.Vector3(Math.cos(theta)*.92,y*.19,Math.sin(theta)*.92).normalize();
+  const amount=Math.pow(Math.min(1,spectrumLevels[i]*3.4*Number($('visual').value)),.75);
+  const length=.045+amount*1.6;
+  spectrumDummy.position.set(Math.cos(theta)*r+direction.x*length*.5,1.6+y+direction.y*length*.5,Math.sin(theta)*r+direction.z*length*.5);
+  spectrumDummy.quaternion.setFromUnitVectors(spectrumAxis,direction);
+  spectrumDummy.scale.set(.85,length,.85);
+  spectrumDummy.updateMatrix();spectralMesh.setMatrixAt(i,spectrumDummy.matrix);
+ }
+ spectralMesh.instanceMatrix.needsUpdate=true;
+}
+
 // Orbiting nests are distributed in all directions, not lined up at the horizon.
 const anchorDirs=Array.from({length:9},(_,i)=>{
  const y=1-2*(i+.5)/9,a=i*golden,f=Math.sqrt(1-y*y);
@@ -452,7 +519,7 @@ function handleControllers(dt){if(!renderer.xr.isPresenting)return;stickCooldown
 let t=0;const clock=new THREE.Clock();
 renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);analyze();handleControllers(dt);t+=dt*(audio.paused?.28:1);
 const factor=Number($('visual').value),lo=low*factor,me=mid*factor,hi=high*factor;
-updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);updateReactiveAccents(t,lo,me,hi);renderer.render(scene,camera)});
+updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);updateReactiveAccents(t,lo,me,hi);updateSpectralCrown(t);drawVoiceActivity(dt);if(musicViz.style.display!=='none')drawMusicSpectrum();renderer.render(scene,camera)});
 startIntro();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
