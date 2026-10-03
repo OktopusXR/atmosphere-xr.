@@ -120,7 +120,7 @@ function drawPanel(){if(!pc)return;pc.clearRect(0,0,768,512);pc.fillStyle='rgba(
  pc.fillStyle='#99adc9';pc.font='19px Arial';pc.fillText('Stick izquierdo ↕: respuesta visual',28,491);panelTexture.needsUpdate=true}
 drawPanel();const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
 controllers.forEach((controller,i)=>{scene.add(controller);const ray=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:i===0?0x7e9fe0:0x77d3ff}));controller.add(ray);
- controller.addEventListener('selectstart',()=>{if(!renderer.xr.isPresenting)return;selected=(selected+1)%3;applyEQ()})});
+ controller.addEventListener('selectstart',(event)=>{if(!renderer.xr.isPresenting||event.data?.handedness!=='left')return;selected=(selected+1)%3;applyEQ()})});
 let stickCooldown=0;
 function handleControllers(dt){if(!renderer.xr.isPresenting)return;stickCooldown=Math.max(0,stickCooldown-dt);
  const session=renderer.xr.getSession();if(!session)return;
