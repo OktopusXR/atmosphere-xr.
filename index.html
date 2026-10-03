@@ -36,7 +36,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 <div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
-import { VRButton } from 'https://esm.sh/three@0.173.0/examples/jsm/webxr/VRButton.js';
+
 const $=id=>document.getElementById(id), status=$('status'),start=$('start'),pause=$('pause');
 const eqInputs=[$('bassEQ'),$('midEQ'),$('highEQ')],values=[$('bv'),$('mv'),$('hv')];
 let eq=[0,0,0],selected=0,ctx,fft,analyser,filters,source,playing=false;
@@ -66,53 +66,131 @@ let low=0,mid=0,high=0;
 function band(a,b){if(!ctx)return 0;const ny=ctx.sampleRate/2,lo=Math.max(0,Math.floor(a/ny*fft.length)),hi=Math.min(fft.length,Math.ceil(b/ny*fft.length));let s=0;for(let i=lo;i<hi;i++)s+=fft[i];return s/Math.max(1,hi-lo)/255}
 function analyze(){if(analyser&&!audio.paused&&!audio.ended){analyser.getByteFrequencyData(fft);low+=(band(20,160)-low)*.24;mid+=(band(160,2000)-mid)*.24;high+=(band(2000,12000)-high)*.24}else{low*=.94;mid*=.94;high*=.94}}
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x02030b);
-const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,150);camera.position.set(0,1.6,4.5);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,150);camera.position.set(0,1.6,0);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
 document.body.appendChild(renderer.domElement);
-const vrButton=VRButton.createButton(renderer);$('vr').appendChild(vrButton);vrButton.style.position='static';vrButton.style.width='145px';vrButton.style.background='#203a69';vrButton.style.border='1px solid #6787ba';
+// Display VR entry only on browsers actually supporting immersive-vr.
+async function setupVR(){
+ if(!navigator.xr||!window.isSecureContext)return;
+ try{
+  if(!await navigator.xr.isSessionSupported('immersive-vr'))return;
+  const button=document.createElement('button');
+  button.textContent='ENTRAR EN VR';button.title='Inmersión con visor compatible';
+  $('vr').appendChild(button);
+  button.onclick=async()=>{
+   if(renderer.xr.isPresenting){await renderer.xr.getSession().end();return}
+   try{
+    const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']});
+    await renderer.xr.setSession(session);button.textContent='SALIR DE VR';
+   }catch(err){status.textContent='No se pudo iniciar VR: '+err.message}
+  };
+  renderer.xr.addEventListener('sessionend',()=>{button.textContent='ENTRAR EN VR'});
+ }catch(e){/* Browser without immersive mode: keep conventional 3D view */}}
+setupVR();
 renderer.xr.addEventListener('sessionstart',()=>{ $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=true;status.textContent='Modo VR activo'});
 renderer.xr.addEventListener('sessionend',()=>{ $('landing').style.display='block';vrPanel.visible=false });
 const world=new THREE.Group();scene.add(world);
-// Esferas que emergen únicamente de partículas y ribbons; sin sólidos geométricos.
-const N=1200,positions=new Float32Array(N*3),seeds=[];
-for(let i=0;i<N;i++){const u=Math.random()*2-1,a=Math.random()*Math.PI*2,f=Math.sqrt(1-u*u);seeds.push({x:f*Math.cos(a),y:u,z:f*Math.sin(a),radius:.8+Math.random()*.4,cluster:i%3,phase:Math.random()*6.283});}
-const pgeo=new THREE.BufferGeometry();pgeo.setAttribute('position',new THREE.BufferAttribute(positions,3));
-const points=new THREE.Points(pgeo,new THREE.PointsMaterial({color:0x8aaeff,size:.018,transparent:true,opacity:.8,depthWrite:false}));world.add(points);
-const R=18,SEG=64,ribbons=[];
-for(let i=0;i<R;i++){const vertices=new Float32Array(SEG*2*3),geo=new THREE.BufferGeometry();
-geo.setAttribute('position',new THREE.BufferAttribute(vertices,3));
-const ids=[];for(let j=0;j<SEG-1;j++){const k=j*2;ids.push(k,k+1,k+2,k+1,k+3,k+2)}
-geo.setIndex(ids);const mat=new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.54+(i%3)*.075,.8,.63),transparent:true,opacity:.38,side:THREE.DoubleSide,depthWrite:false});
-const mesh=new THREE.Mesh(geo,mat);world.add(mesh);ribbons.push(mesh)}
-const centers=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
-function sphereCenters(t,react){const spread=1.0+.45*Math.sin(t*.13)+react*.22;centers[0].set(-spread,.05,.0);centers[1].set(spread,.22,-.35);centers[2].set(.1,-.3,-1.15)}
+// ENTORNO INTERIOR 360: las esferas no son objetos frontales.
+// El usuario se encuentra dentro de capas de material generativo en profundidad.
+const N=2350, positions=new Float32Array(N*3), seeds=[];
+const golden=Math.PI*(3-Math.sqrt(5));
+const centers=Array.from({length:9},()=>new THREE.Vector3());
+const shellRadius=[2.8,4.2,6.4,8.2];
+const scatter=new Float32Array(N*3);
+for(let i=0;i<N;i++){
+ const u=1-2*(i+.5)/N,angle=i*golden;
+ const f=Math.sqrt(1-u*u),rad=shellRadius[i%4];
+ const dir=new THREE.Vector3(Math.cos(angle)*f,u,Math.sin(angle)*f);
+ const k=i*3;scatter[k]=dir.x*rad;scatter[k+1]=1.6+dir.y*rad;scatter[k+2]=dir.z*rad;
+ seeds.push({dir,group:i%9,shell:i%4,phase:(i*1.618)%6.283,rand:Math.random()});
+}
+const pg=new THREE.BufferGeometry();
+pg.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
+const particleMat=new THREE.PointsMaterial({color:0x9bbcff,size:.025,transparent:true,opacity:.75,depthWrite:false,sizeAttenuation:true});
+const particles=new THREE.Points(pg,particleMat);world.add(particles);
+// Tetrahedral fragments / pirámides, distributed across the entire sphere.
+const pyramidCount=135;
+const pyramidGeo=new THREE.TetrahedronGeometry(.075);
+const pyramidMat=new THREE.MeshBasicMaterial({color:0x8cc7ff,wireframe:true,transparent:true,opacity:.52,depthWrite:false});
+const pyramids=new THREE.InstancedMesh(pyramidGeo,pyramidMat,pyramidCount);
+pyramids.instanceMatrix.setUsage(THREE.DynamicDrawUsage);pyramids.frustumCulled=false;world.add(pyramids);
+const dummy=new THREE.Object3D();
+const pyramidSeeds=Array.from({length:pyramidCount},(_,i)=>{
+ const theta=i*golden, u=1-2*(i+.5)/pyramidCount, f=Math.sqrt(1-u*u);
+ return {dir:new THREE.Vector3(Math.cos(theta)*f,u,Math.sin(theta)*f),phase:i*.137,shell:i%4};
+});
+// Flowing ribbon strips mapped to spherical coordinates, including overhead / behind.
+const R=32,SEG=90,ribbons=[];
+for(let i=0;i<R;i++){
+ const verts=new Float32Array((SEG+1)*6),g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.BufferAttribute(verts,3).setUsage(THREE.DynamicDrawUsage));
+ const indices=[];for(let j=0;j<SEG;j++){const k=j*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
+ g.setIndex(indices);
+ const mat=new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.53+(i%4)*.035,.75,.66),transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide});
+ const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;world.add(mesh);ribbons.push(mesh);
+}
+// Orbiting nests are distributed in all directions, not lined up at the horizon.
+const anchorDirs=Array.from({length:9},(_,i)=>{
+ const y=1-2*(i+.5)/9,a=i*golden,f=Math.sqrt(1-y*y);
+ return new THREE.Vector3(Math.cos(a)*f,y,Math.sin(a)*f);
+});
 function updateObjects(t,react,lo,me,hi){
- sphereCenters(t,react);
- const formation=.5+.5*Math.sin(t*.24-1.1), disperse=(1-formation)*.85;
- const arr=pgeo.attributes.position.array;
- for(let i=0;i<N;i++){const s=seeds[i],c=centers[s.cluster],f=s.radius*(.65+formation*.42+lo*.48);
- const flutter=.07*Math.sin(t*(.38+hi*.5)+s.phase);
- arr[i*3]=c.x+s.x*(f+flutter)+Math.sin(s.phase*2+t*.12)*disperse;
- arr[i*3+1]=1.65+c.y+s.y*(f+flutter)+Math.cos(s.phase+t*.18)*disperse;
- arr[i*3+2]=-3+c.z+s.z*(f+flutter)+Math.cos(s.phase*3+t*.13)*disperse}
- pgeo.attributes.position.needsUpdate=true;
- points.material.size=.013+hi*.034;points.material.opacity=Math.min(1,.55+hi*.65);
- ribbons.forEach((mesh,i)=>{const a=mesh.geometry.attributes.position.array,c=centers[i%3],phase=i*2.399,theta=i*.27+t*(.035+me*.13),radius=(.7+.23*Math.sin(i*2.1))*(.75+formation*.35+lo*.36);
- for(let j=0;j<SEG;j++){const v=j/(SEG-1),angle=v*Math.PI*2+phase+t*(.12+me*.22),w=.008+hi*.018;
- const x=radius*Math.cos(angle)*Math.cos(theta)+radius*.45*Math.sin(angle)*Math.sin(theta);
- const y=radius*Math.sin(angle)*Math.cos(theta*.63);
- const z=radius*Math.sin(angle)*Math.sin(theta)-radius*.45*Math.cos(angle)*Math.cos(theta);
- const k=j*6;
- a[k]=c.x+x;a[k+1]=1.65+c.y+y;a[k+2]=-3+c.z+z;
- a[k+3]=c.x+x*(1+w);a[k+4]=1.65+c.y+y*(1+w);a[k+5]=-3+c.z+z*(1+w)}
- mesh.geometry.attributes.position.needsUpdate=true;mesh.material.opacity=Math.min(.85,.22+me*.48)});
+ const form=.5+.5*Math.sin(t*.16), radius=2.65+.35*Math.sin(t*.09);
+ centers.forEach((c,i)=>{
+   c.copy(anchorDirs[i]).multiplyScalar(radius+1.0*Math.sin(t*.13+i*.95));
+   c.y+=1.6;
+ });
+ const positions=pg.attributes.position.array;
+ for(let i=0;i<N;i++){
+  const s=seeds[i],k=i*3;
+  // Transition between a spherical shell around the viewer and small swarms
+  // scattered throughout 360 space. Every group has a different phase.
+  const phase=.5+.5*Math.sin(t*.27+s.group*1.21);
+  const gather=Math.pow(phase,.9)*(.2+.58*form);
+  const center=centers[s.group];
+  const nestR=.45+.6*s.rand+lo*.5;
+  const breathing=1+.07*Math.sin(t*.42+s.phase)+hi*.19;
+  const x=center.x+s.dir.x*nestR, y=center.y+s.dir.y*nestR,z=center.z+s.dir.z*nestR;
+  positions[k]=(scatter[k]*(1-gather)+x*gather)*breathing;
+  positions[k+1]=1.6+(scatter[k+1]-1.6)*(1-gather)+(y-1.6)*gather;
+  positions[k+2]=(scatter[k+2]*(1-gather)+z*gather)*breathing;
+ }
+ pg.attributes.position.needsUpdate=true;
+ particleMat.size=.019+hi*.026;particleMat.opacity=Math.min(.96,.48+hi*.7);
+ for(let i=0;i<pyramidCount;i++){
+  const q=pyramidSeeds[i],r=shellRadius[q.shell]*(.8+.16*Math.sin(t*.15+q.phase))+lo*.35;
+  dummy.position.copy(q.dir).multiplyScalar(r);dummy.position.y+=1.6;
+  dummy.rotation.set(t*.17+i*.2,t*.12+q.phase,t*.08);
+  const sc=.65+lo*2+hi*.3;
+  dummy.scale.setScalar(sc);dummy.updateMatrix();pyramids.setMatrixAt(i,dummy.matrix);
+ }
+ pyramids.instanceMatrix.needsUpdate=true;
+ for(let i=0;i<R;i++){
+   const a=ribbons[i].geometry.attributes.position.array;
+   const band=i%4,r=shellRadius[band]*(.83+.08*Math.sin(t*.21+i*.8))+me*.35;
+   const tilt=i*golden,drift=t*(.025+me*.14);
+   for(let j=0;j<=SEG;j++){
+     const u=j/SEG,ang=(u*1.62-.81)*Math.PI+drift+i*.93;
+     const latitude=.65*Math.sin(ang*.67+i*.74+t*.11);
+     const x=Math.cos(ang)*Math.cos(latitude),y=Math.sin(latitude),z=Math.sin(ang)*Math.cos(latitude);
+     const ct=Math.cos(tilt),st=Math.sin(tilt);
+     const X=x*ct-y*st,Y=x*st+y*ct;
+     const wobble=1+.085*Math.sin(u*14-t*.6+i)+hi*.1;
+     const width=.008+.013*hi;
+     const k=j*6;
+     a[k]=X*r*wobble; a[k+1]=1.6+Y*r*wobble; a[k+2]=z*r*wobble;
+     a[k+3]=X*(r*wobble+width);a[k+4]=1.6+Y*(r*wobble+width);a[k+5]=z*(r*wobble+width);
+   }
+   ribbons[i].geometry.attributes.position.needsUpdate=true;
+   ribbons[i].material.opacity=Math.min(.68,.17+.38*me);
+ }
 }
 // World-space VR control panel with controller selection and thumbstick adjustments.
 const panelCanvas=document.createElement('canvas');panelCanvas.width=768;panelCanvas.height=512;
 const pc=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
 const vrPanel=new THREE.Mesh(new THREE.PlaneGeometry(.86,.575),new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,depthTest:false}));
-vrPanel.position.set(0,1.25,-1.25);vrPanel.renderOrder=100;vrPanel.visible=false;scene.add(vrPanel);
+vrPanel.position.set(-.65,1.3,-.9);vrPanel.rotation.y=-.35;vrPanel.renderOrder=100;vrPanel.visible=false;scene.add(vrPanel);
 function drawPanel(){if(!pc)return;pc.clearRect(0,0,768,512);pc.fillStyle='rgba(5,12,30,.94)';pc.fillRect(0,0,768,512);pc.strokeStyle='#526b99';pc.strokeRect(3,3,762,506);pc.fillStyle='#f0f4ff';pc.font='32px Arial';pc.fillText('ATMOSPHERE · EQ',28,49);
  pc.fillStyle='#a7bddc';pc.font='22px Arial';pc.fillText('Gatillo izq.: banda · Stick der. ↔: ajustar',28,88);
  ['GRAVES','MEDIOS','AGUDOS'].forEach((label,i)=>{const y=161+i*110;pc.fillStyle=i===selected?'#d4e9ff':'#91a6c7';pc.font='26px Arial';pc.fillText((i===selected?'▶ ':'  ')+label,30,y);
