@@ -1,50 +1,138 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ATMOSPHERE XR — Oktopus Art Studio</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#020309;color:#eef3ff;font:13px Arial,sans-serif;overflow:hidden}canvas{display:block}
-#panel{position:fixed;z-index:5;top:14px;left:14px;width:min(315px,calc(100% - 28px));padding:17px;background:#060b1cdb;border:1px solid #33445d;border-radius:12px;backdrop-filter:blur(10px)}
-h1{font-size:20px;letter-spacing:4px;font-weight:400;margin:0 0 6px}.sub{font-size:10px;letter-spacing:2px;color:#a3b5d2}
-p{color:#c1cbe0;line-height:1.5}button{border:1px solid #6982b0;border-radius:7px;background:#34558a;color:white;padding:11px;cursor:pointer}#start{width:100%;margin:8px 0}#pause{width:100%;display:none}input{width:100%;accent-color:#8bb8ff}label{display:block;margin-top:12px;font-size:11px;color:#b8c7de}
-#status{font-size:11px;line-height:1.5;color:#a8caff;margin-top:12px}#links{position:fixed;bottom:16px;left:16px;z-index:6;display:flex;gap:12px}a{color:#d4e3ff;background:#0a1329d9;border:1px solid #304563;padding:10px;border-radius:7px;text-decoration:none;font-size:12px}
-</style></head><body>
-<div id="panel"><h1>ATMOSPHERE</h1><div class="sub">OKTOPUS ART STUDIO</div>
-<p>Immersive soundscape · Frecuencias convertidas en geometría, partículas y luz.</p>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#eef3ff;font:13px system-ui,Arial,sans-serif}canvas{display:block}
+#landing{position:fixed;z-index:6;top:14px;left:14px;width:min(342px,calc(100% - 28px));padding:19px;background:#060b1ce8;border:1px solid #31435d;border-radius:13px;backdrop-filter:blur(12px)}
+h1{font-size:21px;font-weight:400;letter-spacing:4px;margin:0 0 6px}.sub{font-size:10px;letter-spacing:2px;color:#abb9d3}
+p{line-height:1.55;color:#c3cee2}.muted{font-size:11px;color:#92a4be}
+button{background:#34578e;color:white;border:1px solid #6d84af;padding:11px 13px;border-radius:7px;cursor:pointer}
+#start{width:100%;margin:8px 0}#pause{display:none;width:100%}
+input[type=range]{width:100%;accent-color:#8bb7ff}
+label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
+#status{font-size:11px;line-height:1.55;color:#a9c9ff;margin-top:11px}
+#follow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+#follow a{border:1px solid #3a5073;border-radius:8px;color:#f2f5fc;text-decoration:none;padding:10px;line-height:1.45;font-size:12px;background:#0d172e}
+#follow small{font-size:10px;color:#a7bfdc}#follow .atmos{color:#d1e6ff}
+#vr{position:fixed;bottom:18px;right:18px;z-index:8}#vr button{font-weight:600}
+#collapse{position:fixed;top:14px;right:14px;z-index:8;display:none}
+@media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
+</style>
+</head><body>
+<div id="landing"><h1>ATMOSPHERE</h1><div class="sub">OKTOPUS ART STUDIO · IMMERSIVE SOUNDSCAPE</div>
+<p>Partículas y ribbons forman esferas en transformación continua, respondiendo al paisaje sonoro binaural.</p>
 <button id="start">INICIAR EXPERIENCIA</button><button id="pause">PAUSAR</button>
-<label>INTENSIDAD AUDIOVISUAL<input id="intensity" type="range" min=".2" max="3" step=".1" value="1.3"></label>
-<div id="status">Preparado. El audio se reproduce desde atmosphereADM_binaural.mp3.</div></div>
-<div id="links"><a target="_blank" rel="noopener" href="https://open.spotify.com/track/7JTEfJqz2rBNOkRB7A9w4K">Spotify</a><a target="_blank" rel="noopener" href="https://music.apple.com/us/search?term=Oktopus%20Atmosphere">Apple Music ↗</a></div>
+<label>GRAVES · <span id="bv">0</span> dB<input id="bassEQ" type="range" min="-12" max="12" step="1" value="0"></label>
+<label>MEDIOS · <span id="mv">0</span> dB<input id="midEQ" type="range" min="-12" max="12" step="1" value="0"></label>
+<label>AGUDOS · <span id="hv">0</span> dB<input id="highEQ" type="range" min="-12" max="12" step="1" value="0"></label>
+<label>RESPUESTA VISUAL<input id="visual" type="range" min=".2" max="3" step=".1" value="1.3"></label>
+<div id="status">Listo para reproducir el máster binaural completo.</div>
+<div class="muted" style="margin-top:12px">SIGUE EL PROYECTO Y ESCUCHA ATMOSPHERE</div>
+<div id="follow">
+<a href="https://open.spotify.com/track/7JTEfJqz2rBNOkRB7A9w4K" target="_blank" rel="noopener">↗ Spotify<br><small>Escuchar · Seguir</small></a>
+<a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
+</div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
+</div>
+<div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
-const $=id=>document.getElementById(id),start=$('start'),pause=$('pause'),status=$('status'),intensity=$('intensity');
+import { VRButton } from 'https://esm.sh/three@0.173.0/examples/jsm/webxr/VRButton.js';
+const $=id=>document.getElementById(id), status=$('status'),start=$('start'),pause=$('pause');
+const eqInputs=[$('bassEQ'),$('midEQ'),$('highEQ')],values=[$('bv'),$('mv'),$('hv')];
+let eq=[0,0,0],selected=0,ctx,fft,analyser,filters,source,playing=false;
 const audio=new Audio('./atmosphereADM_binaural.mp3');audio.preload='metadata';audio.crossOrigin='anonymous';
-let ctx,analyser,fft,source,started=false,bass=0,mid=0,high=0,energy=0;
-async function initAudio(){if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.78;fft=new Uint8Array(analyser.frequencyBinCount);source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination)}await ctx.resume()}
-start.onclick=async()=>{try{await initAudio();if(!started){audio.currentTime=0;started=true}await audio.play();start.textContent='REPRODUCIENDO';pause.style.display='block';pause.textContent='PAUSAR';status.textContent='Audio FFT activo · graves / medios / agudos'}catch(e){status.textContent='No se pudo reproducir atmosphereADM_binaural.mp3. Comprueba que esté en la raíz del repositorio. '+e.message}};
-pause.onclick=async()=>{if(audio.paused){await ctx.resume();await audio.play();pause.textContent='PAUSAR'}else{audio.pause();pause.textContent='REANUDAR'}};
-audio.onended=()=>{started=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
-audio.onerror=()=>{status.textContent='No se encuentra atmosphereADM_binaural.mp3 o el formato no es compatible.'};
-function band(a,b){const nyquist=ctx.sampleRate/2;let lo=Math.max(0,Math.floor(a/nyquist*fft.length)),hi=Math.min(fft.length,Math.ceil(b/nyquist*fft.length)),s=0;for(let i=lo;i<hi;i++)s+=fft[i];return s/Math.max(1,hi-lo)/255}
-function analyse(){if(analyser&&!audio.paused&&!audio.ended){analyser.getByteFrequencyData(fft);bass+=(band(20,160)-bass)*.25;mid+=(band(160,2000)-mid)*.25;high+=(band(2000,12000)-high)*.25;energy=bass*.5+mid*.35+high*.15}else{bass*=.94;mid*=.94;high*=.94;energy*=.94}}
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x020309);scene.fog=new THREE.FogExp2(0x020309,.012);
-const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,150);camera.position.set(0,1.6,4);
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
-scene.add(new THREE.AmbientLight(0x627aff,1.2));const blue=new THREE.PointLight(0x55aaff,20,20),violet=new THREE.PointLight(0x7744ff,15,20);blue.position.set(3,4,2);violet.position.set(-3,0,-2);scene.add(blue,violet);
-const universe=new THREE.Group();universe.position.set(0,1.6,-2);scene.add(universe);
-const core=new THREE.Mesh(new THREE.IcosahedronGeometry(.65,3),new THREE.MeshPhysicalMaterial({color:0x567aff,metalness:.4,roughness:.18,wireframe:true,transparent:true,opacity:.75}));universe.add(core);
-const inner=new THREE.Mesh(new THREE.DodecahedronGeometry(.37,2),new THREE.MeshBasicMaterial({color:0x77bbff,transparent:true,opacity:.22,wireframe:true}));universe.add(inner);
-const rings=[];for(let i=0;i<7;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(.95+i*.21,.007,6,150),new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.56+i*.025,.85,.65),transparent:true,opacity:.48,depthWrite:false}));r.rotation.x=i*.41;r.rotation.y=i*.57;universe.add(r);rings.push(r)}
-const count=1600,pos=new Float32Array(count*3),original=new Float32Array(count*3);for(let i=0;i<count;i++){const r=1.8+Math.random()*7,a=Math.random()*Math.PI*2,z=Math.random()*2-1,f=Math.sqrt(1-z*z);pos[i*3]=r*f*Math.cos(a);pos[i*3+1]=r*z;pos[i*3+2]=r*f*Math.sin(a)}original.set(pos);
-const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));const particles=new THREE.Points(pg,new THREE.PointsMaterial({color:0x8aabff,size:.019,transparent:true,opacity:.65,depthWrite:false}));universe.add(particles);
-const satellites=[];for(let i=0;i<12;i++){const m=new THREE.Mesh(new THREE.TetrahedronGeometry(.035+Math.random()*.055),new THREE.MeshBasicMaterial({color:0x7bcfff,wireframe:true,transparent:true,opacity:.65}));m.userData={radius:1.5+Math.random()*2.3,speed:.12+Math.random()*.25,phase:Math.random()*6.28,height:(Math.random()-.5)*2};universe.add(m);satellites.push(m)}
-const clock=new THREE.Clock();let t=0;
-renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);analyse();const playing=!audio.paused&&!audio.ended;t+=playing?dt:dt*.1;const gain=Number(intensity.value),b=bass*gain,m=mid*gain,h=high*gain,e=energy*gain;
-core.scale.setScalar(1+b*1.3);core.rotation.x+=dt*(.06+m*.4);core.rotation.y+=dt*(.1+m*.5);inner.scale.setScalar(1+m*.6);inner.rotation.z+=dt*(.07+m*.5);
-rings.forEach((r,i)=>{r.rotation.z+=dt*(.03+i*.008+m*.4);r.rotation.y+=dt*(.025+h*.3);r.scale.setScalar(1+m*(.22+i*.025));r.material.opacity=Math.min(.95,.2+m*.65)});
-particles.rotation.y+=dt*(.005+h*.07);particles.material.opacity=Math.min(1,.3+h*.65);particles.material.size=.016+h*.024;
-const a=pg.attributes.position;for(let i=0;i<count;i++){const k=i*3,expand=1+h*.2+Math.sin(t*.4+i)*h*.08;a.array[k]=original[k]*expand;a.array[k+1]=original[k+1]*expand;a.array[k+2]=original[k+2]*expand}a.needsUpdate=true;
-satellites.forEach((s,i)=>{const d=s.userData,a=t*(d.speed+m*.3)+d.phase,r=d.radius*(1+b*.2);s.position.set(Math.cos(a)*r,d.height+Math.sin(t*.4+i)*(.2+h*.3),Math.sin(a)*r);s.rotation.x+=dt*(.2+m);s.rotation.y+=dt*(.1+h)});
-blue.intensity=12+e*35;violet.intensity=10+e*28;universe.rotation.y=Math.sin(t*.045)*(.12+e*.05);
-renderer.render(scene,camera)});
+function applyEQ(){eqInputs.forEach((input,i)=>{input.value=eq[i];values[i].textContent=(eq[i]>0?'+':'')+eq[i];if(filters)filters[i].gain.value=eq[i]});drawPanel()}
+eqInputs.forEach((input,i)=>input.addEventListener('input',()=>{eq[i]=Number(input.value);selected=i;applyEQ()}));
+async function initializeAudio(){
+ if(!ctx){
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  filters=[
+   new BiquadFilterNode(ctx,{type:'lowshelf',frequency:160,gain:eq[0]}),
+   new BiquadFilterNode(ctx,{type:'peaking',frequency:1000,Q:.7,gain:eq[1]}),
+   new BiquadFilterNode(ctx,{type:'highshelf',frequency:2500,gain:eq[2]})
+  ];
+  analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.78;
+  fft=new Uint8Array(analyser.frequencyBinCount);
+  source=ctx.createMediaElementSource(audio);source.connect(filters[0]);
+  filters[0].connect(filters[1]);filters[1].connect(filters[2]);
+  filters[2].connect(analyser);analyser.connect(ctx.destination);
+ }await ctx.resume();
+}
+start.onclick=async()=>{try{await initializeAudio();if(audio.ended)audio.currentTime=0;await audio.play();playing=true;start.textContent='REPRODUCIENDO';pause.style.display='block';pause.textContent='PAUSAR';status.textContent='Reproduciendo · FFT y ecualización activos'}catch(e){status.textContent='Error de reproducción: revisa atmosphereADM_binaural.mp3. '+e.message}};
+pause.onclick=async()=>{if(audio.paused){try{await ctx.resume();await audio.play();pause.textContent='PAUSAR'}catch(e){status.textContent=e.message}}else{audio.pause();pause.textContent='REANUDAR'}};
+audio.onended=()=>{playing=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
+audio.onerror=()=>status.textContent='Error: no se pudo cargar atmosphereADM_binaural.mp3.';
+let low=0,mid=0,high=0;
+function band(a,b){if(!ctx)return 0;const ny=ctx.sampleRate/2,lo=Math.max(0,Math.floor(a/ny*fft.length)),hi=Math.min(fft.length,Math.ceil(b/ny*fft.length));let s=0;for(let i=lo;i<hi;i++)s+=fft[i];return s/Math.max(1,hi-lo)/255}
+function analyze(){if(analyser&&!audio.paused&&!audio.ended){analyser.getByteFrequencyData(fft);low+=(band(20,160)-low)*.24;mid+=(band(160,2000)-mid)*.24;high+=(band(2000,12000)-high)*.24}else{low*=.94;mid*=.94;high*=.94}}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x02030b);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,150);camera.position.set(0,1.6,4.5);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
+document.body.appendChild(renderer.domElement);
+const vrButton=VRButton.createButton(renderer);$('vr').appendChild(vrButton);vrButton.style.position='static';vrButton.style.width='145px';vrButton.style.background='#203a69';vrButton.style.border='1px solid #6787ba';
+renderer.xr.addEventListener('sessionstart',()=>{ $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=true;status.textContent='Modo VR activo'});
+renderer.xr.addEventListener('sessionend',()=>{ $('landing').style.display='block';vrPanel.visible=false });
+const world=new THREE.Group();scene.add(world);
+// Esferas que emergen únicamente de partículas y ribbons; sin sólidos geométricos.
+const N=1200,positions=new Float32Array(N*3),seeds=[];
+for(let i=0;i<N;i++){const u=Math.random()*2-1,a=Math.random()*Math.PI*2,f=Math.sqrt(1-u*u);seeds.push({x:f*Math.cos(a),y:u,z:f*Math.sin(a),radius:.8+Math.random()*.4,cluster:i%3,phase:Math.random()*6.283});}
+const pgeo=new THREE.BufferGeometry();pgeo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+const points=new THREE.Points(pgeo,new THREE.PointsMaterial({color:0x8aaeff,size:.018,transparent:true,opacity:.8,depthWrite:false}));world.add(points);
+const R=18,SEG=64,ribbons=[];
+for(let i=0;i<R;i++){const vertices=new Float32Array(SEG*2*3),geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.BufferAttribute(vertices,3));
+const ids=[];for(let j=0;j<SEG-1;j++){const k=j*2;ids.push(k,k+1,k+2,k+1,k+3,k+2)}
+geo.setIndex(ids);const mat=new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.54+(i%3)*.075,.8,.63),transparent:true,opacity:.38,side:THREE.DoubleSide,depthWrite:false});
+const mesh=new THREE.Mesh(geo,mat);world.add(mesh);ribbons.push(mesh)}
+const centers=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()];
+function sphereCenters(t,react){const spread=1.0+.45*Math.sin(t*.13)+react*.22;centers[0].set(-spread,.05,.0);centers[1].set(spread,.22,-.35);centers[2].set(.1,-.3,-1.15)}
+function updateObjects(t,react,lo,me,hi){
+ sphereCenters(t,react);
+ const formation=.5+.5*Math.sin(t*.24-1.1), disperse=(1-formation)*.85;
+ const arr=pgeo.attributes.position.array;
+ for(let i=0;i<N;i++){const s=seeds[i],c=centers[s.cluster],f=s.radius*(.65+formation*.42+lo*.48);
+ const flutter=.07*Math.sin(t*(.38+hi*.5)+s.phase);
+ arr[i*3]=c.x+s.x*(f+flutter)+Math.sin(s.phase*2+t*.12)*disperse;
+ arr[i*3+1]=1.65+c.y+s.y*(f+flutter)+Math.cos(s.phase+t*.18)*disperse;
+ arr[i*3+2]=-3+c.z+s.z*(f+flutter)+Math.cos(s.phase*3+t*.13)*disperse}
+ pgeo.attributes.position.needsUpdate=true;
+ points.material.size=.013+hi*.034;points.material.opacity=Math.min(1,.55+hi*.65);
+ ribbons.forEach((mesh,i)=>{const a=mesh.geometry.attributes.position.array,c=centers[i%3],phase=i*2.399,theta=i*.27+t*(.035+me*.13),radius=(.7+.23*Math.sin(i*2.1))*(.75+formation*.35+lo*.36);
+ for(let j=0;j<SEG;j++){const v=j/(SEG-1),angle=v*Math.PI*2+phase+t*(.12+me*.22),w=.008+hi*.018;
+ const x=radius*Math.cos(angle)*Math.cos(theta)+radius*.45*Math.sin(angle)*Math.sin(theta);
+ const y=radius*Math.sin(angle)*Math.cos(theta*.63);
+ const z=radius*Math.sin(angle)*Math.sin(theta)-radius*.45*Math.cos(angle)*Math.cos(theta);
+ const k=j*6;
+ a[k]=c.x+x;a[k+1]=1.65+c.y+y;a[k+2]=-3+c.z+z;
+ a[k+3]=c.x+x*(1+w);a[k+4]=1.65+c.y+y*(1+w);a[k+5]=-3+c.z+z*(1+w)}
+ mesh.geometry.attributes.position.needsUpdate=true;mesh.material.opacity=Math.min(.85,.22+me*.48)});
+}
+// World-space VR control panel with controller selection and thumbstick adjustments.
+const panelCanvas=document.createElement('canvas');panelCanvas.width=768;panelCanvas.height=512;
+const pc=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
+const vrPanel=new THREE.Mesh(new THREE.PlaneGeometry(.86,.575),new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,depthTest:false}));
+vrPanel.position.set(0,1.25,-1.25);vrPanel.renderOrder=100;vrPanel.visible=false;scene.add(vrPanel);
+function drawPanel(){if(!pc)return;pc.clearRect(0,0,768,512);pc.fillStyle='rgba(5,12,30,.94)';pc.fillRect(0,0,768,512);pc.strokeStyle='#526b99';pc.strokeRect(3,3,762,506);pc.fillStyle='#f0f4ff';pc.font='32px Arial';pc.fillText('ATMOSPHERE · EQ',28,49);
+ pc.fillStyle='#a7bddc';pc.font='22px Arial';pc.fillText('Gatillo izq.: banda · Stick der. ↔: ajustar',28,88);
+ ['GRAVES','MEDIOS','AGUDOS'].forEach((label,i)=>{const y=161+i*110;pc.fillStyle=i===selected?'#d4e9ff':'#91a6c7';pc.font='26px Arial';pc.fillText((i===selected?'▶ ':'  ')+label,30,y);
+ pc.fillStyle='#243854';pc.fillRect(45,y+19,560,15);pc.fillStyle='#69b7ef';const x=45+(eq[i]+12)/24*560;pc.fillRect(45,y+19,x-45,15);pc.fillStyle='#ecf4ff';pc.fillText((eq[i]>0?'+':'')+eq[i]+' dB',620,y+37)});
+ pc.fillStyle='#99adc9';pc.font='19px Arial';pc.fillText('Stick izquierdo ↕: respuesta visual',28,491);panelTexture.needsUpdate=true}
+drawPanel();const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
+controllers.forEach((controller,i)=>{scene.add(controller);const ray=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:i===0?0x7e9fe0:0x77d3ff}));controller.add(ray);
+ controller.addEventListener('selectstart',()=>{if(!renderer.xr.isPresenting)return;selected=(selected+1)%3;applyEQ()})});
+let stickCooldown=0;
+function handleControllers(dt){if(!renderer.xr.isPresenting)return;stickCooldown=Math.max(0,stickCooldown-dt);
+ const session=renderer.xr.getSession();if(!session)return;
+ const sources=[...session.inputSources].filter(s=>s.gamepad);
+ for(const src of sources){const axes=src.gamepad.axes||[],x=axes.length>=4?axes[2]:axes[0]||0,y=axes.length>=4?axes[3]:axes[1]||0;
+ if(src.handedness==='right'&&Math.abs(x)>.25&&stickCooldown===0){eq[selected]=Math.max(-12,Math.min(12,eq[selected]+Math.sign(x)));applyEQ();stickCooldown=.1}
+ if(src.handedness==='left'){if(Math.abs(x)>.7&&stickCooldown===0){selected=(selected+(x>0?1:2))%3;applyEQ();stickCooldown=.24}
+ if(Math.abs(y)>.3){$('visual').value=Math.max(.2,Math.min(3,Number($('visual').value)-y*dt*.6))}}}
+}
+let t=0;const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);analyze();handleControllers(dt);t+=dt*(audio.paused?.28:1);
+const factor=Number($('visual').value),lo=low*factor,me=mid*factor,hi=high*factor;
+updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);renderer.render(scene,camera)});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
