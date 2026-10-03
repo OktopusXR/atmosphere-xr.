@@ -19,7 +19,10 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 @media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
 
 #prologue{position:fixed;inset:0;background:radial-gradient(circle,rgba(5,12,28,.44),rgba(2,4,14,.66) 80%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:25px;pointer-events:auto}
-#voiceStart{margin-top:26px;min-width:170px;letter-spacing:3px;background:#142743b8;border:1px solid #879ab7}#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
+#voiceStart{margin-top:26px;min-width:170px;letter-spacing:3px;background:#142743b8;border:1px solid #879ab7}#introTitle{font-size:clamp(42px,8vw,102px);font-weight:300;letter-spacing:.16em;line-height:1.1;color:#edf5ff;text-align:center;text-shadow:0 0 34px rgba(92,151,224,.24);margin:14px 0 18px}
+#prologue.awaiting .english,#prologue.awaiting .spanish,#prologue.awaiting #voiceViz,#prologue.awaiting .credit,#prologue.awaiting #skipIntro{display:none!important}
+#prologue.narrating #introTitle{font-size:clamp(28px,4.5vw,54px);margin:5px 0 18px;opacity:.78;transition:font-size .7s ease}
+#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
 #prologue .english{font-size:clamp(20px,3.5vw,36px);max-width:740px;line-height:1.4;font-weight:300;letter-spacing:.03em}
 #prologue .spanish{font-size:clamp(13px,2vw,18px);margin-top:13px;color:#a5b5d0;max-width:690px;line-height:1.5}
 #skipIntro{margin-top:25px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}#enterExperience{display:none;margin-top:24px;letter-spacing:2px}#prologue .eyebrow{text-shadow:0 1px 12px #000}#prologue .english,#prologue .spanish{text-shadow:0 2px 16px #000}#prologue .credit{font-size:12px;color:#9eb2cf;max-width:660px;line-height:1.6;margin-top:17px}#prologue .credit a{color:#c5ddff;text-decoration:none;border-bottom:1px solid #566c8e}
@@ -43,7 +46,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 <a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
 </div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
 </div>
-<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><canvas id="voiceViz" width="720" height="120" aria-label="Actividad de la narración"></canvas><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
+<div id="prologue" aria-live="polite"><div class="eyebrow">TECHNO POESIS</div><div id="introTitle">ATMOSPHERE</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><canvas id="voiceViz" width="720" height="120" aria-label="Actividad de la narración"></canvas><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
 <canvas id="musicViz" width="1024" height="160" aria-label="Espectro real de la música"></canvas><div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
@@ -164,7 +167,7 @@ function speakPrologue(){
 }
 function finishIntro(){
  if(introFinished)return;
- introFinished=true;narrationActive=false;voiceViz.style.display='none';cancelIntroTimers();$('voiceStart').style.display='none';
+ introFinished=true;prologue.classList.remove('awaiting');narrationActive=false;voiceViz.style.display='none';cancelIntroTimers();$('voiceStart').style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
  introEn.textContent='Enter the atmosphere.';introEs.textContent='Entra en la atmósfera.';
  credit.style.display='block';drawIntroPanel({en:'Enter the atmosphere.',es:'Entra en la atmósfera.'});
@@ -173,19 +176,19 @@ function finishIntro(){
 // A passive visual entry; narration and Web Audio need an explicit user gesture.
 function startIntro(){
  introActive=true;introFinished=false;introCounter++;
- $('landing').style.display='none';prologue.style.display='flex';
- skip.style.display='block';enter.style.display='none';credit.style.display='none';
+ $('landing').style.display='none';prologue.style.display='flex';prologue.classList.add('awaiting');prologue.classList.remove('narrating');
+ skip.style.display='none';enter.style.display='none';credit.style.display='none';
  $('voiceStart').style.display='block';$('voiceStart').textContent='START';
- introCaption(0);
- narrationActive=false;voiceViz.style.display='none';voiceActuallyStarted=false;voiceAttempted=false;
+ introEn.textContent='';introEs.textContent='';narrationActive=false;voiceViz.style.display='none';voiceActuallyStarted=false;voiceAttempted=false;
 }
 // Voice and ambience begin inside the explicit user gesture.
 $('voiceStart').onclick=()=>{
  if(!introActive||introFinished)return;
  cancelIntroTimers();introCounter++;
  const token=introCounter;
+ prologue.classList.remove('awaiting');prologue.classList.add('narrating');
  ambientStart();speakPrologue();
- $('voiceStart').style.display='none';
+ $('voiceStart').style.display='none';skip.style.display='block';
  introCaption(0);
  [1,2,3].forEach(i=>introTimeouts.push(setTimeout(()=>{
   if(introActive&&introCounter===token)introCaption(i);
@@ -289,6 +292,48 @@ for(let i=0;i<R;i++){
  const mat=new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.53+(i%4)*.035,.75,.66),transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide});
  const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;world.add(mesh);ribbons.push(mesh);
 }
+// Intersecting central filaments: retain the delicate crossed-line composition,
+// but render as slender volumetric tubes with continuous 3D depth.
+const CROSS_COUNT=14,CROSS_SEGMENTS=96,CROSS_SIDES=6,crossedFilaments=[];
+for(let i=0;i<CROSS_COUNT;i++){
+ const geo=new THREE.BufferGeometry(),positions=new Float32Array((CROSS_SEGMENTS+1)*(CROSS_SIDES+1)*3),indices=[];
+ geo.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
+ for(let j=0;j<CROSS_SEGMENTS;j++)for(let k=0;k<CROSS_SIDES;k++){
+  const a=j*(CROSS_SIDES+1)+k,b=a+CROSS_SIDES+1;indices.push(a,a+1,b,a+1,b+1,b);
+ }
+ geo.setIndex(indices);
+ const material=new THREE.MeshBasicMaterial({
+  color:new THREE.Color().setHSL(.54+(i%5)*.021,.65,.71),
+  transparent:true,opacity:.27,depthWrite:false,side:THREE.DoubleSide
+ });
+ const filament=new THREE.Mesh(geo,material);
+ filament.frustumCulled=false;world.add(filament);crossedFilaments.push(filament);
+}
+function updateCrossedFilaments(t,lo,me,hi){
+ crossedFilaments.forEach((filament,i)=>{
+  const a=filament.geometry.attributes.position.array;
+  const direction=i*2.399,ct=Math.cos(direction),st=Math.sin(direction);
+  const baseR=2.8+Math.sin(i*.83)*.75,elliptic=.46+.17*Math.sin(i);
+  const width=.009+.013*me+.009*hi;
+  for(let j=0;j<=CROSS_SEGMENTS;j++){
+   const u=j/CROSS_SEGMENTS,angle=u*Math.PI*2+t*(.04+me*.06)+i*.7;
+   const breathe=baseR*(1+.055*Math.sin(5*angle+t*.3+i)+lo*.14);
+   // Each ellipse tilts in 3D and repeatedly intersects its neighbours.
+   const x0=breathe*Math.cos(angle),y0=breathe*elliptic*Math.sin(angle);
+   const z0=breathe*.5*Math.sin(angle+i*.65);
+   const x=x0*ct-y0*st,y=x0*st+y0*ct;
+   for(let k=0;k<=CROSS_SIDES;k++){
+    const v=k/CROSS_SIDES*Math.PI*2,p=j*(CROSS_SIDES+1)*3+k*3;
+    a[p]=x+Math.cos(v)*width;
+    a[p+1]=1.6+y+Math.sin(v)*width;
+    a[p+2]=-2.0+z0;
+   }
+  }
+  filament.geometry.attributes.position.needsUpdate=true;
+  filament.material.opacity=Math.min(.7,.23+.22*me+.13*lo);
+ });
+}
+
 // Continuous spherical frequency membranes surrounding the observer.
 // Animated radial wavebands, not flat front-facing rings.
 const WAVE_LAYERS=9,WAVE_SEGMENTS=140;
@@ -562,7 +607,7 @@ function handleControllers(dt){if(!renderer.xr.isPresenting)return;stickCooldown
 let t=0;const clock=new THREE.Clock();
 renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);analyze();handleControllers(dt);t+=dt*(audio.paused?.28:1);
 const factor=Number($('visual').value),lo=low*factor,me=mid*factor,hi=high*factor;
-updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);updateReactiveAccents(t,lo,me,hi);updateSpectralCrown(t);drawVoiceActivity(dt);if(musicViz.style.display!=='none')drawMusicSpectrum();renderer.render(scene,camera)});
+updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);updateReactiveAccents(t,lo,me,hi);updateCrossedFilaments(t,lo,me,hi);updateSpectralCrown(t);drawVoiceActivity(dt);if(musicViz.style.display!=='none')drawMusicSpectrum();renderer.render(scene,camera)});
 startIntro();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
