@@ -384,36 +384,79 @@ function updateReactiveAccents(t,lo,me,hi){
  haloMaterial.opacity=Math.min(.85,.13+e*.43);
 }
 
-// 360° true FFT spectral crown surrounding the listener, not just amplitude pulses.
-const SPECTRAL_BARS=144,spectralGeometry=new THREE.CylinderGeometry(.012,.012,1,4,1);
-const spectralMaterial=new THREE.MeshBasicMaterial({color:0x99d4ff,transparent:true,opacity:.73,depthWrite:false});
+// Volumetric 360° FFT sculpture.
+// Rounded spectral columns plus three double-sided breathing tubular wave belts.
+const SPECTRAL_BARS=144;
+const spectralGeometry=new THREE.CylinderGeometry(.056,.09,1,8,1);
+const spectralMaterial=new THREE.MeshPhongMaterial({color:0x85bfff,emissive:0x173c69,emissiveIntensity:.55,transparent:true,opacity:.78,depthWrite:false,shininess:75});
 const spectralMesh=new THREE.InstancedMesh(spectralGeometry,spectralMaterial,SPECTRAL_BARS);
-spectralMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-spectralMesh.frustumCulled=false;world.add(spectralMesh);
+spectralMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);spectralMesh.frustumCulled=false;
+world.add(spectralMesh);
 const spectrumDummy=new THREE.Object3D(),spectrumAxis=new THREE.Vector3(0,1,0),spectrumLevels=new Float32Array(SPECTRAL_BARS);
+const WAVE_BELTS=3,BELT_SEGMENTS=144,BELT_SIDES=9,volumetricBelts=[];
+for(let belt=0;belt<WAVE_BELTS;belt++){
+ const geo=new THREE.BufferGeometry();
+ const vertices=new Float32Array((BELT_SEGMENTS+1)*(BELT_SIDES+1)*3);
+ const normals=new Float32Array(vertices.length),indices=[];
+ for(let j=0;j<BELT_SEGMENTS;j++)for(let k=0;k<BELT_SIDES;k++){
+  const a=j*(BELT_SIDES+1)+k,b=a+BELT_SIDES+1;
+  indices.push(a,b,a+1,b,b+1,a+1);
+ }
+ geo.setAttribute('position',new THREE.BufferAttribute(vertices,3).setUsage(THREE.DynamicDrawUsage));
+ geo.setIndex(indices);
+ const material=new THREE.MeshPhongMaterial({
+  color:new THREE.Color().setHSL(.54+belt*.06,.72,.6),emissive:0x0d2543,emissiveIntensity:.48,
+  transparent:true,opacity:.26,depthWrite:false,side:THREE.DoubleSide,shininess:90
+ });
+ const mesh=new THREE.Mesh(geo,material);mesh.frustumCulled=false;world.add(mesh);volumetricBelts.push(mesh);
+}
+const spectrumLight=new THREE.PointLight(0x7aaeff,4,14);spectrumLight.position.set(0,1.6,0);world.add(spectrumLight);
 function updateSpectralCrown(t){
  const playing=analyser&&!audio.paused&&!audio.ended;
- const ny=ctx?ctx.sampleRate/2:22050;
+ const ny=ctx?ctx.sampleRate/2:22050,visualGain=Number($('visual').value);
+ let spectralTotal=0;
  for(let i=0;i<SPECTRAL_BARS;i++){
   const theta=i/SPECTRAL_BARS*Math.PI*2;
   const frequency=45*Math.pow(12000/45,i/(SPECTRAL_BARS-1));
   const bin=playing?Math.min(fft.length-1,Math.round(frequency/ny*fft.length)):0;
   const raw=playing?fft[bin]/255:0;
-  spectrumLevels[i]+=(raw-spectrumLevels[i])*.28;
-  // Curved belts around the viewer, offset in latitude to remain visible from all sides.
-  const y=Math.sin(i*.47)*1.2;
-  const r=2.6+.5*Math.sin(i*.29);
-  const direction=new THREE.Vector3(Math.cos(theta)*.92,y*.19,Math.sin(theta)*.92).normalize();
-  const amount=Math.pow(Math.min(1,spectrumLevels[i]*3.4*Number($('visual').value)),.75);
-  const length=.045+amount*1.6;
+  spectrumLevels[i]+=(raw-spectrumLevels[i])*.22;
+  const amount=Math.pow(Math.min(1,spectrumLevels[i]*3.5*visualGain),.8);
+  spectralTotal+=amount;
+  const y=Math.sin(i*.47)*1.22,r=2.8+.40*Math.sin(i*.29);
+  const direction=new THREE.Vector3(Math.cos(theta)*.94,y*.19,Math.sin(theta)*.94).normalize();
+  const length=.045+amount*1.85;
   spectrumDummy.position.set(Math.cos(theta)*r+direction.x*length*.5,1.6+y+direction.y*length*.5,Math.sin(theta)*r+direction.z*length*.5);
   spectrumDummy.quaternion.setFromUnitVectors(spectrumAxis,direction);
-  spectrumDummy.scale.set(.85,length,.85);
+  spectrumDummy.scale.set(1+amount*.85,length,1+amount*.85);
   spectrumDummy.updateMatrix();spectralMesh.setMatrixAt(i,spectrumDummy.matrix);
  }
  spectralMesh.instanceMatrix.needsUpdate=true;
+ volumetricBelts.forEach((mesh,belt)=>{
+  const out=mesh.geometry.attributes.position.array,base=4.7+belt*.95;
+  for(let j=0;j<=BELT_SEGMENTS;j++){
+   const u=j/BELT_SEGMENTS,theta=u*Math.PI*2,index=j%SPECTRAL_BARS;
+   // Each angular cell samples a nearby FFT band; it has real radial depth.
+   const fftBand=(index+Math.floor(belt*SPECTRAL_BARS/3))%SPECTRAL_BARS;
+   const nearby=spectrumLevels[fftBand],strength=Math.pow(Math.min(1,nearby*3.5*visualGain),.8);
+   const radius=base+strength*(.65+belt*.2)+Math.sin(theta*9-t*.55+belt)*(.04+strength*.18);
+   const latitude=.45*Math.sin(theta*2+belt*2.1+t*.035);
+   const centerY=1.6+Math.sin(latitude)*1.1;
+   for(let k=0;k<=BELT_SIDES;k++){
+    const angle=k/BELT_SIDES*Math.PI*2,thickness=.035+strength*.22;
+    const radial=radius+Math.cos(angle)*thickness,dy=Math.sin(angle)*thickness;
+    const ix=(j*(BELT_SIDES+1)+k)*3;
+    out[ix]=Math.cos(theta)*radial;
+    out[ix+1]=centerY+dy;
+    out[ix+2]=Math.sin(theta)*radial;
+   }
+  }
+  mesh.geometry.attributes.position.needsUpdate=true;
+  mesh.geometry.computeVertexNormals();
+  mesh.material.opacity=playing?Math.min(.75,.19+spectralTotal/SPECTRAL_BARS*.46):.12;
+ });
+ spectrumLight.intensity=2+spectralTotal/SPECTRAL_BARS*12;
 }
-
 // Orbiting nests are distributed in all directions, not lined up at the horizon.
 const anchorDirs=Array.from({length:9},(_,i)=>{
  const y=1-2*(i+.5)/9,a=i*golden,f=Math.sqrt(1-y*y);
