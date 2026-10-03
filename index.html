@@ -19,7 +19,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 @media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
 
 #prologue{position:fixed;inset:0;background:radial-gradient(circle,rgba(5,12,28,.44),rgba(2,4,14,.66) 80%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:25px;pointer-events:auto}
-#audioHint{display:none;position:absolute;bottom:20px;font-size:12px;color:#d7e6ff;letter-spacing:.07em;text-shadow:0 1px 6px #000}#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
+#voiceStart{margin-top:26px;min-width:170px;letter-spacing:3px;background:#142743b8;border:1px solid #879ab7}#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
 #prologue .english{font-size:clamp(20px,3.5vw,36px);max-width:740px;line-height:1.4;font-weight:300;letter-spacing:.03em}
 #prologue .spanish{font-size:clamp(13px,2vw,18px);margin-top:13px;color:#a5b5d0;max-width:690px;line-height:1.5}
 #skipIntro{margin-top:25px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}#enterExperience{display:none;margin-top:24px;letter-spacing:2px}#prologue .eyebrow{text-shadow:0 1px 12px #000}#prologue .english,#prologue .spanish{text-shadow:0 2px 16px #000}#prologue .credit{font-size:12px;color:#9eb2cf;max-width:660px;line-height:1.6;margin-top:17px}#prologue .credit a{color:#c5ddff;text-decoration:none;border-bottom:1px solid #566c8e}
@@ -39,7 +39,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 <a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
 </div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
 </div>
-<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><div id="audioHint">TOCA LA PANTALLA PARA HABILITAR EL AUDIO / TAP TO UNMUTE</div><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ACTIVAR SONIDO Y ENTRAR</button></div>
+<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ACTIVAR SONIDO Y ENTRAR</button></div>
 <div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
@@ -121,23 +121,14 @@ function speakPrologue(){
   u.lang='en-US';u.rate=.78;u.pitch=1.04;u.volume=1;
   const voices=speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
   u.voice=voices.find(v=>/natural|enhanced|neural/i.test(v.name))||voices[0]||null;
-  u.onstart=()=>{voiceActuallyStarted=true;$('audioHint').style.display='none'};
-  u.onerror=()=>{if(introActive&&!introFinished)$('audioHint').style.display='block'};
+  u.onstart=()=>{voiceActuallyStarted=true};
+  u.onerror=()=>{if(introActive&&!introFinished)$('voiceStart').textContent='REINTENTAR VOZ'};
   speechSynthesis.speak(u);
- }catch(e){$('audioHint').style.display='block'}
+ }catch(e){$('voiceStart').textContent='REINTENTAR VOZ'}
 }
-function unlockIntroAudio(){
- if(!introActive||introFinished)return;
- if(ambienceCtx&&ambienceCtx.state==='suspended')ambienceCtx.resume().catch(()=>{});
- else ambientStart();
- if(!voiceActuallyStarted)speakPrologue();
- $('audioHint').style.display='none';
-}
-prologue.addEventListener('pointerdown',unlockIntroAudio,{passive:true});
-prologue.addEventListener('keydown',(e)=>{if(e.key==='Enter'||e.key===' ')unlockIntroAudio()});
 function finishIntro(){
  if(introFinished)return;
- introFinished=true;cancelIntroTimers();$('audioHint').style.display='none';
+ introFinished=true;cancelIntroTimers();$('voiceStart').style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
  introEn.textContent='Enter the atmosphere.';introEs.textContent='Entra en la atmósfera.';
  credit.style.display='block';drawIntroPanel({en:'Enter the atmosphere.',es:'Entra en la atmósfera.'});
@@ -146,23 +137,27 @@ function finishIntro(){
 // A passive visual entry; narration and Web Audio need an explicit user gesture.
 function startIntro(){
  introActive=true;introFinished=false;introCounter++;
- const token=introCounter;
  $('landing').style.display='none';prologue.style.display='flex';
  skip.style.display='block';enter.style.display='none';credit.style.display='none';
+ $('voiceStart').style.display='block';$('voiceStart').textContent='START';
  introCaption(0);
  voiceActuallyStarted=false;voiceAttempted=false;
- // Best-effort automatic ambient sound and narration. Browsers may require
- // a user gesture before allowing audio to be heard.
- ambientStart();
- speakPrologue();
- setTimeout(()=>{if(introActive&&!introFinished&&!voiceActuallyStarted)$('audioHint').style.display='block'},2200);
+}
+// Voice and ambience begin inside the explicit user gesture.
+$('voiceStart').onclick=()=>{
+ if(!introActive||introFinished)return;
+ cancelIntroTimers();introCounter++;
+ const token=introCounter;
+ ambientStart();speakPrologue();
+ $('voiceStart').style.display='none';
+ introCaption(0);
  [1,2,3].forEach(i=>introTimeouts.push(setTimeout(()=>{
   if(introActive&&introCounter===token)introCaption(i);
  },i*4400)));
  introTimeouts.push(setTimeout(()=>{
   if(introActive&&introCounter===token)finishIntro();
  },17600));
-}
+};
 skip.onclick=finishIntro;
 async function enterWorld(){
  try{
