@@ -17,6 +17,12 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 #vr{position:fixed;bottom:18px;right:18px;z-index:8}#vr button{font-weight:600}
 #collapse{position:fixed;top:14px;right:14px;z-index:8;display:none}
 @media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
+
+#prologue{position:fixed;inset:0;background:radial-gradient(circle,#081021f0,#020309fa 68%);z-index:20;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:25px;pointer-events:auto}
+#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
+#prologue .english{font-size:clamp(20px,3.5vw,36px);max-width:740px;line-height:1.4;font-weight:300;letter-spacing:.03em}
+#prologue .spanish{font-size:clamp(13px,2vw,18px);margin-top:13px;color:#a5b5d0;max-width:690px;line-height:1.5}
+#skipIntro{margin-top:35px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}
 </style>
 </head><body>
 <div id="landing"><h1>ATMOSPHERE</h1><div class="sub">OKTOPUS ART STUDIO · IMMERSIVE SOUNDSCAPE</div>
@@ -33,13 +39,14 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 <a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
 </div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
 </div>
+<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><button id="skipIntro">OMITIR INTRO</button></div>
 <div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
 
 const $=id=>document.getElementById(id), status=$('status'),start=$('start'),pause=$('pause');
 const eqInputs=[$('bassEQ'),$('midEQ'),$('highEQ')],values=[$('bv'),$('mv'),$('hv')];
-let eq=[0,0,0],selected=0,ctx,fft,analyser,filters,source,playing=false;
+let eq=[0,0,0],selected=0,ctx,fft,analyser,filters,source,introGain,playing=false;
 const audio=new Audio('./atmosphereADM_binaural.mp3');audio.preload='metadata';audio.crossOrigin='anonymous';
 function applyEQ(){eqInputs.forEach((input,i)=>{input.value=eq[i];values[i].textContent=(eq[i]>0?'+':'')+eq[i];if(filters)filters[i].gain.value=eq[i]});drawPanel()}
 eqInputs.forEach((input,i)=>input.addEventListener('input',()=>{eq[i]=Number(input.value);selected=i;applyEQ()}));
@@ -55,11 +62,75 @@ async function initializeAudio(){
   fft=new Uint8Array(analyser.frequencyBinCount);
   source=ctx.createMediaElementSource(audio);source.connect(filters[0]);
   filters[0].connect(filters[1]);filters[1].connect(filters[2]);
-  filters[2].connect(analyser);analyser.connect(ctx.destination);
+  filters[2].connect(analyser);introGain=ctx.createGain();introGain.gain.value=0;analyser.connect(introGain);introGain.connect(ctx.destination);
  }await ctx.resume();
 }
-start.onclick=async()=>{try{await initializeAudio();if(audio.ended)audio.currentTime=0;await audio.play();playing=true;start.textContent='REPRODUCIENDO';pause.style.display='block';pause.textContent='PAUSAR';status.textContent='Reproduciendo · FFT y ecualización activos'}catch(e){status.textContent='Error de reproducción: revisa atmosphereADM_binaural.mp3. '+e.message}};
-pause.onclick=async()=>{if(audio.paused){try{await ctx.resume();await audio.play();pause.textContent='PAUSAR'}catch(e){status.textContent=e.message}}else{audio.pause();pause.textContent='REANUDAR'}};
+
+const prologue=$('prologue'), introEn=$('introEn'),introEs=$('introEs');
+const lines=[
+ {en:'Invisible networks connect all forms of life.',es:'Redes invisibles conectan todas las formas de vida.'},
+ {en:'From body to Earth. From Earth to cosmos.',es:'Del cuerpo a la Tierra. De la Tierra al cosmos.'},
+ {en:'Listen. You are part of this resonance.',es:'Escucha. Eres parte de esta resonancia.'}
+];
+let introActive=false,introTimeouts=[],introCounter=0;
+function introCaption(i){
+ const p=lines[i];if(!p)return;introEn.textContent=p.en;introEs.textContent=p.es;
+ drawIntroPanel(p);
+}
+function cancelIntroTimers(){introTimeouts.forEach(clearTimeout);introTimeouts=[]}
+function endIntro(){
+ if(!introActive)return;
+ introActive=false;cancelIntroTimers();
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ prologue.style.display='none';intro3D.visible=false;if(renderer.xr.isPresenting)vrPanel.visible=true;
+ // Playback started from direct user gesture at zero gain; restart full track at 0.
+ audio.currentTime=0;
+ if(ctx&&introGain){
+  introGain.gain.cancelScheduledValues(ctx.currentTime);
+  introGain.gain.setValueAtTime(0,ctx.currentTime);
+  introGain.gain.linearRampToValueAtTime(1,ctx.currentTime+2);
+ }
+ status.textContent='Escucha inmersiva · FFT y ecualización activos';
+ pause.style.display='block';pause.textContent='PAUSAR';start.textContent='REPRODUCIENDO';
+}
+$('skipIntro').onclick=endIntro;
+function startIntro(){
+ introActive=true;introCounter++;
+ const token=introCounter;
+ prologue.style.display='flex';intro3D.visible=renderer.xr.isPresenting;
+ introCaption(0);
+ [1,2].forEach(i=>introTimeouts.push(setTimeout(()=>{if(introActive&&introCounter===token)introCaption(i)},i*4600)));
+ introTimeouts.push(setTimeout(()=>{if(introActive&&introCounter===token)endIntro()},13800));
+ // Use accessible browser-synthesized English voice. Captions remain if TTS isn't available.
+ if('speechSynthesis' in window){
+  try{
+   speechSynthesis.cancel();
+   const utterance=new SpeechSynthesisUtterance(lines.map(p=>p.en).join('  '));
+   utterance.lang='en-US';utterance.rate=.83;utterance.pitch=.86;utterance.volume=.95;
+   const voices=speechSynthesis.getVoices();
+   utterance.voice=voices.find(v=>v.lang.startsWith('en')&&/natural|google|samantha|daniel/i.test(v.name))||voices.find(v=>v.lang.startsWith('en'))||null;
+   speechSynthesis.speak(utterance);
+  }catch(e){/* retain text-only introduction */}
+ }
+}
+start.onclick=async()=>{
+ try{
+  if(introActive)return;
+  await initializeAudio();
+  if(audio.ended)audio.currentTime=0;
+  introGain.gain.cancelScheduledValues(ctx.currentTime);
+  introGain.gain.setValueAtTime(0,ctx.currentTime);
+  audio.currentTime=0;
+  await audio.play();
+  playing=true;start.textContent='INTRODUCCIÓN';
+  pause.style.display='none';
+  startIntro();
+ }catch(e){
+  status.textContent='Error de reproducción: '+e.message;
+ }
+};
+
+pause.onclick=async()=>{if(introActive)endIntro();if(audio.paused){try{await ctx.resume();await audio.play();pause.textContent='PAUSAR'}catch(e){status.textContent=e.message}}else{audio.pause();pause.textContent='REANUDAR'}};
 audio.onended=()=>{playing=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
 audio.onerror=()=>status.textContent='Error: no se pudo cargar atmosphereADM_binaural.mp3.';
 let low=0,mid=0,high=0;
@@ -88,8 +159,8 @@ async function setupVR(){
   renderer.xr.addEventListener('sessionend',()=>{button.textContent='ENTRAR EN VR'});
  }catch(e){/* Browser without immersive mode: keep conventional 3D view */}}
 setupVR();
-renderer.xr.addEventListener('sessionstart',()=>{ $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=true;status.textContent='Modo VR activo'});
-renderer.xr.addEventListener('sessionend',()=>{ $('landing').style.display='block';vrPanel.visible=false });
+renderer.xr.addEventListener('sessionstart',()=>{intro3D.visible=introActive; $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=!introActive;status.textContent='Modo VR activo'});
+renderer.xr.addEventListener('sessionend',()=>{intro3D.visible=false; $('landing').style.display='block';vrPanel.visible=false });
 const world=new THREE.Group();scene.add(world);
 // ENTORNO INTERIOR 360: las esferas no son objetos frontales.
 // El usuario se encuentra dentro de capas de material generativo en profundidad.
@@ -186,6 +257,30 @@ function updateObjects(t,react,lo,me,hi){
    ribbons[i].material.opacity=Math.min(.68,.17+.38*me);
  }
 }
+
+const introCanvas=document.createElement('canvas');introCanvas.width=1024;introCanvas.height=512;
+const introC=introCanvas.getContext('2d'),introTex=new THREE.CanvasTexture(introCanvas);
+const intro3D=new THREE.Mesh(new THREE.PlaneGeometry(2.15,1.075),new THREE.MeshBasicMaterial({map:introTex,transparent:true,depthTest:false}));
+intro3D.visible=false;intro3D.renderOrder=120;intro3D.position.set(0,1.6,-2.7);scene.add(intro3D);
+function wrapLines(text,maxWidth){
+ const words=text.split(' '),rows=[];let row='';
+ for(const word of words){const test=row?row+' '+word:word;
+ if(introC.measureText(test).width>maxWidth&&row){rows.push(row);row=word}else row=test}
+ rows.push(row);return rows;
+}
+function drawIntroPanel(p){
+ if(!introC)return;
+ introC.clearRect(0,0,1024,512);
+ introC.fillStyle='rgba(2,5,15,.86)';introC.fillRect(0,0,1024,512);
+ introC.textAlign='center';introC.fillStyle='#8caad0';introC.font='24px Arial';
+ introC.fillText('ATMOSPHERE · TECHNO POESIS',512,95);
+ introC.fillStyle='#f4f7ff';introC.font='40px Arial';
+ wrapLines(p.en,890).forEach((line,i)=>introC.fillText(line,512,212+i*55));
+ introC.fillStyle='#adc1da';introC.font='27px Arial';
+ wrapLines(p.es,890).forEach((line,i)=>introC.fillText(line,512,348+i*42));
+ introTex.needsUpdate=true;
+}
+
 // World-space VR control panel with controller selection and thumbstick adjustments.
 const panelCanvas=document.createElement('canvas');panelCanvas.width=768;panelCanvas.height=512;
 const pc=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
