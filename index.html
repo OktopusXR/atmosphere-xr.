@@ -3,7 +3,7 @@
 <title>ATMOSPHERE XR — Oktopus Art Studio</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#eef3ff;font:13px system-ui,Arial,sans-serif}canvas{display:block}
-#landing{display:none;position:fixed;z-index:6;top:14px;left:14px;width:min(342px,calc(100% - 28px));padding:19px;background:#060b1ce8;border:1px solid #31435d;border-radius:13px;backdrop-filter:blur(12px)}
+#landing{display:none;position:fixed;z-index:6;top:auto;bottom:62px;left:12px;width:min(285px,calc(100% - 24px));max-height:70vh;overflow-y:auto;padding:13px;background:rgba(6,11,28,.66);border:1px solid #31435d;border-radius:13px;backdrop-filter:blur(10px)}
 h1{font-size:21px;font-weight:400;letter-spacing:4px;margin:0 0 6px}.sub{font-size:10px;letter-spacing:2px;color:#abb9d3}
 p{line-height:1.55;color:#c3cee2}.muted{font-size:11px;color:#92a4be}
 button{background:#34578e;color:white;border:1px solid #6d84af;padding:11px 13px;border-radius:7px;cursor:pointer}
@@ -15,7 +15,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 #follow a{border:1px solid #3a5073;border-radius:8px;color:#f2f5fc;text-decoration:none;padding:10px;line-height:1.45;font-size:12px;background:#0d172e}
 #follow small{font-size:10px;color:#a7bfdc}#follow .atmos{color:#d1e6ff}
 #vr{position:fixed;bottom:18px;right:18px;z-index:8}#vr button{font-weight:600}
-#collapse{position:fixed;top:14px;right:14px;z-index:8;display:none}
+#collapse{position:fixed;left:12px;bottom:12px;top:auto;right:auto;z-index:8;display:none;background:rgba(11,21,44,.75);font-size:11px;padding:9px 13px;letter-spacing:1.4px}
 @media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
 
 #prologue{position:fixed;inset:0;background:radial-gradient(circle,rgba(5,12,28,.44),rgba(2,4,14,.66) 80%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:25px;pointer-events:auto}
@@ -28,7 +28,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 #skipIntro{margin-top:25px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}#enterExperience{display:none;margin-top:24px;letter-spacing:2px}#prologue .eyebrow{text-shadow:0 1px 12px #000}#prologue .english,#prologue .spanish{text-shadow:0 2px 16px #000}#prologue .credit{font-size:12px;color:#9eb2cf;max-width:660px;line-height:1.6;margin-top:17px}#prologue .credit a{color:#c5ddff;text-decoration:none;border-bottom:1px solid #566c8e}
 
 #voiceViz{display:none;width:min(620px,85vw);height:84px;margin:18px 0 0;pointer-events:none}
-#musicViz{display:none;position:fixed;left:50%;bottom:15px;transform:translateX(-50%);z-index:3;width:min(700px,65vw);height:88px;pointer-events:none;opacity:.8;filter:drop-shadow(0 0 8px #395a9a44)}
+#musicViz{display:none;position:fixed;left:50%;bottom:9px;transform:translateX(-50%);z-index:3;width:min(610px,58vw);height:70px;pointer-events:none;opacity:.43;filter:drop-shadow(0 0 5px #395a9a35)}
 @media(max-width:700px){#musicViz{bottom:75px;width:87vw;height:62px}}
 </style>
 </head><body>
@@ -52,6 +52,17 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 import * as THREE from 'https://esm.sh/three@0.173.0';
 
 const $=id=>document.getElementById(id), status=$('status'),start=$('start'),pause=$('pause');
+const controlsToggle=$('collapse');
+let controlsExpanded=false;
+function setControlsExpanded(expanded){
+ controlsExpanded=expanded;
+ if(!introActive&&!renderer.xr.isPresenting){
+  $('landing').style.display=expanded?'block':'none';
+  controlsToggle.style.display='block';
+  controlsToggle.textContent=expanded?'OCULTAR CONTROLES':'CONTROLES';
+ }
+}
+controlsToggle.onclick=()=>setControlsExpanded(!controlsExpanded);
 const eqInputs=[$('bassEQ'),$('midEQ'),$('highEQ')],values=[$('bv'),$('mv'),$('hv')];
 let eq=[0,0,0],selected=0,ctx,fft,analyser,filters,source,introGain,playing=false;
 const audio=new Audio('./atmosphereADM_binaural.mp3');audio.preload='metadata';audio.crossOrigin='anonymous';
@@ -212,7 +223,7 @@ async function enterWorld(){
   ambientStop();narrationActive=false;voiceViz.style.display='none';introActive=false;introFinished=true;cancelIntroTimers();
   if('speechSynthesis' in window)speechSynthesis.cancel();
   prologue.style.display='none';intro3D.visible=false;
-  $('landing').style.display=renderer.xr.isPresenting?'none':'block';
+  $('landing').style.display='none';if(!renderer.xr.isPresenting)setControlsExpanded(false);
   if(renderer.xr.isPresenting)vrPanel.visible=true;
   musicViz.style.display=renderer.xr.isPresenting?'none':'block';playing=true;start.textContent='REPRODUCIENDO';
   pause.style.display='block';pause.textContent='PAUSAR';
@@ -250,8 +261,8 @@ async function setupVR(){
   renderer.xr.addEventListener('sessionend',()=>{musicViz.style.display=!audio.paused&&!audio.ended&&!introActive?'block':'none';button.textContent='ENTRAR EN VR'});
  }catch(e){/* Browser without immersive mode: keep conventional 3D view */}}
 setupVR();
-renderer.xr.addEventListener('sessionstart',()=>{musicViz.style.display='none';intro3D.visible=introActive; $('landing').style.display='none';$('collapse').style.display='none';vrPanel.visible=!introActive;status.textContent='Modo VR activo'});
-renderer.xr.addEventListener('sessionend',()=>{intro3D.visible=false; $('landing').style.display=introActive?'none':'block';vrPanel.visible=false });
+renderer.xr.addEventListener('sessionstart',()=>{musicViz.style.display='none';intro3D.visible=introActive;$('landing').style.display='none';controlsToggle.style.display='none';vrPanel.visible=!introActive;status.textContent='Modo VR activo'});
+renderer.xr.addEventListener('sessionend',()=>{intro3D.visible=false;vrPanel.visible=false;if(!introActive)setControlsExpanded(false) });
 const world=new THREE.Group();scene.add(world);
 // ENTORNO INTERIOR 360: las esferas no son objetos frontales.
 // El usuario se encuentra dentro de capas de material generativo en profundidad.
@@ -274,7 +285,7 @@ const particles=new THREE.Points(pg,particleMat);world.add(particles);
 // Tetrahedral fragments / pirámides, distributed across the entire sphere.
 const pyramidCount=135;
 const pyramidGeo=new THREE.TetrahedronGeometry(.075);
-const pyramidMat=new THREE.MeshBasicMaterial({color:0x8cc7ff,wireframe:true,transparent:true,opacity:.52,depthWrite:false});
+const pyramidMat=new THREE.MeshBasicMaterial({color:0x8cc7ff,wireframe:true,transparent:true,opacity:.24,depthWrite:false});
 const pyramids=new THREE.InstancedMesh(pyramidGeo,pyramidMat,pyramidCount);
 pyramids.instanceMatrix.setUsage(THREE.DynamicDrawUsage);pyramids.frustumCulled=false;world.add(pyramids);
 const dummy=new THREE.Object3D();
@@ -433,7 +444,7 @@ function updateReactiveAccents(t,lo,me,hi){
 // Rounded spectral columns plus three double-sided breathing tubular wave belts.
 const SPECTRAL_BARS=144;
 const spectralGeometry=new THREE.CylinderGeometry(.056,.09,1,8,1);
-const spectralMaterial=new THREE.MeshPhongMaterial({color:0x85bfff,emissive:0x173c69,emissiveIntensity:.55,transparent:true,opacity:.78,depthWrite:false,shininess:75});
+const spectralMaterial=new THREE.MeshPhongMaterial({color:0x85bfff,emissive:0x173c69,emissiveIntensity:.22,transparent:true,opacity:.24,depthWrite:false,shininess:75});
 const spectralMesh=new THREE.InstancedMesh(spectralGeometry,spectralMaterial,SPECTRAL_BARS);
 spectralMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);spectralMesh.frustumCulled=false;
 world.add(spectralMesh);
@@ -455,7 +466,7 @@ for(let belt=0;belt<WAVE_BELTS;belt++){
  });
  const mesh=new THREE.Mesh(geo,material);mesh.frustumCulled=false;world.add(mesh);volumetricBelts.push(mesh);
 }
-const spectrumLight=new THREE.PointLight(0x7aaeff,4,14);spectrumLight.position.set(0,1.6,0);world.add(spectrumLight);
+const spectrumLight=new THREE.PointLight(0x7aaeff,2,14);spectrumLight.position.set(0,1.6,0);world.add(spectrumLight);
 function updateSpectralCrown(t){
  const playing=analyser&&!audio.paused&&!audio.ended;
  const ny=ctx?ctx.sampleRate/2:22050,visualGain=Number($('visual').value);
@@ -498,9 +509,9 @@ function updateSpectralCrown(t){
   }
   mesh.geometry.attributes.position.needsUpdate=true;
   mesh.geometry.computeVertexNormals();
-  mesh.material.opacity=playing?Math.min(.75,.19+spectralTotal/SPECTRAL_BARS*.46):.12;
+  mesh.material.opacity=playing?Math.min(.34,.09+spectralTotal/SPECTRAL_BARS*.23):.07;
  });
- spectrumLight.intensity=2+spectralTotal/SPECTRAL_BARS*12;
+ spectrumLight.intensity=1+spectralTotal/SPECTRAL_BARS*6;
 }
 // Orbiting nests are distributed in all directions, not lined up at the horizon.
 const anchorDirs=Array.from({length:9},(_,i)=>{
@@ -586,7 +597,7 @@ function drawIntroPanel(p){
 const panelCanvas=document.createElement('canvas');panelCanvas.width=768;panelCanvas.height=512;
 const pc=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
 const vrPanel=new THREE.Mesh(new THREE.PlaneGeometry(.86,.575),new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,depthTest:false}));
-vrPanel.position.set(-.65,1.3,-.9);vrPanel.rotation.y=-.35;vrPanel.renderOrder=100;vrPanel.visible=false;scene.add(vrPanel);
+vrPanel.position.set(-1.30,1.21,-.88);vrPanel.rotation.y=.82;vrPanel.renderOrder=100;vrPanel.visible=false;scene.add(vrPanel);
 function drawPanel(){if(!pc)return;pc.clearRect(0,0,768,512);pc.fillStyle='rgba(5,12,30,.94)';pc.fillRect(0,0,768,512);pc.strokeStyle='#526b99';pc.strokeRect(3,3,762,506);pc.fillStyle='#f0f4ff';pc.font='32px Arial';pc.fillText('ATMOSPHERE · EQ',28,49);
  pc.fillStyle='#a7bddc';pc.font='22px Arial';pc.fillText('Gatillo izq.: banda · Stick der. ↔: ajustar',28,88);
  ['GRAVES','MEDIOS','AGUDOS'].forEach((label,i)=>{const y=161+i*110;pc.fillStyle=i===selected?'#d4e9ff':'#91a6c7';pc.font='26px Arial';pc.fillText((i===selected?'▶ ':'  ')+label,30,y);
