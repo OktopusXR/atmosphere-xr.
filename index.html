@@ -19,7 +19,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 @media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
 
 #prologue{position:fixed;inset:0;background:radial-gradient(circle,rgba(5,12,28,.44),rgba(2,4,14,.66) 80%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:25px;pointer-events:auto}
-#voiceViz{display:block;width:min(620px,84vw);height:95px;margin-top:22px;opacity:.85;border-radius:9px;pointer-events:none}#voiceStart{margin-top:26px;min-width:170px;letter-spacing:3px;background:#142743b8;border:1px solid #879ab7}#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
+#voiceStart{margin-top:26px;min-width:170px;letter-spacing:3px;background:#142743b8;border:1px solid #879ab7}#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
 #prologue .english{font-size:clamp(20px,3.5vw,36px);max-width:740px;line-height:1.4;font-weight:300;letter-spacing:.03em}
 #prologue .spanish{font-size:clamp(13px,2vw,18px);margin-top:13px;color:#a5b5d0;max-width:690px;line-height:1.5}
 #skipIntro{margin-top:25px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}#enterExperience{display:none;margin-top:24px;letter-spacing:2px}#prologue .eyebrow{text-shadow:0 1px 12px #000}#prologue .english,#prologue .spanish{text-shadow:0 2px 16px #000}#prologue .credit{font-size:12px;color:#9eb2cf;max-width:660px;line-height:1.6;margin-top:17px}#prologue .credit a{color:#c5ddff;text-decoration:none;border-bottom:1px solid #566c8e}
@@ -39,7 +39,7 @@ label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
 <a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
 </div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
 </div>
-<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><canvas id="voiceViz" width="720" height="126" aria-label="Narration visualizer"></canvas><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
+<div id="prologue" aria-live="polite"><div class="eyebrow">ATMOSPHERE · TECHNO POESIS</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
 <div id="vr"></div><button id="collapse">CONTROLES</button>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
@@ -74,27 +74,6 @@ const lines=[
  {en:'Ricardo P. Tapia Fernández · Oktopus Art Studio',es:'Arte, naturaleza y tecnología.'}
 ];
 let introActive=false,introTimeouts=[],introCounter=0,introFinished=false,voiceActuallyStarted=false,voiceAttempted=false;
-let voiceActive=false,voicePulse=0,voiceElapsed=0;
-const voiceCanvas=$('voiceViz'),voiceCtx=voiceCanvas.getContext('2d');
-function renderVoiceViz(dt){
- if(!voiceCtx)return;
- voiceElapsed+=dt;
- voicePulse*=Math.exp(-dt*5.8);
- const ctx2=voiceCtx,w=voiceCanvas.width,h=voiceCanvas.height;
- ctx2.clearRect(0,0,w,h);
- const bars=65, step=w/bars;
- // A phoneme-timed spectral visualization; speechSynthesis does not expose PCM/FFT.
- for(let i=0;i<bars;i++){
-  const x=(i+.5)*step,shape=Math.pow(Math.max(0,1-Math.abs(i-bars/2)/(bars*.52)),1.5);
-  const modulation=(Math.sin(voiceElapsed*12+i*.47)*.22+Math.sin(voiceElapsed*21-i*.21)*.16+.62);
-  const e=voiceActive?(.14+voicePulse*.85):.025;
-  const amp=(3+shape*58*modulation*e);
-  ctx2.fillStyle='rgba(135,194,245,'+(.25+shape*.57)+')';
-  ctx2.fillRect(x-2,h/2-amp,4,amp*2);
- }
- ctx2.fillStyle='rgba(164,209,251,.46)';ctx2.fillRect(0,h/2,w,1);
-}
-
 let ambienceCtx=null,ambienceGain=null,ambienceNodes=[];
 function introCaption(i){
  const p=lines[i];if(!p)return;
@@ -141,16 +120,14 @@ function speakPrologue(){
   u.lang='en-US';u.rate=.78;u.pitch=1.04;u.volume=1;
   const voices=speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
   u.voice=voices.find(v=>/natural|enhanced|neural/i.test(v.name))||voices[0]||null;
-  u.onstart=()=>{voiceActuallyStarted=true;voiceActive=true;voicePulse=.8};
-  u.onboundary=()=>{voicePulse=1};
-  u.onend=()=>{voiceActive=false};
-  u.onerror=()=>{voiceActive=false;if(introActive&&!introFinished)$('voiceStart').textContent='REINTENTAR VOZ'};
+  u.onstart=()=>{voiceActuallyStarted=true};
+  u.onerror=()=>{if(introActive&&!introFinished)$('voiceStart').textContent='REINTENTAR VOZ'};
   speechSynthesis.speak(u);
  }catch(e){$('voiceStart').textContent='REINTENTAR VOZ'}
 }
 function finishIntro(){
  if(introFinished)return;
- introFinished=true;voiceActive=false;cancelIntroTimers();$('voiceStart').style.display='none';
+ introFinished=true;cancelIntroTimers();$('voiceStart').style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
  introEn.textContent='Enter the atmosphere.';introEs.textContent='Entra en la atmósfera.';
  credit.style.display='block';drawIntroPanel({en:'Enter the atmosphere.',es:'Entra en la atmósfera.'});
@@ -192,7 +169,7 @@ async function enterWorld(){
   introGain.gain.setValueAtTime(1,ctx.currentTime);
   const playback=audio.play();
   await Promise.all([audioReady,playback]);
-  ambientStop();voiceActive=false;introActive=false;introFinished=true;cancelIntroTimers();
+  ambientStop();introActive=false;introFinished=true;cancelIntroTimers();
   if('speechSynthesis' in window)speechSynthesis.cancel();
   prologue.style.display='none';intro3D.visible=false;
   $('landing').style.display=renderer.xr.isPresenting?'none':'block';
@@ -307,6 +284,69 @@ function updateFrequencyShells(t,lo,me,hi){
  }
 }
 
+// Immersive spectral structures, driven by the actual music analyser.
+// All positions are in world space around the listener, not on a screen.
+const ARC_COUNT=10,ARC_SEGMENTS=104,reactiveArcs=[];
+for(let i=0;i<ARC_COUNT;i++){
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.BufferAttribute(new Float32Array((ARC_SEGMENTS+1)*3),3).setUsage(THREE.DynamicDrawUsage));
+ const m=new THREE.LineBasicMaterial({color:new THREE.Color().setHSL(.53+i*.018,.78,.7),transparent:true,opacity:.15,depthWrite:false});
+ const line=new THREE.Line(g,m);line.frustumCulled=false;world.add(line);reactiveArcs.push(line);
+}
+const SPOKE_COUNT=72,reactiveSpokes=[];
+for(let i=0;i<SPOKE_COUNT;i++){
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3).setUsage(THREE.DynamicDrawUsage));
+ const line=new THREE.Line(g,new THREE.LineBasicMaterial({color:0x99cfff,transparent:true,opacity:.12,depthWrite:false}));
+ line.frustumCulled=false;world.add(line);reactiveSpokes.push(line);
+}
+const HALO_COUNT=500,haloPositions=new Float32Array(HALO_COUNT*3),haloSeeds=[];
+for(let i=0;i<HALO_COUNT;i++){
+ const y=1-2*(i+.5)/HALO_COUNT,a=i*golden,side=Math.sqrt(1-y*y);
+ const dir=new THREE.Vector3(side*Math.cos(a),y,side*Math.sin(a));
+ haloSeeds.push({dir,radius:5.2+(i%9)*.24,phase:i*.39});
+}
+const haloGeometry=new THREE.BufferGeometry();
+haloGeometry.setAttribute('position',new THREE.BufferAttribute(haloPositions,3).setUsage(THREE.DynamicDrawUsage));
+const haloMaterial=new THREE.PointsMaterial({color:0xa6d5ff,size:.025,transparent:true,opacity:.2,depthWrite:false});
+const halo=new THREE.Points(haloGeometry,haloMaterial);halo.frustumCulled=false;world.add(halo);
+function updateReactiveAccents(t,lo,me,hi){
+ const e=Math.min(2,lo*.45+me*.35+hi*.2);
+ reactiveArcs.forEach((arc,i)=>{
+  const v=arc.geometry.attributes.position.array,az=i*golden+t*.035;
+  const tilt=.7*Math.sin(i*.77),ct=Math.cos(az),st=Math.sin(az),cl=Math.cos(tilt),sl=Math.sin(tilt);
+  for(let j=0;j<=ARC_SEGMENTS;j++){
+   const a=j/ARC_SEGMENTS*Math.PI*2;
+   const ripple=Math.sin(a*(6+i%5)-t*(.8+me*2)+i)*(.06+lo*.6+hi*.28);
+   const rad=3.0+i*.48+ripple;
+   const x=rad*Math.cos(a),z=rad*Math.sin(a);
+   const X=x*ct-z*st;
+   v[j*3]=X*cl;v[j*3+1]=1.6+X*sl;v[j*3+2]=x*st+z*ct;
+  }
+  arc.geometry.attributes.position.needsUpdate=true;
+  arc.material.opacity=Math.min(.55,.07+e*.44);
+ });
+ reactiveSpokes.forEach((line,i)=>{
+  const v=line.geometry.attributes.position.array,y=1-2*(i+.5)/SPOKE_COUNT,angle=i*golden+t*.07,side=Math.sqrt(1-y*y);
+  const dx=side*Math.cos(angle),dz=side*Math.sin(angle);
+  const near=3.3+lo*.4,far=near+.28+me*1.4+hi*.9;
+  v[0]=dx*near;v[1]=1.6+y*near;v[2]=dz*near;
+  v[3]=dx*far;v[4]=1.6+y*far;v[5]=dz*far;
+  line.geometry.attributes.position.needsUpdate=true;
+  line.material.opacity=Math.min(.55,.06+me*.36+hi*.2);
+ });
+ const v=haloGeometry.attributes.position.array;
+ for(let i=0;i<HALO_COUNT;i++){
+  const p=haloSeeds[i],radius=p.radius*(1+.075*Math.sin(t*.3+p.phase)+lo*.17);
+  v[i*3]=p.dir.x*radius;
+  v[i*3+1]=1.6+p.dir.y*radius;
+  v[i*3+2]=p.dir.z*radius;
+ }
+ haloGeometry.attributes.position.needsUpdate=true;
+ haloMaterial.size=.017+hi*.05;
+ haloMaterial.opacity=Math.min(.85,.13+e*.43);
+}
+
 // Orbiting nests are distributed in all directions, not lined up at the horizon.
 const anchorDirs=Array.from({length:9},(_,i)=>{
  const y=1-2*(i+.5)/9,a=i*golden,f=Math.sqrt(1-y*y);
@@ -412,7 +452,7 @@ function handleControllers(dt){if(!renderer.xr.isPresenting)return;stickCooldown
 let t=0;const clock=new THREE.Clock();
 renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);analyze();handleControllers(dt);t+=dt*(audio.paused?.28:1);
 const factor=Number($('visual').value),lo=low*factor,me=mid*factor,hi=high*factor;
-updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);renderVoiceViz(dt);renderer.render(scene,camera)});
+updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);updateReactiveAccents(t,lo,me,hi);renderer.render(scene,camera)});
 startIntro();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
