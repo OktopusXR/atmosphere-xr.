@@ -1,2 +1,226 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATMOSPHERE — Immersive Soundscape</title><style>body{margin:0;background:#03040a;color:#eaf3ff;font:13px system-ui}#panel{position:fixed;top:16px;left:16px;z-index:10;background:#080c18cc;border:1px solid #6688aa55;border-radius:12px;padding:16px;max-width:280px;backdrop-filter:blur(12px)}h1{font-size:16px;letter-spacing:.2em;margin:0 0 5px}p{opacity:.7;line-height:1.5}button,input{margin-top:8px}button{background:#142c45;color:white;border:1px solid #5785a3;border-radius:6px;padding:9px;cursor:pointer}#status{font-size:11px}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/","xrblocks":"https://cdn.jsdelivr.net/gh/google/xrblocks@build/xrblocks.js","xrblocks/addons/":"https://cdn.jsdelivr.net/gh/google/xrblocks@build/addons/"}}</script></head><body><div id="panel"><h1>ATMOSPHERE</h1><p>Immersive Soundscape · Oktopus Art Studio</p><button id="play">Iniciar audio</button><br><label>Archivo de audio <input type="file" id="file" accept="audio/*"></label><p>Intensidad <input type="range" id="intensity" min="0" max="3" step="0.1" value="1.3"></p><p id="status">Cargando experiencia…</p></div><audio id="audio" src="atmosphere.mp3" crossorigin="anonymous" loop></audio><script type="module">import * as THREE from 'three';import * as xb from 'xrblocks';let analyser,ctx,source,levels=new Uint8Array(128),intensity=1.3;const audio=document.getElementById('audio'),status=document.getElementById('status');document.getElementById('intensity').oninput=e=>intensity=+e.target.value;document.getElementById('file').onchange=e=>{let f=e.target.files[0];if(f){audio.src=URL.createObjectURL(f);status.textContent='Audio cargado: '+f.name}};document.getElementById('play').onclick=async()=>{try{if(!ctx){ctx=new AudioContext();analyser=ctx.createAnalyser();analyser.fftSize=256;source=ctx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(ctx.destination)}await ctx.resume();if(audio.paused){await audio.play();document.getElementById('play').textContent='Pausar audio';status.textContent='Audio activo'}else{audio.pause();document.getElementById('play').textContent='Reanudar audio'}}catch(e){status.textContent='Selecciona tu archivo de audio para reproducirlo.'}};
-class Atmosphere extends xb.Script{init(){this.add(new THREE.HemisphereLight(0x789adf,0x090517,2));const center=new THREE.Group();center.position.set(0,xb.user.height-0.15,-Math.max(2,xb.user.objectDistance));this.add(center);this.center=center;this.core=new THREE.Mesh(new THREE.IcosahedronGeometry(.48,5),new THREE.MeshPhysicalMaterial({color:0x548bcb,wireframe:true,transparent:true,opacity:.65,depthWrite:false}));center.add(this.core);this.rings=[];for(let i=0;i<7;i++){const m=new THREE.Mesh(new THREE.TorusGeometry(.7+i*.17,.004+i*.0015,6,180),new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.54+i*.018,.65,.5),transparent:true,opacity:.36,depthWrite:false}));m.rotation.set(i*.39,i*.63,i*.24);center.add(m);this.rings.push(m)}const count=950,positions=new Float32Array(count*3),sizes=[];for(let i=0;i<count;i++){const r=1.1+Math.random()*4.3,a=Math.random()*Math.PI*2,b=Math.acos(2*Math.random()-1);positions[i*3]=r*Math.sin(b)*Math.cos(a);positions[i*3+1]=r*Math.cos(b)*.6;positions[i*3+2]=r*Math.sin(b)*Math.sin(a);sizes.push(Math.random())}let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));this.particles=new THREE.Points(geo,new THREE.PointsMaterial({color:0x82b6ed,size:.016,transparent:true,opacity:.68,depthWrite:false}));center.add(this.particles);status.textContent='Escena lista. Carga atmosphere.mp3 y pulsa Iniciar audio.'}update(){if(analyser)analyser.getByteFrequencyData(levels);let bass=0,mid=0,high=0;for(let i=0;i<12;i++)bass+=levels[i];for(let i=12;i<50;i++)mid+=levels[i];for(let i=50;i<110;i++)high+=levels[i];bass/=12*255;mid/=38*255;high/=60*255;const t=performance.now()*.001;this.core.rotation.y+=.002+mid*.018;this.core.rotation.x+=.001;let s=1+intensity*bass*.55+Math.sin(t*.4)*.04;this.core.scale.setScalar(s);this.core.material.opacity=.28+mid*.55;this.rings.forEach((r,i)=>{r.rotation.z+=.001*(i%2?1:-1)+high*.008;r.rotation.y+=.0006;r.scale.setScalar(1+bass*intensity*(.12+i*.025))});this.particles.rotation.y+=.00035+high*.002;this.particles.material.opacity=.3+Math.min(.65,mid*intensity)}onSelectEnd(){this.rings.forEach(r=>r.rotation.x+=.2)}}document.addEventListener('DOMContentLoaded',async()=>{try{xb.add(new Atmosphere());const opt=new xb.Options();opt.xrButton.showEnterSimulatorButton=true;await xb.init(opt)}catch(e){status.textContent='Error XR: '+e.message;console.error(e)}});</script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ATMOSPHERE — Immersive Soundscape</title>
+<style>
+body{margin:0;background:#03040a;color:#eaf3ff;font:13px system-ui}
+#panel{position:fixed;top:16px;left:16px;z-index:10;background:#101527dd;padding:18px;border:1px solid #34425a;border-radius:12px;max-width:280px}
+h1{font-size:19px;letter-spacing:3px;margin:0 0 4px}
+small{color:#9caec8}
+button,input{margin-top:12px}
+button{padding:10px 15px;background:#405a8d;color:white;border:0;border-radius:7px}
+input[type=file]{max-width:100%}
+#status{margin-top:10px;color:#b7c7dc}
+</style>
+<script type="importmap">
+{"imports":{
+"three":"https://esm.sh/three@0.173.0",
+"xrblocks":"https://esm.sh/xrblocks"
+}}
+</script>
+</head>
+<body>
+<div id="panel">
+<h1>ATMOSPHERE</h1>
+<small>Oktopus Art Studio · Immersive Soundscape</small>
+<p>Selecciona una pista para activar la experiencia.</p>
+<input id="file" type="file" accept="audio/*">
+<br>
+<button id="play">Iniciar audio</button>
+<button id="pause">Pausar</button>
+<br>
+<label>Intensidad
+<input id="intensity" type="range" min=".2" max="3" step=".1" value="1.3">
+</label>
+<div id="status">Cargando experiencia…</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import * as XRBlocks from 'xrblocks';
+
+const status = document.querySelector('#status');
+const file = document.querySelector('#file');
+const play = document.querySelector('#play');
+const pause = document.querySelector('#pause');
+const intensity = document.querySelector('#intensity');
+
+let audio = new Audio();
+audio.loop = true;
+audio.crossOrigin = 'anonymous';
+audio.preload = 'none';
+
+let audioCtx, analyser, source, data;
+let objectURL = null;
+let energy = 0;
+let bass = 0, mid = 0, high = 0;
+
+async function setupAudio(){
+  if(!audioCtx){
+    audioCtx = new AudioContext();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    data = new Uint8Array(analyser.frequencyBinCount);
+    source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  }
+  if(audioCtx.state === 'suspended'){
+    await audioCtx.resume();
+  }
+}
+
+file.addEventListener('change',()=>{
+  const selected = file.files?.[0];
+  if(!selected)return;
+  audio.pause();
+  if(objectURL) URL.revokeObjectURL(objectURL);
+  objectURL = URL.createObjectURL(selected);
+  audio.src = objectURL;
+  audio.load();
+  status.textContent = 'Archivo listo: '+selected.name;
+});
+
+play.addEventListener('click',async()=>{
+  try{
+    if(!audio.src){
+      status.textContent = 'Selecciona un archivo de audio.';
+      file.click();
+      return;
+    }
+    await setupAudio();
+    await audio.play();
+    status.textContent = 'Reproduciendo audio';
+  }catch(e){
+    status.textContent = 'Error de audio: '+e.message;
+  }
+});
+
+pause.addEventListener('click',()=>{
+  audio.pause();
+  status.textContent = 'Audio pausado';
+});
+
+function getBand(start,end){
+  if(!data)return 0;
+  let sum=0,count=0;
+  for(let i=start;i<Math.min(end,data.length);i++){
+    sum+=data[i];count++;
+  }
+  return count ? sum/count/255 : 0;
+}
+
+function updateAudio(){
+  if(!analyser || audio.paused)return;
+  analyser.getByteFrequencyData(data);
+  bass=getBand(1,12);
+  mid=getBand(12,90);
+  high=getBand(90,250);
+  energy=bass*.5+mid*.35+high*.15;
+}
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x03040a);
+
+const camera = new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,100);
+camera.position.set(0,1.6,4);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0x678aff,1.4));
+const light=new THREE.PointLight(0x66ddff,35,20);
+light.position.set(2,3,2);
+scene.add(light);
+
+const group=new THREE.Group();
+group.position.set(0,1.6,-2);
+scene.add(group);
+
+const core=new THREE.Mesh(
+  new THREE.IcosahedronGeometry(.65,4),
+  new THREE.MeshPhysicalMaterial({
+    color:0x426aff,
+    metalness:.35,
+    roughness:.15,
+    transparent:true,
+    opacity:.7,
+    wireframe:true
+  })
+);
+group.add(core);
+
+const rings=[];
+for(let i=0;i<5;i++){
+  const ring=new THREE.Mesh(
+    new THREE.TorusGeometry(1+i*.2,.008,6,120),
+    new THREE.MeshBasicMaterial({
+      color:new THREE.Color().setHSL(.55+i*.035,.9,.65),
+      transparent:true,
+      opacity:.55
+    })
+  );
+  ring.rotation.x=i*.43;
+  ring.rotation.y=i*.65;
+  group.add(ring);
+  rings.push(ring);
+}
+
+const count=1200;
+const positions=new Float32Array(count*3);
+for(let i=0;i<count;i++){
+  const r=2+Math.random()*6;
+  const a=Math.random()*Math.PI*2;
+  const b=Math.acos(2*Math.random()-1);
+  positions[i*3]=r*Math.sin(b)*Math.cos(a);
+  positions[i*3+1]=r*Math.cos(b);
+  positions[i*3+2]=r*Math.sin(b)*Math.sin(a);
+}
+const geometry=new THREE.BufferGeometry();
+geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+const particles=new THREE.Points(
+  geometry,
+  new THREE.PointsMaterial({
+    color:0x8caaff,size:.018,
+    transparent:true,opacity:.65
+  })
+);
+group.add(particles);
+
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const t=clock.getElapsedTime();
+  updateAudio();
+  const amount=parseFloat(intensity.value);
+  core.scale.setScalar(1+energy*amount*.8);
+  core.rotation.y=t*.12+mid;
+  core.rotation.x=t*.07;
+  rings.forEach((ring,i)=>{
+    ring.rotation.z=t*(.05+i*.015);
+    ring.rotation.y+=.001+high*.01*amount;
+    ring.scale.setScalar(1+bass*amount*.25);
+  });
+  particles.rotation.y=t*.008;
+  particles.material.opacity=Math.min(1,.35+high*amount);
+  renderer.render(scene,camera);
+});
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+status.textContent='Experiencia cargada. Selecciona audio.';
+
+// XR Blocks: integración según versión de biblioteca.
+window.atmosphereScene={scene,camera,renderer,XRBlocks};
+</script>
+</body>
+</html>
+  
