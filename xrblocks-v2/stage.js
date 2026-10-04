@@ -132,17 +132,81 @@ function makeChapter(root,kind,index){
    return [x,.66*Math.sin(x*2.9+z*3.4),z]
   },.031));
  }else if(kind==='crystal'){
-  for(let i=0;i<21;i++){
-   const a=i*2.399963,rad=.52+1.03*rnd(i,4);
-   const b=new THREE.Vector3(Math.cos(a)*rad,-1.1,Math.sin(a)*rad);
-   add(line(g,[b,new THREE.Vector3(Math.cos(a)*rad*.72,
-    .5+1.1*rnd(i,7),Math.sin(a)*rad*.72)]));
-  }
-  const geo=new THREE.DodecahedronGeometry(.8,0);
-  const mesh=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
-   color:0xffffff,flatShading:true,transparent:true,opacity:0,depthWrite:false,
-   side:THREE.DoubleSide
-  }));g.add(mesh);add(mesh);
+  // MORPHOGENESIS: an implicit 3D surface. Smooth-min metaballs truly
+  // become ONE continuous volume, then separate and rejoin.
+  // Rendered as one box (not 4 overlaid transparent spheres). Quest-safe:
+  // bounded raymarch, no CPU geometry rebuilding, deterministic 402s score.
+  const vertex=`
+   varying vec3 vEntry;
+   varying vec3 vEye;
+   void main(){
+    vEntry=position;
+    vEye=(inverse(modelMatrix)*vec4(cameraPosition,1.)).xyz;
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);
+   }
+  `;
+  const fragment=`
+   precision highp float;
+   uniform float uTime;
+   uniform float uAlpha;
+   uniform float uVariation;
+   varying vec3 vEntry,vEye;
+   float smoothUnion(float a,float b,float k){
+    float h=max(k-abs(a-b),0.0)/k;
+    return min(a,b)-h*h*k*.25;
+   }
+   mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+   float field(vec3 p){
+    float t=uTime;
+    // Slow separation, aggregation and re-formation with authored easing.
+    float part=pow(.5+.5*sin(t*.27-.7),2.0);
+    float dist=.15+part*(.92+.26*uVariation);
+    float fusion=.53-.35*part;
+    p.xz=rot(t*.18)*p.xz;
+    p.yz=rot(t*.105)*p.yz;
+    vec3 a=vec3(-dist, .15*sin(t*.33),0.);
+    vec3 b=vec3( dist,-.10*sin(t*.24),0.);
+    vec3 c=vec3(.12*sin(t*.18),dist*.67,.28*cos(t*.27));
+    vec3 d=vec3(.19*cos(t*.26),-dist*.67,-.3*sin(t*.2));
+    float v=length(p-a)-.53;
+    v=smoothUnion(v,length(p-b)-.54,fusion);
+    v=smoothUnion(v,length(p-c)-.43,fusion);
+    v=smoothUnion(v,length(p-d)-.40,fusion);
+    return v+.045*sin(p.y*5.+t*.47)*sin(p.x*4.+t*.29);
+   }
+   vec3 normalAt(vec3 p){
+    vec2 e=vec2(.017,0.);
+    return normalize(vec3(
+     field(p+e.xyy)-field(p-e.xyy),
+     field(p+e.yxy)-field(p-e.yxy),
+     field(p+e.yyx)-field(p-e.yyx)
+    ));
+   }
+   void main(){
+    vec3 dir=normalize(vEntry-vEye);
+    vec3 p=vEntry+dir*.018;
+    bool hit=false;
+    for(int i=0;i<42;i++){
+     float d=field(p);
+     if(d<.018){hit=true;break;}
+     p+=dir*clamp(d*.73,.02,.115);
+     if(any(greaterThan(abs(p),vec3(1.62))))break;
+    }
+    if(!hit)discard;
+    vec3 n=normalAt(p);
+    float diffuse=.48+.48*max(dot(n,normalize(vec3(-.4,.7,1.))),0.);
+    float rim=pow(1.-abs(dot(n,-dir)),2.);
+    float shade=min(1.,diffuse+.25*rim);
+    gl_FragColor=vec4(vec3(shade),uAlpha*(.74+.2*rim));
+   }
+  `;
+  const mat=new THREE.ShaderMaterial({
+   vertexShader:vertex,fragmentShader:fragment,
+   uniforms:{uTime:{value:0},uAlpha:{value:0},uVariation:{value:.55}},
+   transparent:true,depthWrite:false,side:THREE.FrontSide
+  });
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(3.24,3.24,3.24),mat);
+  mesh.frustumCulled=false;g.add(mesh);add(mesh);
  }else if(kind==='axis'){
   for(let i=0;i<14;i++){
    const a=i*TAU/14,rad=.45+(i%3)*.38;
@@ -263,8 +327,13 @@ export function createForeground(root){
    group.scale.setScalar(kind==='tunnel'?1:scale*breathe*(1+.12*variation*((i%4)/4)));
    for(let j=0;j<objects.length;j++){
     const o=objects[j];o.visible=true;
-    o.material.opacity=Math.min(1,weight*intensity*
+    const opacity=Math.min(1,weight*intensity*
       (.67+.14*Math.sin(slow*.63+j*.19)+.08*note));
+    if(kind==='crystal'){
+     o.material.uniforms.uTime.value=local;
+     o.material.uniforms.uAlpha.value=opacity;
+     o.material.uniforms.uVariation.value=variation;
+    }else o.material.opacity=opacity;
     if(kind==='tunnel'){
      // Once, during the opening only, a continuous optical-depth movement.
      // Viewer stays physically still while the complete tunnel flows
