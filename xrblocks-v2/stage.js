@@ -166,65 +166,113 @@ export function createForeground(root){
  const chapters3d=chapters.map((c,i)=>makeChapter(root,c.kind,i));
  const light=new THREE.DirectionalLight(0xffffff,1.9);light.position.set(-3,4,4);root.add(light);
  root.add(new THREE.AmbientLight(0xffffff,.47));
- // High-resolution, fully legible editorial caption. No micro typography in headset.
- const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=384;
+ // Floating chapter concept only: no repeated work title or micro-label.
+ const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=320;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);
- const titlePlane=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.65),
-   new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,depthTest:false,depthWrite:false}));
- titlePlane.position.set(-.35,2.05,-2.55);titlePlane.renderOrder=60;root.add(titlePlane);
+ const titlePlane=new THREE.Mesh(new THREE.PlaneGeometry(2.8,.59),
+  new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+ titlePlane.renderOrder=60;root.add(titlePlane);
  let previous=-1,active='';
- function drawCaption(title,index){
-  ctx.clearRect(0,0,1536,384);
-  ctx.fillStyle='#ffffff';ctx.textAlign='left';
-  ctx.font='bold 62px Arial';ctx.fillText('ATMOSPHERE / TECHNO POESIS',25,82);
-  ctx.font='bold 126px Arial';ctx.fillText(title,25,218,1480);
-  ctx.font='bold 66px Arial';ctx.fillStyle='#ffffff';
-  ctx.fillText(String(index+1).padStart(2,'0')+'  /  14',26,315);
+ function drawCaption(title){
+  ctx.clearRect(0,0,1536,320);
+  ctx.fillStyle='#ffffff';ctx.textAlign='center';
+  ctx.font='bold 132px Arial';
+  ctx.fillText(title,768,183,1470);
   tex.needsUpdate=true;
+ }
+ // Deliberately distributes visual attention to left/right, up/down,
+ // and behind. Angles are WORLD azimuth relative to initial forward (-Z).
+ // Every chapter has a DIFFERENT spatial composition and unique destination.
+ const positions=[
+  [0,1.6,0],          // one-time tunnel: geometry already recedes along -Z
+  [1.06,1.75,3.3],    // right
+  [-.94,2.62,3.5],    // above left
+  [2.15,1.05,3.3],    // rear right
+  [-1.98,2.42,3.15],  // upper left
+  [2.81,1.82,3.4],    // almost behind
+  [-.35,.68,3.1],     // below front
+  [3.15,2.15,3.25],   // fully behind
+  [-2.45,2.78,3.35],  // above behind-left
+  [1.8,1.23,3.5],     // right
+  [-1.63,2.45,3.4],   // upper left
+  [.68,.77,3.05],     // below right
+  [3.72,1.75,3.45],   // behind-left
+  [-.8,1.88,3.2]      // left front
+ ];
+ const fade=3.6;
+ // Absolute-time fade for each UNIQUE chapter; crucially it never
+ // wraps or replays a previous chapter when the chapter index changes.
+ function chapterWeight(t,i){
+  const start=i===0?0:chapters[i-1].end,end=chapters[i].end;
+  const incoming=i===0?1:smooth((t-start+fade)/(fade*2));
+  const outgoing=i===chapters.length-1?1:1-smooth((t-end+fade)/(fade*2));
+  return Math.max(0,incoming*outgoing);
+ }
+ const events=[
+  4.5,11,18,24,31,40,48,54,64,72,82,94,102,110,119,128,
+  137,146,156,166,177,186,194,206,216,222,234,243,253,262,
+  274,284,296,306,314,326,336,346,359,368,379,389,399
+ ];
+ function accentAt(t){
+  let v=0;
+  for(const event of events){
+   const d=Math.abs(t-event);
+   if(d<2.1)v=Math.max(v,(1+Math.cos(d*Math.PI/2.1))*.5);
+  }
+  return v;
  }
  function update(t,_score,controls={}){
   const time=Math.max(0,Math.min(401.999,Number.isFinite(t)?t:0));
-  let index=chapters.findIndex(c=>time<c.end);if(index<0)index=chapters.length-1;
+  let index=chapters.findIndex(c=>time<c.end);
+  if(index<0)index=chapters.length-1;
+  if(index!==previous){previous=index;drawCaption(chapters[index].title)}
+  active=chapters[index].title;
   const intensity=controls.intensity??1,scale=controls.scale??1;
   const variation=controls.variation??.55,motion=controls.motion??.8,speed=controls.speed??.6;
-  const start=index===0?0:chapters[index-1].end,end=chapters[index].end;
-  const phrase=time-start,span=end-start;
-  const fade=3.5;
-  // One unique geometry per chapter; overlap only the preceding and next geometry.
-  const own=smooth(phrase/fade)*(1-smooth((phrase-(span-fade))/fade));
-  const incoming=1-smooth(phrase/fade),outgoing=smooth((phrase-(span-fade))/fade);
-  if(index!==previous){previous=index;drawCaption(chapters[index].title,index)}
-  titlePlane.material.opacity=.95*own;active=chapters[index].title;
+  const note=accentAt(time);
   for(let i=0;i<chapters3d.length;i++){
-   const {group,objects,kind}=chapters3d[i];
-   const weight=i===index?own:i===index-1?incoming:i===index+1?outgoing:0;
-   const visible=weight>.002;
-   group.visible=visible;
-   if(!visible)continue;
-   const local=time-(i===0?0:chapters[i-1].end);
-   const drift=time*(.08+.07*speed);
-   // Slow independent authored animation curves — never instantaneous FFT.
-   group.position.x=.22*Math.sin(drift*.31+i*.7);
-   group.position.y=1.6+.12*Math.sin(drift*.48+i*.6);
-   group.position.z=kind==='tunnel'?0:-3.25;
-   group.rotation.set(kind==='tunnel'?0:.07*Math.sin(drift*.27+i),
-    kind==='tunnel'?.03*Math.sin(drift*.19):drift*.35+i*.18,
-    kind==='tunnel'?0:.065*Math.sin(drift*.4+i));
-   const breath=1+.055*Math.sin(drift*.9+i*.4)+.025*Math.cos(drift*.51+i);
-   const size=scale*breath*(1+.13*variation*(i%3)/3);
-   group.scale.setScalar(size);
+   const {group,objects,kind}=chapters3d[i],weight=chapterWeight(time,i);
+   group.visible=weight>.003;
+   if(!group.visible)continue;
+   const start=i===0?0:chapters[i-1].end;
+   const local=time-start;
+   const slow=local*(.28+.23*speed);
+   const [angle,height,radius]=positions[i];
+   const x=Math.sin(angle)*radius,z=-Math.cos(angle)*radius;
+   const movement=.13+.13*motion;
+   // Smooth musical phrasing: translation in tangent / vertical directions.
+   // Crucially NO bass-driven forward-back Z jumps and no frame FFT input.
+   const sway=movement*Math.sin(slow*.42+i*.7);
+   group.position.set(x+Math.cos(angle)*sway,
+    height+.12*Math.sin(slow*.54+i*.41)+.06*note,
+    z+Math.sin(angle)*sway);
+   group.rotation.set(kind==='tunnel'?0:.11*Math.sin(slow*.26+i),
+    kind==='tunnel'?.025*Math.sin(slow*.32):time*(.045+.025*speed)+i*.29,
+    kind==='tunnel'?0:.06*Math.sin(slow*.39+i));
+   const breathe=1+.065*Math.sin(slow*.78+i*.67)+.038*note;
+   group.scale.setScalar(scale*breathe*(1+.12*variation*((i%4)/4)));
    for(let j=0;j<objects.length;j++){
     const o=objects[j];o.visible=true;
-    const glow=.67+.13*Math.sin(drift*.48+j*.17)+.07*Math.cos(drift*.8+i);
-    o.material.opacity=weight*intensity*glow;
+    o.material.opacity=Math.min(1,weight*intensity*
+      (.67+.14*Math.sin(slow*.63+j*.19)+.08*note));
     if(kind==='tunnel'){
-     const z=-2.15-j*.34;
-     // A one-time optical depth migration, authored and eased over 26s.
-     o.position.z=z+.2*smooth(Math.max(0,Math.min(1,local/26)));
-     o.scale.setScalar(1+.055*Math.sin(drift*.3+j*.55));
+     // Once, during the opening only, a continuous optical-depth movement.
+     o.position.z=-2.05-j*.37+.34*smooth(local/26);
+     o.scale.setScalar(1+.045*Math.sin(slow*.66+j*.54)+.04*note);
     }
    }
   }
+  // The single floating concept caption follows the active chapter into
+  // the spatial sector; readable regardless of where user turns their head.
+  const chapter=chapters3d[index].group;
+  titlePlane.position.set(chapter.position.x,
+   Math.min(3.25,Math.max(1.12,chapter.position.y+1.27)),
+   chapter.position.z+(index===0?-2.5:0));
+  titlePlane.lookAt(0,1.6,0);
+  const start=index===0?0:chapters[index-1].end;
+  const end=chapters[index].end;
+  titlePlane.material.opacity=.94*
+   smooth((time-start)/2.0)*(1-smooth((time-(end-2.0))/2.0));
  }
  return {update,chapters,get active(){return active}};
 }
