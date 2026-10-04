@@ -13,8 +13,8 @@
 </script>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#000;color:#f1f1f1;font-family:Arial,Helvetica,sans-serif}
-#intro{z-index:100;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000e;text-align:center;padding:25px}
-.kicker{font-size:11px;letter-spacing:.36em;color:#bbb}.title{font-size:clamp(37px,8vw,94px);letter-spacing:.16em;font-weight:200;margin:18px 0 28px}
+#intro{z-index:100;position:fixed;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;background:#000e;text-align:left;padding:clamp(24px,7vw,95px)}
+.kicker{font-size:11px;letter-spacing:.36em;color:#bbb}.title{font-size:clamp(42px,10vw,108px);letter-spacing:.01em;font-weight:750;margin:18px 0 28px}
 #en{font-size:clamp(18px,3vw,27px);line-height:1.4;max-width:800px;min-height:40px}
 #es{color:#bbb;margin-top:10px;font-size:clamp(12px,2vw,18px);min-height:24px}
 #credit{font-size:12px;color:#bbb;margin:28px 0 18px;line-height:1.9}a{color:#ddd}
@@ -23,7 +23,7 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
 #modebar{position:fixed;right:12px;top:12px;z-index:140;display:flex;gap:5px}
 #modebar button{font-size:10px;padding:8px 10px}
 #voice{width:min(500px,85vw);height:40px;margin-top:14px;display:none}
-#XRButtonWrapper{z-index:150!important;position:fixed!important;right:12px!important;bottom:12px!important}#development{display:block;max-width:min(450px,92vw);padding:5px 8px;background:#000b;white-space:pre-line;pointer-events:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
+#XRButtonWrapper{z-index:150!important;position:fixed!important;right:12px!important;bottom:12px!important}#development{display:none;max-width:min(450px,92vw);padding:5px 8px;background:#000b;white-space:pre-line;pointer-events:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
 </style>
 </head><body>
 <div id="intro">
@@ -55,9 +55,9 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
  const isQuest=/OculusBrowser|Quest|Oculus|MetaQuest/i.test(navigator.userAgent);
  if(isQuest){
   const p=new URLSearchParams(location.search);
-  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr')+'&build=pointcloud-v4');
+  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr')+'&build=score-v6');
  }
 })();
 </script>
-<script type="module" src="./main.js"></script>
+<script type="module" src="./main.js?build=score-v6"></script>
 </body></html>
