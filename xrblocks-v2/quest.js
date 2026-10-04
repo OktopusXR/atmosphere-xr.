@@ -9,7 +9,7 @@ const lines=[
  ['From body to Earth. From Earth to cosmos.','Del cuerpo a la Tierra. De la Tierra al cosmos.'],
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
-let selectedMode=vrMode,introStarted=false,introFinished=false,entered=false,timers=[],captionIndex=0;
+let selectedMode=vrMode,introStarted=false,introFinished=false,entered=false,completed=false,timers=[],captionIndex=0;
 let context,source,analyser,fft,td,bass=0,mid=0,high=0,rms=0,attack=0,previousRms=0,lastCue=-1;
 const soundtrackDuration=402;
 const cues=[
@@ -167,11 +167,11 @@ async function startMusic(){
   source=context.createMediaElementSource(music);source.connect(analyser);analyser.connect(context.destination);
  }
  const a=context.resume(),b=music.play();await Promise.all([a,b]);
- entered=true;$('intro').style.display='none';introBoard.visible=false;
+ entered=true;completed=false;$('intro').style.display='none';introBoard.visible=false;
  $('status').textContent='ATMOSPHERE · MUSIC MASTER CLOCK';
 }
 $('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='AUDIO: '+e.message);
-music.onended=()=>{$('status').textContent='ATMOSPHERE · END';entered=false;introBoard.visible=false};
+music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;entered=false;introBoard.visible=false};
 function spectrum(f1,f2){
  const hi=Math.min(fft.length,Math.ceil(f2/(context.sampleRate/2)*fft.length));
  const lo=Math.floor(f1/(context.sampleRate/2)*fft.length);let sum=0;
@@ -305,8 +305,8 @@ const clock=new THREE.Clock(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(
 renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
- introBoard.visible=!entered;
- if(!entered){
+ introBoard.visible=!entered&&!completed;
+ if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
   cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
   introBoard.position.copy(pos).add(offset.clone().applyQuaternion(quat));
