@@ -2,32 +2,37 @@
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ATMOSPHERE — TECHNO POESIS | Quest compatibility runtime</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/google/xrblocks@main/samples/main.css">
+
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
 <style>
-*{box-sizing:border-box}html,body{margin:0;background:#000;color:#f1f1f1;font-family:Arial,Helvetica,sans-serif}
-#intro{z-index:100;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000e;text-align:center;padding:25px}
-.kicker{font-size:11px;letter-spacing:.36em;color:#bbb}.title{font-size:clamp(37px,8vw,94px);letter-spacing:.16em;font-weight:200;margin:18px 0 28px}
-#en{font-size:clamp(18px,3vw,27px);line-height:1.4;max-width:800px;min-height:40px}
-#es{color:#bbb;margin-top:10px;font-size:clamp(12px,2vw,18px);min-height:24px}
-#credit{font-size:12px;color:#bbb;margin:28px 0 18px;line-height:1.9}a{color:#ddd}
-button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;letter-spacing:.12em;cursor:pointer;margin:7px}
-#status{position:fixed;left:14px;bottom:16px;z-index:80;color:#bcbcbc;font-size:11px;letter-spacing:.08em;pointer-events:none}
-#modebar{position:fixed;right:12px;top:12px;z-index:140;display:flex;gap:5px}
-#modebar button{font-size:10px;padding:8px 10px}
-#voice{width:min(500px,85vw);height:40px;margin-top:14px;display:none}
-#xrButton{z-index:150;position:fixed;right:12px;bottom:12px}#xrButton button{background:#000a;color:white;border:1px solid #aaa}#development{display:block;max-width:min(450px,92vw);padding:5px 8px;background:#000b;white-space:pre-line;pointer-events:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
+button{color:#eee;background:transparent;border:1px solid #8889;border-radius:24px;padding:12px 23px;font-size:11px;letter-spacing:.18em;font-weight:300;cursor:pointer}
+button:active{background:#eee;color:#111}
+#intro{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px;background:transparent;z-index:100;pointer-events:none}
+#intro>div,#intro>canvas{pointer-events:auto}
+.kicker{font-size:11px;letter-spacing:.45em;opacity:.65;font-weight:300;margin-bottom:33px}
+.title{font-size:clamp(22px,5vw,48px);letter-spacing:.39em;font-weight:200;margin:0 0 36px 0;padding-left:.39em}
+#en{font-size:clamp(14px,2.5vw,23px);line-height:1.55;min-height:38px;letter-spacing:.055em;font-weight:300;max-width:85vw}
+#es{font-size:clamp(12px,1.7vw,16px);line-height:1.5;min-height:27px;color:#aaa;max-width:85vw}
+#credit{color:#b7b7b7;font-size:11px;line-height:2;letter-spacing:.12em;margin:30px 0}
+#credit a{color:#bbb;text-decoration:none}
+#voice{width:min(430px,80vw);height:32px;display:none;opacity:.4;margin-top:8px}
+#modebar{display:none}#status{position:fixed;bottom:11px;left:14px;font-size:10px;color:#b6b6b6;z-index:95}
+#xrButton{z-index:155;position:fixed;right:10px;bottom:12px}
+#development{position:fixed;top:9px;left:12px;font:10px monospace;color:#aaa;z-index:82;pointer-events:none;opacity:.75}
+[hidden]{display:none!important}
 </style>
 </head><body>
 <div id="intro">
  <div class="kicker">TECHNO POESIS</div><div class="title">ATMOSPHERE</div>
  <div id="en"></div><div id="es"></div><canvas width="640" height="64" id="voice"></canvas>
  <div id="credit">Ricardo P. Tapia Fernández · Oktopus Art Studio<br>Art, nature and technology · <a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗</a></div>
- <div><button id="start">START</button><button id="skip" hidden>SKIP INTRO</button><button id="enter" hidden>ENTER EXPERIENCE</button></div>
+ <div><button id="start">START</button><button id="skip" hidden>SKIP INTRO</button><button id="enter" hidden>ENTER EXPERIENCE · VR</button></div>
 </div>
-<div id="modebar"><button id="vr">VR</button><button id="mr">MIXED REALITY</button></div>
-<div id="status">QUEST 3 — WebXR compatibility runtime / synchronized visual score</div>
-<div id="xrButton"></div><div id="development">QUEST INIT...</div>
+<div id="modebar"></div>
+<div id="status">ATMOSPHERE / TECHNO POESIS</div>
+<div id="xrButton"></div><div id="development">INITIALIZING...</div>
 <script>
 (function(){
  let errors=[];
