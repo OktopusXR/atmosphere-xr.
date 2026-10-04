@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import {scoreEnvelope} from './score.js?build=score-v7';
-import {makeClouds} from './cloud.js?build=score-v6b';
-import {createWatch} from './watch.js?build=score-v6b';
-import {createForeground} from './stage.js?build=score-v6b';
+import {makeClouds} from './cloud.js?build=score-v7';
+import {createWatch} from './watch.js?build=score-v7';
+import {createForeground} from './stage.js?build=score-v7';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
