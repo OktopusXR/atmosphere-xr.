@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import {createCountdown} from './countdown.js?build=score-v12';
-import {scoreEnvelope} from './score.js?build=score-v11';
-import {makeClouds} from './cloud.js?build=score-v11';
-import {createWatch} from './watch.js?build=score-v11';
-import {createForeground} from './stage.js?build=score-v11';
+import {scoreEnvelope} from './score.js?build=score-v12';
+import {makeClouds} from './cloud.js?build=score-v12';
+import {createWatch} from './watch.js?build=score-v12';
+import {createForeground} from './stage.js?build=score-v12';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
