@@ -1,624 +1,308 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ATMOSPHERE XR — Oktopus Art Studio</title>
+<title>ATMOSPHERE — Oktopus Art Studio</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030b;color:#eef3ff;font:13px system-ui,Arial,sans-serif}canvas{display:block}
-#landing{display:none;position:fixed;z-index:6;top:auto;bottom:62px;left:12px;width:min(285px,calc(100% - 24px));max-height:70vh;overflow-y:auto;padding:13px;background:rgba(6,11,28,.66);border:1px solid #31435d;border-radius:13px;backdrop-filter:blur(10px)}
-h1{font-size:21px;font-weight:400;letter-spacing:4px;margin:0 0 6px}.sub{font-size:10px;letter-spacing:2px;color:#abb9d3}
-p{line-height:1.55;color:#c3cee2}.muted{font-size:11px;color:#92a4be}
-button{background:#34578e;color:white;border:1px solid #6d84af;padding:11px 13px;border-radius:7px;cursor:pointer}
-#start{width:100%;margin:8px 0}#pause{display:none;width:100%}
-input[type=range]{width:100%;accent-color:#8bb7ff}
-label{display:block;margin-top:10px;font-size:11px;color:#b9c7df}
-#status{font-size:11px;line-height:1.55;color:#a9c9ff;margin-top:11px}
-#follow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
-#follow a{border:1px solid #3a5073;border-radius:8px;color:#f2f5fc;text-decoration:none;padding:10px;line-height:1.45;font-size:12px;background:#0d172e}
-#follow small{font-size:10px;color:#a7bfdc}#follow .atmos{color:#d1e6ff}
-#vr{position:fixed;bottom:18px;right:18px;z-index:8}#vr button{font-weight:600}
-#collapse{position:fixed;left:12px;bottom:12px;top:auto;right:auto;z-index:8;display:none;background:rgba(11,21,44,.75);font-size:11px;padding:9px 13px;letter-spacing:1.4px}
-@media(max-height:660px){#landing{max-height:calc(100% - 24px);overflow-y:auto;padding:12px}#follow{margin-top:7px}p{margin:8px 0}}
-
-#prologue{position:fixed;inset:0;background:radial-gradient(circle,rgba(5,12,28,.44),rgba(2,4,14,.66) 80%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:20;display:none;align-items:center;justify-content:center;text-align:center;flex-direction:column;padding:25px;pointer-events:auto}
-#voiceStart{margin-top:26px;min-width:170px;letter-spacing:3px;background:#142743b8;border:1px solid #879ab7}#introTitle{font-size:clamp(42px,8vw,102px);font-weight:300;letter-spacing:.16em;line-height:1.1;color:#edf5ff;text-align:center;text-shadow:0 0 34px rgba(92,151,224,.24);margin:14px 0 18px}
-#prologue.awaiting .english,#prologue.awaiting .spanish,#prologue.awaiting #voiceViz,#prologue.awaiting .credit,#prologue.awaiting #skipIntro{display:none!important}
-#prologue.narrating #introTitle{font-size:clamp(28px,4.5vw,54px);margin:5px 0 18px;opacity:.78;transition:font-size .7s ease}
-#prologue .eyebrow{font-size:10px;letter-spacing:4px;color:#849bbd;margin-bottom:25px}
-#prologue .english{font-size:clamp(20px,3.5vw,36px);max-width:740px;line-height:1.4;font-weight:300;letter-spacing:.03em}
-#prologue .spanish{font-size:clamp(13px,2vw,18px);margin-top:13px;color:#a5b5d0;max-width:690px;line-height:1.5}
-#skipIntro{margin-top:25px;background:transparent;border:1px solid #566988;font-size:11px;letter-spacing:2px}#enterExperience{display:none;margin-top:24px;letter-spacing:2px}#prologue .eyebrow{text-shadow:0 1px 12px #000}#prologue .english,#prologue .spanish{text-shadow:0 2px 16px #000}#prologue .credit{font-size:12px;color:#9eb2cf;max-width:660px;line-height:1.6;margin-top:17px}#prologue .credit a{color:#c5ddff;text-decoration:none;border-bottom:1px solid #566c8e}
-
-#voiceViz{display:none;width:min(620px,85vw);height:84px;margin:18px 0 0;pointer-events:none}
-#musicViz{display:none;position:fixed;left:50%;bottom:9px;transform:translateX(-50%);z-index:3;width:min(610px,58vw);height:70px;pointer-events:none;opacity:.43;filter:drop-shadow(0 0 5px #395a9a35)}
-@media(max-width:700px){#musicViz{bottom:75px;width:87vw;height:62px}}
-</style>
-</head><body>
-<div id="landing"><h1>ATMOSPHERE</h1><div class="sub">OKTOPUS ART STUDIO · IMMERSIVE SOUNDSCAPE</div>
-<p>Partículas y ribbons forman esferas en transformación continua, respondiendo al paisaje sonoro binaural.</p>
-<button id="start">INICIAR EXPERIENCIA</button><button id="pause">PAUSAR</button>
-<label>GRAVES · <span id="bv">0</span> dB<input id="bassEQ" type="range" min="-12" max="12" step="1" value="0"></label>
-<label>MEDIOS · <span id="mv">0</span> dB<input id="midEQ" type="range" min="-12" max="12" step="1" value="0"></label>
-<label>AGUDOS · <span id="hv">0</span> dB<input id="highEQ" type="range" min="-12" max="12" step="1" value="0"></label>
-<label>RESPUESTA VISUAL<input id="visual" type="range" min=".2" max="3" step=".1" value="1.3"></label>
-<div id="status">Listo para reproducir el máster binaural completo.</div>
-<div class="muted" style="margin-top:12px">SIGUE EL PROYECTO Y ESCUCHA ATMOSPHERE</div>
-<div id="follow">
-<a href="https://open.spotify.com/track/7JTEfJqz2rBNOkRB7A9w4K" target="_blank" rel="noopener">↗ Spotify<br><small>Escuchar · Seguir</small></a>
-<a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">↗ Apple Music<br><small class="atmos">Escúchalo en Dolby Atmos*</small></a>
-</div><div class="muted" style="margin-top:8px">*Dolby Atmos en dispositivos, regiones y configuraciones compatibles. En Apple Music puedes seguir la música del proyecto.</div>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#01040b;color:#e9f3ff;font:13px system-ui,Arial}
+canvas{display:block}button{color:#e6f3ff;background:#14243fbc;border:1px solid #6683a4;border-radius:7px;padding:11px 17px;letter-spacing:.12em;cursor:pointer}
+#intro{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;background:rgba(2,5,14,.42);backdrop-filter:blur(8px)}
+#title{font-size:clamp(40px,9vw,104px);font-weight:250;letter-spacing:.15em;line-height:1.1;text-shadow:0 0 22px #31547a88}
+#kicker{font-size:10px;letter-spacing:.37em;margin-bottom:16px;color:#9ab3ca}
+#introEn{font-size:clamp(19px,3vw,30px);max-width:720px;margin-top:24px;line-height:1.45}
+#introEs{font-size:clamp(13px,2vw,18px);color:#a0b8d0;margin-top:12px;max-width:720px}
+#introAuthor{margin-top:20px;line-height:1.8;font-size:12px;color:#a6bfd4}
+#introAuthor a,.links a{color:#add5ff;text-decoration:none}#intro button{margin-top:25px}
+#voiceWave{display:none;width:min(540px,75vw);height:68px;margin-top:17px}
+#controlsBtn{display:none;position:fixed;z-index:12;left:12px;bottom:12px}
+#controls{display:none;position:fixed;z-index:11;left:12px;bottom:66px;width:min(286px,calc(100% - 24px));padding:15px;background:#061024d9;border:1px solid #3c5874;border-radius:10px;backdrop-filter:blur(10px)}
+#controls label{display:block;margin-top:14px;font-size:11px;color:#aac4dd}#controls input{width:100%;accent-color:#7aaddd}
+#controls p{font-size:11px;color:#97aec8;line-height:1.5}#controls .links{margin-top:12px;font-size:11px;display:flex;gap:14px}
+#xrButton{position:fixed;bottom:14px;right:14px;z-index:13}#skip{background:transparent;font-size:10px;border:0}
+</style></head><body>
+<div id="intro">
+ <div id="kicker">TECHNO POESIS</div><div id="title">ATMOSPHERE</div>
+ <div id="introEn"></div><div id="introEs"></div>
+ <canvas id="voiceWave" width="640" height="88"></canvas>
+ <div id="introAuthor" style="display:none">Ricardo P. Tapia Fernández · Oktopus Art Studio<br>Art, nature and technology · <a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗</a></div>
+ <button id="startIntro">START</button><button id="skip" style="display:none">SKIP INTRO</button><button id="enter" style="display:none">ENTER EXPERIENCE</button>
 </div>
-<div id="prologue" aria-live="polite"><div class="eyebrow">TECHNO POESIS</div><div id="introTitle">ATMOSPHERE</div><div id="introEn" class="english"></div><div id="introEs" class="spanish"></div><canvas id="voiceViz" width="720" height="120" aria-label="Actividad de la narración"></canvas><div id="introCredit" class="credit" style="display:none">A work by <b>Ricardo P. Tapia Fernández</b>, Chilean techno-creative artist exploring connections between art, nature and technology.<br><a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗ Instagram</a></div><button id="voiceStart">START</button><button id="skipIntro">SALTAR INTRO</button><button id="enterExperience">ENTER EXPERIENCE</button></div>
-<canvas id="musicViz" width="1024" height="160" aria-label="Espectro real de la música"></canvas><div id="vr"></div><button id="collapse">CONTROLES</button>
+<button id="controlsBtn">CONTROLS</button>
+<div id="controls"><b>ATMOSPHERE</b><p id="status">Ready</p><button id="pause">PAUSE / RESUME</button>
+ <label>BASS · <span id="bassVal">0</span> dB<input id="bass" type="range" min="-12" max="12" step="1" value="0"></label>
+ <label>MID · <span id="midVal">0</span> dB<input id="mid" type="range" min="-12" max="12" step="1" value="0"></label>
+ <label>HIGH · <span id="highVal">0</span> dB<input id="high" type="range" min="-12" max="12" step="1" value="0"></label>
+ <label>VISUAL RESPONSE<input id="sensitivity" type="range" min=".3" max="2.8" step=".1" value="1.5"></label>
+ <div class="links"><a href="https://open.spotify.com/track/7JTEfJqz2rBNOkRB7A9w4K" target="_blank" rel="noopener">Spotify ↗</a><a href="https://music.apple.com/us/album/atmosphere-single/6815019097" target="_blank" rel="noopener">Apple Music · Dolby Atmos ↗</a></div>
+</div>
+<div id="xrButton"></div>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.173.0';
-
-const $=id=>document.getElementById(id), status=$('status'),start=$('start'),pause=$('pause');
-const controlsToggle=$('collapse');
-let controlsExpanded=false;
-function setControlsExpanded(expanded){
- controlsExpanded=expanded;
- if(!introActive&&!renderer.xr.isPresenting){
-  $('landing').style.display=expanded?'block':'none';
-  controlsToggle.style.display='block';
-  controlsToggle.textContent=expanded?'OCULTAR CONTROLES':'CONTROLES';
- }
-}
-controlsToggle.onclick=()=>setControlsExpanded(!controlsExpanded);
-const eqInputs=[$('bassEQ'),$('midEQ'),$('highEQ')],values=[$('bv'),$('mv'),$('hv')];
-let eq=[0,0,0],selected=0,ctx,fft,analyser,filters,source,introGain,playing=false;
-const audio=new Audio('./atmosphereADM_binaural.mp3');audio.preload='metadata';audio.crossOrigin='anonymous';
-function applyEQ(){eqInputs.forEach((input,i)=>{input.value=eq[i];values[i].textContent=(eq[i]>0?'+':'')+eq[i];if(filters)filters[i].gain.value=eq[i]});drawPanel()}
-eqInputs.forEach((input,i)=>input.addEventListener('input',()=>{eq[i]=Number(input.value);selected=i;applyEQ()}));
-async function initializeAudio(){
- if(!ctx){
-  ctx=new (window.AudioContext||window.webkitAudioContext)();
-  filters=[
-   new BiquadFilterNode(ctx,{type:'lowshelf',frequency:160,gain:eq[0]}),
-   new BiquadFilterNode(ctx,{type:'peaking',frequency:1000,Q:.7,gain:eq[1]}),
-   new BiquadFilterNode(ctx,{type:'highshelf',frequency:2500,gain:eq[2]})
-  ];
-  analyser=ctx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.78;
-  fft=new Uint8Array(analyser.frequencyBinCount);
-  source=ctx.createMediaElementSource(audio);source.connect(filters[0]);
-  filters[0].connect(filters[1]);filters[1].connect(filters[2]);
-  filters[2].connect(analyser);introGain=ctx.createGain();introGain.gain.value=0;analyser.connect(introGain);introGain.connect(ctx.destination);
- }await ctx.resume();
-}
-
-const prologue=$('prologue'),introEn=$('introEn'),introEs=$('introEs'),credit=$('introCredit'),enter=$('enterExperience'),skip=$('skipIntro');
-const lines=[
- {en:'Invisible networks connect all forms of life.',es:'Redes invisibles conectan todas las formas de vida.'},
- {en:'From body to Earth. From Earth to cosmos.',es:'Del cuerpo a la Tierra. De la Tierra al cosmos.'},
- {en:'Listen. You are part of this resonance.',es:'Escucha. Eres parte de esta resonancia.'},
- {en:'Ricardo P. Tapia Fernández · Oktopus Art Studio',es:'Arte, naturaleza y tecnología.'}
+const $=id=>document.getElementById(id);
+const status=$('status'),button=$('controlsBtn');
+let entered=false,eq=[0,0,0],selected=0,vrPanelShown=true;
+const controlIds=['bass','mid','high'],eqLabels=['bassVal','midVal','highVal'];
+const music=new Audio('./atmosphereADM_binaural.mp3');music.preload='metadata';
+music.crossOrigin='anonymous';
+const narration=new Audio('./atmosphere-intro.mp3');narration.preload='auto';
+let context,filters,analyser,source,spectrum,timeData,previous,low=0,mid=0,high=0,rms=0,flux=0;
+const narrative=[
+ ['Invisible networks connect all forms of life.','Redes invisibles conectan todas las formas de vida.'],
+ ['From body to Earth. From Earth to cosmos.','Del cuerpo a la Tierra. De la Tierra al cosmos.'],
+ ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
-let introActive=false,introTimeouts=[],introCounter=0,introFinished=false,voiceActuallyStarted=false,voiceAttempted=false;
-let narrationActive=false,narrationPulse=0,narrationClock=0;
-const voiceViz=$('voiceViz'),voiceCtx=voiceViz.getContext('2d');
-const musicViz=$('musicViz'),musicCtx=musicViz.getContext('2d');
-function drawVoiceActivity(dt){
- if(!narrationActive||voiceViz.style.display==='none')return;
- narrationClock+=dt;narrationPulse*=Math.exp(-dt*6);
- voiceCtx.clearRect(0,0,720,120);
- for(let i=0;i<72;i++){
-  const x=(i+.5)*10;
-  const window=Math.pow(Math.max(0,1-Math.abs(i-35.5)/37),1.5);
-  const modulation=.55+.25*Math.sin(narrationClock*17+i*.37)+.15*Math.sin(narrationClock*9-i*.61);
-  const amount=7+(22+36*narrationPulse)*window*Math.max(.1,modulation);
-  voiceCtx.fillStyle='rgba(150,202,255,'+(.30+window*.6)+')';
-  voiceCtx.fillRect(x-2,60-amount/2,4,amount);
- }
-}
-function drawMusicSpectrum(){
- if(!musicCtx)return;
- musicCtx.clearRect(0,0,1024,160);
- if(!analyser||audio.paused||audio.ended)return;
- const count=120,nyquist=ctx.sampleRate/2,gain=Number($('visual').value);
- for(let i=0;i<count;i++){
-  const hz=45*Math.pow(12000/45,i/(count-1));
-  const bin=Math.min(fft.length-1,Math.max(0,Math.round(hz/nyquist*fft.length)));
-  const amp=Math.min(1,(fft[bin]/255)*3.1*gain);
-  const shaped=Math.pow(amp,.78),height=4+shaped*126;
-  const x=(i+.5)*1024/count;
-  musicCtx.fillStyle='rgba(144,207,255,'+(.24+.72*shaped)+')';
-  musicCtx.fillRect(x-2,80-height/2,4,height);
- }
-}
-let ambienceCtx=null,ambienceGain=null,ambienceNodes=[];
-function introCaption(i){
- const p=lines[i];if(!p)return;
- introEn.textContent=p.en;introEs.textContent=p.es;
- credit.style.display=i===3?'block':'none';drawIntroPanel(p);
-}
-function cancelIntroTimers(){introTimeouts.forEach(clearTimeout);introTimeouts=[]}
-function ambientStart(){
- try{
-  if(!ambienceCtx){
-   ambienceCtx=new (window.AudioContext||window.webkitAudioContext)();
-   ambienceGain=ambienceCtx.createGain();
-   ambienceGain.gain.value=0;
-   ambienceGain.connect(ambienceCtx.destination);
-   // Layered continuous sine partials, slowly shifting against each other.
-   [55,82.4,110.3,164.8].forEach((freq,i)=>{
-    const osc=ambienceCtx.createOscillator(),gain=ambienceCtx.createGain();
-    osc.type=i===3?'triangle':'sine';
-    osc.frequency.value=freq;gain.gain.value=[.15,.095,.075,.032][i];
-    const lfo=ambienceCtx.createOscillator(),depth=ambienceCtx.createGain();
-    lfo.frequency.value=.04+i*.011;depth.gain.value=freq*.006;
-    lfo.connect(depth);depth.connect(osc.frequency);
-    osc.connect(gain);gain.connect(ambienceGain);
-    osc.start();lfo.start();
-    ambienceNodes.push(osc,lfo);
-   });
-  }
-  ambienceCtx.resume();
-  ambienceGain.gain.cancelScheduledValues(ambienceCtx.currentTime);
-  ambienceGain.gain.setTargetAtTime(.22,ambienceCtx.currentTime,1.7);
- }catch(e){/* On unsupported audio devices, captions remain accessible. */}
-}
-function ambientStop(){
- if(!ambienceCtx||!ambienceGain)return;
- ambienceGain.gain.cancelScheduledValues(ambienceCtx.currentTime);
- ambienceGain.gain.setTargetAtTime(0,ambienceCtx.currentTime,.18);
-}
-function speakPrologue(){
- if(!introActive||introFinished||!('speechSynthesis' in window))return;
- voiceAttempted=true;
- try{
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(lines.slice(0,3).map(p=>p.en).join(' ... '));
-  u.lang='en-US';u.rate=.78;u.pitch=1.04;u.volume=1;
-  const voices=speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
-  u.voice=voices.find(v=>/natural|enhanced|neural/i.test(v.name))||voices[0]||null;
-  u.onstart=()=>{voiceActuallyStarted=true;narrationActive=true;narrationPulse=.8;voiceViz.style.display='block'};
-  u.onboundary=()=>{narrationPulse=1};
-  u.onend=()=>{narrationActive=false;voiceViz.style.display='none'};
-  u.onerror=()=>{narrationActive=false;voiceViz.style.display='none';if(introActive&&!introFinished)$('voiceStart').textContent='REINTENTAR VOZ'};
-  speechSynthesis.speak(u);
- }catch(e){$('voiceStart').textContent='REINTENTAR VOZ'}
-}
+let introStarted=false,introDone=false,voiceLive=false,narrationFallback=false;
+const introText=$('introEn'),introSub=$('introEs'),voiceCanvas=$('voiceWave'),vc=voiceCanvas.getContext('2d');
+function caption(n){introText.textContent=narrative[n]?.[0]||'';introSub.textContent=narrative[n]?.[1]||''}
 function finishIntro(){
- if(introFinished)return;
- introFinished=true;prologue.classList.remove('awaiting');narrationActive=false;voiceViz.style.display='none';cancelIntroTimers();$('voiceStart').style.display='none';
+ if(introDone)return;
+ introDone=true;voiceLive=false;narration.pause();voiceCanvas.style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
- introEn.textContent='Enter the atmosphere.';introEs.textContent='Entra en la atmósfera.';
- credit.style.display='block';drawIntroPanel({en:'Enter the atmosphere.',es:'Entra en la atmósfera.'});
- skip.style.display='none';enter.style.display='block';
+ introText.textContent='';introSub.textContent='';
+ $('introAuthor').style.display='block';$('startIntro').style.display='none';
+ $('skip').style.display='none';$('enter').style.display='block';
 }
-// A passive visual entry; narration and Web Audio need an explicit user gesture.
-function startIntro(){
- introActive=true;introFinished=false;introCounter++;
- $('landing').style.display='none';prologue.style.display='flex';prologue.classList.add('awaiting');prologue.classList.remove('narrating');
- skip.style.display='none';enter.style.display='none';credit.style.display='none';
- $('voiceStart').style.display='block';$('voiceStart').textContent='START';
- introEn.textContent='';introEs.textContent='';narrationActive=false;voiceViz.style.display='none';voiceActuallyStarted=false;voiceAttempted=false;
+function playSpeechFallback(){
+ narrationFallback=true;
+ if(!('speechSynthesis' in window))return;
+ const u=new SpeechSynthesisUtterance(narrative.map(x=>x[0]).join(' ... '));
+ u.lang='en-US';u.rate=.8;u.pitch=1.06;u.onstart=()=>{voiceLive=true};
+ u.onend=()=>{voiceLive=false};speechSynthesis.cancel();speechSynthesis.speak(u);
 }
-// Voice and ambience begin inside the explicit user gesture.
-$('voiceStart').onclick=()=>{
- if(!introActive||introFinished)return;
- cancelIntroTimers();introCounter++;
- const token=introCounter;
- prologue.classList.remove('awaiting');prologue.classList.add('narrating');
- ambientStart();speakPrologue();
- $('voiceStart').style.display='none';skip.style.display='block';
- introCaption(0);
- [1,2,3].forEach(i=>introTimeouts.push(setTimeout(()=>{
-  if(introActive&&introCounter===token)introCaption(i);
- },i*4400)));
- introTimeouts.push(setTimeout(()=>{
-  if(introActive&&introCounter===token)finishIntro();
- },17600));
+$('startIntro').onclick=()=>{
+ if(introStarted)return;
+ introStarted=true;voiceLive=true;
+ $('startIntro').style.display='none';$('skip').style.display='block';
+ voiceCanvas.style.display='block';caption(0);
+ // HTML media, rather than browser speech synthesis, works in Quest Browser.
+ const attempt=narration.play();
+ attempt.catch(()=>{playSpeechFallback()});
+ const steps=[4500,9000];steps.forEach((ms,i)=>setTimeout(()=>{if(!introDone)caption(i+1)},ms));
+ setTimeout(finishIntro,14600);
 };
-skip.onclick=finishIntro;
-async function enterWorld(){
- try{
-  // Trigger play() synchronously during the user gesture; otherwise mobile
-  // browsers can lose playback permission after awaiting AudioContext.resume().
-  const audioReady=initializeAudio();
-  if(audio.ended)audio.currentTime=0;
-  audio.currentTime=0;
-  introGain.gain.cancelScheduledValues(ctx.currentTime);
-  introGain.gain.setValueAtTime(1,ctx.currentTime);
-  const playback=audio.play();
-  await Promise.all([audioReady,playback]);
-  ambientStop();narrationActive=false;voiceViz.style.display='none';introActive=false;introFinished=true;cancelIntroTimers();
-  if('speechSynthesis' in window)speechSynthesis.cancel();
-  prologue.style.display='none';intro3D.visible=false;
-  $('landing').style.display='none';if(!renderer.xr.isPresenting)setControlsExpanded(false);
-  if(renderer.xr.isPresenting)vrPanel.visible=true;
-  musicViz.style.display=renderer.xr.isPresenting?'none':'block';playing=true;start.textContent='REPRODUCIENDO';
-  pause.style.display='block';pause.textContent='PAUSAR';
-  status.textContent='Escucha inmersiva · FFT y ecualización activos';
- }catch(e){status.textContent='Error de reproducción: '+e.message;introEs.textContent='No se pudo iniciar el audio: '+e.message}
+narration.onended=()=>{voiceLive=false;finishIntro()};
+narration.onerror=()=>{if(introStarted&&!introDone&&!narrationFallback)playSpeechFallback()};
+$('skip').onclick=finishIntro;
+let voiceTime=0;
+function drawNarration(dt){
+ if(!voiceLive||introDone)return;
+ voiceTime+=dt;
+ vc.clearRect(0,0,640,88);
+ // The narration is a separate media file; no fake frequency spectrum is claimed.
+ for(let i=0;i<62;i++){
+  const x=(i+.5)*640/62,window=Math.pow(Math.max(0,1-Math.abs(i-31)/32),1.5);
+  const value=(narrationFallback?.35:.6)*window*(.4+.25*Math.sin(i*.64+voiceTime*11)+.18*Math.sin(i*.25-voiceTime*6));
+  const h=4+value*68;vc.fillStyle='rgba(164,215,255,'+(.25+window*.65)+')';
+  vc.fillRect(x-2,44-h*.5,4,h);
+ }
 }
-enter.onclick=enterWorld;
-start.onclick=async()=>{await enterWorld()};
-pause.onclick=async()=>{if(audio.paused){try{await ctx.resume();await audio.play();pause.textContent='PAUSAR'}catch(e){status.textContent=e.message}}else{audio.pause();pause.textContent='REANUDAR'}};
-audio.onended=()=>{musicViz.style.display='none';playing=false;start.textContent='REINICIAR EXPERIENCIA';pause.style.display='none';status.textContent='Experiencia finalizada'};
-audio.onerror=()=>status.textContent='Error: no se pudo cargar atmosphereADM_binaural.mp3.';
-let low=0,mid=0,high=0;
-function band(a,b){if(!ctx)return 0;const ny=ctx.sampleRate/2,lo=Math.max(0,Math.floor(a/ny*fft.length)),hi=Math.min(fft.length,Math.ceil(b/ny*fft.length));let s=0;for(let i=lo;i<hi;i++)s+=fft[i];return s/Math.max(1,hi-lo)/255}
-function analyze(){if(analyser&&!audio.paused&&!audio.ended){analyser.getByteFrequencyData(fft);low+=(band(20,160)-low)*.24;mid+=(band(160,2000)-mid)*.24;high+=(band(2000,12000)-high)*.24}else{low*=.94;mid*=.94;high*=.94}}
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x02030b);
-const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,150);camera.position.set(0,1.6,0);
+function setEQ(){controlIds.forEach((id,i)=>{$(id).value=eq[i];$(eqLabels[i]).textContent=(eq[i]>0?'+':'')+eq[i];if(filters)filters[i].gain.value=eq[i]});paintPanel()}
+controlIds.forEach((id,i)=>$(id).addEventListener('input',()=>{eq[i]=+$(id).value;selected=i;setEQ()}));
+button.onclick=()=>{const show=$('controls').style.display!=='block';$('controls').style.display=show?'block':'none';button.textContent=show?'HIDE CONTROLS':'CONTROLS'};
+$('pause').onclick=async()=>{if(!context)return;if(music.paused){await context.resume();await music.play()}else music.pause()};
+music.onended=()=>{status.textContent='Experience completed';music.currentTime=0};
+async function initSound(){
+ if(!context){
+  context=new (window.AudioContext||window.webkitAudioContext)();
+  filters=[
+   new BiquadFilterNode(context,{type:'lowshelf',frequency:160}),
+   new BiquadFilterNode(context,{type:'peaking',frequency:950,Q:.75}),
+   new BiquadFilterNode(context,{type:'highshelf',frequency:2700})
+  ];
+  analyser=context.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.65;
+  spectrum=new Uint8Array(analyser.frequencyBinCount);previous=new Uint8Array(spectrum.length);
+  timeData=new Float32Array(analyser.fftSize);
+  source=context.createMediaElementSource(music);source.connect(filters[0]);
+  filters[0].connect(filters[1]);filters[1].connect(filters[2]);
+  filters[2].connect(analyser);analyser.connect(context.destination);setEQ();
+ }
+ await context.resume();
+}
+function band(from,to){
+ const ny=context.sampleRate/2;let l=Math.floor(from/ny*spectrum.length),h=Math.ceil(to/ny*spectrum.length),sum=0;
+ l=Math.max(0,l);h=Math.min(spectrum.length,Math.max(h,l+1));
+ for(let i=l;i<h;i++)sum+=spectrum[i];return sum/(h-l)/255;
+}
+let avgFlux=.01,onset=0,onsetCooldown=0,quiet=0;
+function analyze(dt){
+ if(!analyser||music.paused||music.ended){
+  low*=.97;mid*=.97;high*=.97;rms*=.97;onset*=.92;return;
+ }
+ analyser.getByteFrequencyData(spectrum);analyser.getFloatTimeDomainData(timeData);
+ let sum=0,novel=0,count=0;
+ for(let i=0;i<timeData.length;i+=4)sum+=timeData[i]*timeData[i];
+ for(let i=2;i<Math.min(550,spectrum.length);i+=3){
+  novel+=Math.max(0,spectrum[i]-previous[i])/255;count++;
+ }
+ previous.set(spectrum);
+ const fluxNow=novel/Math.max(1,count);avgFlux=avgFlux*.98+fluxNow*.02;
+ rms+=(Math.sqrt(sum/(timeData.length/4))-rms)*.16;
+ low+=(band(20,160)-low)*.12;mid+=(band(160,2000)-mid)*.1;high+=(band(2000,12000)-high)*.1;
+ onsetCooldown=Math.max(0,onsetCooldown-dt);
+ if(fluxNow>Math.max(.033,avgFlux*2.2)&&rms>.018&&onsetCooldown<=0){onset=1;onsetCooldown=1.1}
+ onset*=Math.exp(-dt*1.9);flux+=(fluxNow-flux)*.13;
+ quiet+=((rms<.026?1:0)-quiet)*.03;
+}
+// Minimal sonic ecology: one filament network, one particulate shell, sparse tetrahedra.
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x02040b);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
+camera.position.set(0,1.6,0);scene.add(camera);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
-document.body.appendChild(renderer.domElement);
-// Display VR entry only on browsers actually supporting immersive-vr.
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);
+renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
+const root=new THREE.Group();scene.add(root);
+const GOLD=Math.PI*(3-Math.sqrt(5));
+const P=1050,particleArray=new Float32Array(P*3),particleDirections=[];
+for(let i=0;i<P;i++){
+ const y=1-2*(i+.5)/P,a=i*GOLD,c=Math.sqrt(1-y*y);
+ particleDirections.push(new THREE.Vector3(c*Math.cos(a),y,c*Math.sin(a)));
+}
+const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(particleArray,3).setUsage(THREE.DynamicDrawUsage));
+const particleMaterial=new THREE.PointsMaterial({color:0xb0d6ff,size:.018,transparent:true,opacity:.4,depthWrite:false});
+const particleMesh=new THREE.Points(pg,particleMaterial);root.add(particleMesh);
+const R=12,SEG=108,SIDES=4,filaments=[];
+for(let i=0;i<R;i++){
+ const geo=new THREE.BufferGeometry(),v=new Float32Array((SEG+1)*(SIDES+1)*3),ids=[];
+ geo.setAttribute('position',new THREE.BufferAttribute(v,3).setUsage(THREE.DynamicDrawUsage));
+ for(let j=0;j<SEG;j++)for(let k=0;k<SIDES;k++){const a=j*(SIDES+1)+k,b=a+SIDES+1;ids.push(a,b,a+1,b,b+1,a+1)}
+ geo.setIndex(ids);
+ const mesh=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x8cbde1,transparent:true,opacity:.24,depthWrite:false,side:THREE.DoubleSide}));
+ mesh.frustumCulled=false;root.add(mesh);filaments.push(mesh);
+}
+const tetraGeo=new THREE.TetrahedronGeometry(.12),tetraMat=new THREE.MeshBasicMaterial({color:0x9ad5ff,transparent:true,opacity:.16,wireframe:true,depthWrite:false});
+const T=8,tetra=new THREE.InstancedMesh(tetraGeo,tetraMat,T),dummy=new THREE.Object3D();root.add(tetra);tetra.frustumCulled=false;
+let animationT=0;
+function evolve(dt){
+ const response=+$('sensitivity').value,lo=low*response,mi=mid*response,hi=high*response;
+ const breath=1+lo*.36+Math.max(0,rms-.08)*.7;
+ const braid=.12+mi*.9;
+ // Sustained low drones lead slow coherent expansion, not many independent animations.
+ for(let i=0;i<P;i++){
+  const d=particleDirections[i],phase=i*.013;
+  const swirl=Math.sin(animationT*.12+phase)*(.02+hi*.08);
+  const r=(4.7+(i%5)*.38)*breath;
+  particleArray[i*3]=r*d.x+swirl*d.z;
+  particleArray[i*3+1]=1.6+r*d.y;
+  particleArray[i*3+2]=r*d.z-swirl*d.x;
+ }
+ pg.attributes.position.needsUpdate=true;
+ particleMaterial.opacity=.18+Math.min(.42,.9*hi+.12*onset);
+ particleMaterial.size=.014+Math.min(.02,hi*.05);
+ filaments.forEach((mesh,i)=>{
+  const v=mesh.geometry.attributes.position.array;
+  const theta=i*GOLD,ct=Math.cos(theta),st=Math.sin(theta);
+  const radius=(2.7+(i%3)*.6)*breath;
+  for(let j=0;j<=SEG;j++){
+   const a=j/SEG*Math.PI*2+i*.16;
+   const w=braid*Math.sin(a*3+animationT*(.045+mi*.11));
+   const x=radius*Math.cos(a)+w*Math.sin(a*2);
+   const y=radius*.52*Math.sin(a);
+   const z=radius*.34*Math.sin(a*2+i*.3);
+   const X=x*ct-y*st,Y=x*st+y*ct;
+   for(let k=0;k<=SIDES;k++){
+    const p=(j*(SIDES+1)+k)*3,q=k/SIDES*Math.PI*2;
+    const thickness=.009+mi*.018+onset*.022;
+    v[p]=X+Math.cos(q)*thickness;
+    v[p+1]=1.6+Y+Math.sin(q)*thickness;
+    v[p+2]=z-2*Math.cos(i)+Math.sin(q+i)*thickness;
+   }
+  }
+  mesh.geometry.attributes.position.needsUpdate=true;
+  mesh.material.opacity=Math.min(.66,.19+mi*.40+.15*onset);
+ });
+ for(let i=0;i<T;i++){
+  const y=1-2*(i+.5)/T,a=i*GOLD,c=Math.sqrt(1-y*y);
+  const rad=3.7+(i%3)*.9;
+  dummy.position.set(rad*c*Math.cos(a),1.6+rad*y,rad*c*Math.sin(a));
+  dummy.rotation.set(animationT*.04,animationT*.06+i,0);
+  dummy.scale.setScalar(.36+.9*onset);dummy.updateMatrix();tetra.setMatrixAt(i,dummy.matrix);
+ }
+ tetra.instanceMatrix.needsUpdate=true;tetraMat.opacity=.03+onset*.36;
+}
+function openControlPanel(){ $('controls').style.display='none';button.style.display='block';button.textContent='CONTROLS'}
+$('enter').onclick=async()=>{
+ try{
+  // Use the direct click to authorize media playback before async continuation.
+  const pending=initSound();
+  const play=music.play();
+  await Promise.all([pending,play]);
+  entered=true;narration.pause();$('intro').style.display='none';openControlPanel();
+  status.textContent='Sonic ecology · live FFT';
+ }catch(err){introSub.textContent='Unable to start sound: '+err.message}
+};
+// VR HUD follows viewpoint, offset to the left, always visible and never front-center.
+const panelCanvas=document.createElement('canvas');panelCanvas.width=640;panelCanvas.height=384;
+const panelCtx=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
+const hud=new THREE.Mesh(new THREE.PlaneGeometry(.63,.38),new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,depthTest:false}));
+hud.renderOrder=100;hud.visible=false;scene.add(hud);
+function paintPanel(){
+ panelCtx.clearRect(0,0,640,384);panelCtx.fillStyle='rgba(4,11,27,.79)';panelCtx.fillRect(0,0,640,384);
+ panelCtx.strokeStyle='#4b6484';panelCtx.strokeRect(2,2,636,380);
+ panelCtx.fillStyle='#c5dcf2';panelCtx.font='27px Arial';panelCtx.fillText('ATMOSPHERE · EQ',22,44);
+ panelCtx.fillStyle='#97adc4';panelCtx.font='17px Arial';panelCtx.fillText('L trigger: band    R stick: gain',22,76);
+ ['BASS','MID','HIGH'].forEach((name,i)=>{
+  const y=128+i*83;panelCtx.fillStyle=i===selected?'#d3e9ff':'#7994af';panelCtx.font='21px Arial';panelCtx.fillText(name,22,y);
+  panelCtx.fillStyle='#253853';panelCtx.fillRect(110,y-16,368,12);
+  panelCtx.fillStyle='#93c9f3';panelCtx.fillRect(110,y-16,368*(eq[i]+12)/24,12);
+  panelCtx.fillText((eq[i]>0?'+':'')+eq[i]+' dB',495,y);
+ });
+ panelCtx.fillStyle='#8ba9c9';panelCtx.font='17px Arial';panelCtx.fillText('L stick up/down: visual strength',22,367);panelTexture.needsUpdate=true;
+}
+paintPanel();
+const ctrl0=renderer.xr.getController(0),ctrl1=renderer.xr.getController(1);scene.add(ctrl0,ctrl1);
+for(const ctrl of [ctrl0,ctrl1]){
+ ctrl.addEventListener('selectstart',(event)=>{
+  if(!renderer.xr.isPresenting||event.data?.handedness!=='left')return;
+  selected=(selected+1)%3;paintPanel();
+ });
+}
+let inputCooldown=0;
+function readQuest(dt){
+ if(!renderer.xr.isPresenting)return;
+ inputCooldown=Math.max(0,inputCooldown-dt);
+ const session=renderer.xr.getSession();if(!session)return;
+ for(const src of session.inputSources){
+  if(!src.gamepad)continue;
+  const a=src.gamepad.axes,x=a.length>=4?a[2]:a[0]||0,y=a.length>=4?a[3]:a[1]||0;
+  if(src.handedness==='right'&&Math.abs(x)>.4&&inputCooldown===0){eq[selected]=THREE.MathUtils.clamp(eq[selected]+Math.sign(x),-12,12);setEQ();inputCooldown=.13}
+  if(src.handedness==='left'&&Math.abs(y)>.4){$('sensitivity').value=THREE.MathUtils.clamp(+$('sensitivity').value-y*dt*.5,.3,2.8)}
+ }
+ // Lateral HUD aligned to the headset, updated every frame.
+ const xrCam=renderer.xr.getCamera(),pos=new THREE.Vector3(),quat=new THREE.Quaternion();
+ xrCam.getWorldPosition(pos);xrCam.getWorldQuaternion(quat);
+ hud.position.copy(pos).add(new THREE.Vector3(-.84,-.22,-1.2).applyQuaternion(quat));
+ hud.quaternion.copy(quat);hud.visible=true;
+}
 async function setupVR(){
  if(!navigator.xr||!window.isSecureContext)return;
  try{
   if(!await navigator.xr.isSessionSupported('immersive-vr'))return;
-  const button=document.createElement('button');
-  button.textContent='ENTRAR EN VR';button.title='Inmersión con visor compatible';
-  $('vr').appendChild(button);
-  button.onclick=async()=>{
+  const b=document.createElement('button');b.textContent='ENTER VR';$('xrButton').appendChild(b);
+  b.onclick=async()=>{
    if(renderer.xr.isPresenting){await renderer.xr.getSession().end();return}
    try{
-    const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']});
-    await renderer.xr.setSession(session);button.textContent='SALIR DE VR';
-   }catch(err){status.textContent='No se pudo iniciar VR: '+err.message}
+    const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor']});
+    await renderer.xr.setSession(session);b.textContent='EXIT VR';
+   }catch(err){status.textContent=err.message}
   };
-  renderer.xr.addEventListener('sessionend',()=>{musicViz.style.display=!audio.paused&&!audio.ended&&!introActive?'block':'none';button.textContent='ENTRAR EN VR'});
- }catch(e){/* Browser without immersive mode: keep conventional 3D view */}}
+  renderer.xr.addEventListener('sessionstart',()=>{hud.visible=true;$('controls').style.display='none';button.style.display='none'});
+  renderer.xr.addEventListener('sessionend',()=>{hud.visible=false;b.textContent='ENTER VR';if(entered)openControlPanel()});
+ }catch(e){/* Standard 3D desktop view remains available. */}
+}
 setupVR();
-renderer.xr.addEventListener('sessionstart',()=>{musicViz.style.display='none';intro3D.visible=introActive;$('landing').style.display='none';controlsToggle.style.display='none';vrPanel.visible=!introActive;status.textContent='Modo VR activo'});
-renderer.xr.addEventListener('sessionend',()=>{intro3D.visible=false;vrPanel.visible=false;if(!introActive)setControlsExpanded(false) });
-const world=new THREE.Group();scene.add(world);
-// ENTORNO INTERIOR 360: las esferas no son objetos frontales.
-// El usuario se encuentra dentro de capas de material generativo en profundidad.
-const N=2350, positions=new Float32Array(N*3), seeds=[];
-const golden=Math.PI*(3-Math.sqrt(5));
-const centers=Array.from({length:9},()=>new THREE.Vector3());
-const shellRadius=[2.8,4.2,6.4,8.2];
-const scatter=new Float32Array(N*3);
-for(let i=0;i<N;i++){
- const u=1-2*(i+.5)/N,angle=i*golden;
- const f=Math.sqrt(1-u*u),rad=shellRadius[i%4];
- const dir=new THREE.Vector3(Math.cos(angle)*f,u,Math.sin(angle)*f);
- const k=i*3;scatter[k]=dir.x*rad;scatter[k+1]=1.6+dir.y*rad;scatter[k+2]=dir.z*rad;
- seeds.push({dir,group:i%9,shell:i%4,phase:(i*1.618)%6.283,rand:Math.random()});
-}
-const pg=new THREE.BufferGeometry();
-pg.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
-const particleMat=new THREE.PointsMaterial({color:0x9bbcff,size:.025,transparent:true,opacity:.75,depthWrite:false,sizeAttenuation:true});
-const particles=new THREE.Points(pg,particleMat);world.add(particles);
-// Tetrahedral fragments / pirámides, distributed across the entire sphere.
-const pyramidCount=135;
-const pyramidGeo=new THREE.TetrahedronGeometry(.075);
-const pyramidMat=new THREE.MeshBasicMaterial({color:0x8cc7ff,wireframe:true,transparent:true,opacity:.24,depthWrite:false});
-const pyramids=new THREE.InstancedMesh(pyramidGeo,pyramidMat,pyramidCount);
-pyramids.instanceMatrix.setUsage(THREE.DynamicDrawUsage);pyramids.frustumCulled=false;world.add(pyramids);
-const dummy=new THREE.Object3D();
-const pyramidSeeds=Array.from({length:pyramidCount},(_,i)=>{
- const theta=i*golden, u=1-2*(i+.5)/pyramidCount, f=Math.sqrt(1-u*u);
- return {dir:new THREE.Vector3(Math.cos(theta)*f,u,Math.sin(theta)*f),phase:i*.137,shell:i%4};
+let voiceClock=0;
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+ const dt=Math.min(.05,clock.getDelta());
+ voiceClock+=dt;
+ if(voiceLive){
+  vc.clearRect(0,0,640,88);
+  for(let i=0;i<48;i++){
+   const x=(i+.5)*640/48;
+   const h=(4+26*(.5+.4*Math.sin(voiceClock*12+i*.45)))*Math.max(.15,1-Math.abs(i-24)/27);
+   vc.fillStyle='rgba(143,194,238,.6)';vc.fillRect(x-2,44-h,4,h*2);
+  }
+ }
+ if(entered){analyze(dt);animationT+=dt;evolve(dt);readQuest(dt)}
+ renderer.render(scene,camera);
 });
-// Flowing ribbon strips mapped to spherical coordinates, including overhead / behind.
-const R=32,SEG=90,ribbons=[];
-for(let i=0;i<R;i++){
- const verts=new Float32Array((SEG+1)*6),g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.BufferAttribute(verts,3).setUsage(THREE.DynamicDrawUsage));
- const indices=[];for(let j=0;j<SEG;j++){const k=j*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
- g.setIndex(indices);
- const mat=new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(.53+(i%4)*.035,.75,.66),transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide});
- const mesh=new THREE.Mesh(g,mat);mesh.frustumCulled=false;world.add(mesh);ribbons.push(mesh);
-}
-// Intersecting central filaments: retain the delicate crossed-line composition,
-// but render as slender volumetric tubes with continuous 3D depth.
-const CROSS_COUNT=14,CROSS_SEGMENTS=96,CROSS_SIDES=6,crossedFilaments=[];
-for(let i=0;i<CROSS_COUNT;i++){
- const geo=new THREE.BufferGeometry(),positions=new Float32Array((CROSS_SEGMENTS+1)*(CROSS_SIDES+1)*3),indices=[];
- geo.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
- for(let j=0;j<CROSS_SEGMENTS;j++)for(let k=0;k<CROSS_SIDES;k++){
-  const a=j*(CROSS_SIDES+1)+k,b=a+CROSS_SIDES+1;indices.push(a,a+1,b,a+1,b+1,b);
- }
- geo.setIndex(indices);
- const material=new THREE.MeshBasicMaterial({
-  color:new THREE.Color().setHSL(.54+(i%5)*.021,.65,.71),
-  transparent:true,opacity:.27,depthWrite:false,side:THREE.DoubleSide
- });
- const filament=new THREE.Mesh(geo,material);
- filament.frustumCulled=false;world.add(filament);crossedFilaments.push(filament);
-}
-function updateCrossedFilaments(t,lo,me,hi){
- crossedFilaments.forEach((filament,i)=>{
-  const a=filament.geometry.attributes.position.array;
-  const direction=i*2.399,ct=Math.cos(direction),st=Math.sin(direction);
-  const baseR=2.8+Math.sin(i*.83)*.75,elliptic=.46+.17*Math.sin(i);
-  const width=.009+.013*me+.009*hi;
-  for(let j=0;j<=CROSS_SEGMENTS;j++){
-   const u=j/CROSS_SEGMENTS,angle=u*Math.PI*2+t*(.04+me*.06)+i*.7;
-   const breathe=baseR*(1+.055*Math.sin(5*angle+t*.3+i)+lo*.14);
-   // Each ellipse tilts in 3D and repeatedly intersects its neighbours.
-   const x0=breathe*Math.cos(angle),y0=breathe*elliptic*Math.sin(angle);
-   const z0=breathe*.5*Math.sin(angle+i*.65);
-   const x=x0*ct-y0*st,y=x0*st+y0*ct;
-   for(let k=0;k<=CROSS_SIDES;k++){
-    const v=k/CROSS_SIDES*Math.PI*2,p=j*(CROSS_SIDES+1)*3+k*3;
-    a[p]=x+Math.cos(v)*width;
-    a[p+1]=1.6+y+Math.sin(v)*width;
-    a[p+2]=-2.0+z0;
-   }
-  }
-  filament.geometry.attributes.position.needsUpdate=true;
-  filament.material.opacity=Math.min(.7,.23+.22*me+.13*lo);
- });
-}
-
-// Continuous spherical frequency membranes surrounding the observer.
-// Animated radial wavebands, not flat front-facing rings.
-const WAVE_LAYERS=9,WAVE_SEGMENTS=140;
-const frequencyShells=[];
-for(let i=0;i<WAVE_LAYERS;i++){
- const geometry=new THREE.BufferGeometry();
- geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array((WAVE_SEGMENTS+1)*3),3).setUsage(THREE.DynamicDrawUsage));
- const material=new THREE.LineBasicMaterial({color:new THREE.Color().setHSL(.53+i*.018,.72,.65),transparent:true,opacity:.23,depthWrite:false});
- const wave=new THREE.Line(geometry,material);
- wave.frustumCulled=false;world.add(wave);frequencyShells.push(wave);
-}
-function updateFrequencyShells(t,lo,me,hi){
- const radii=[8.8,9.2,9.65,10.1,10.65,11.2,11.7,12.3,12.9];
- for(let i=0;i<WAVE_LAYERS;i++){
-  const wave=frequencyShells[i],v=wave.geometry.attributes.position.array;
-  const tilt=i*golden+t*.025,ct=Math.cos(tilt),st=Math.sin(tilt);
-  const lat=.7*Math.sin(i*.69+t*.05),cl=Math.cos(lat),sl=Math.sin(lat);
-  for(let j=0;j<=WAVE_SEGMENTS;j++){
-   const angle=j/WAVE_SEGMENTS*Math.PI*2;
-   const ripple=Math.sin(angle*(9+i%4)-t*(1.1+lo*.8)+i*1.7);
-   const envelope=.10+.65*lo+.35*me+.18*hi;
-   const radius=radii[i]+ripple*envelope;
-   const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
-   v[3*j]=(x*ct-z*st)*cl+Math.sin(angle*4+t*.2)*hi*.12;
-   v[3*j+1]=1.6+(x*ct-z*st)*sl;
-   v[3*j+2]=x*st+z*ct;
-  }
-  wave.geometry.attributes.position.needsUpdate=true;
-  wave.material.opacity=Math.min(.60,.10+.37*(.4*lo+.4*me+.2*hi));
- }
-}
-
-// Immersive spectral structures, driven by the actual music analyser.
-// All positions are in world space around the listener, not on a screen.
-const ARC_COUNT=10,ARC_SEGMENTS=104,reactiveArcs=[];
-for(let i=0;i<ARC_COUNT;i++){
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.BufferAttribute(new Float32Array((ARC_SEGMENTS+1)*3),3).setUsage(THREE.DynamicDrawUsage));
- const m=new THREE.LineBasicMaterial({color:new THREE.Color().setHSL(.53+i*.018,.78,.7),transparent:true,opacity:.15,depthWrite:false});
- const line=new THREE.Line(g,m);line.frustumCulled=false;world.add(line);reactiveArcs.push(line);
-}
-const SPOKE_COUNT=72,reactiveSpokes=[];
-for(let i=0;i<SPOKE_COUNT;i++){
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3).setUsage(THREE.DynamicDrawUsage));
- const line=new THREE.Line(g,new THREE.LineBasicMaterial({color:0x99cfff,transparent:true,opacity:.12,depthWrite:false}));
- line.frustumCulled=false;world.add(line);reactiveSpokes.push(line);
-}
-const HALO_COUNT=500,haloPositions=new Float32Array(HALO_COUNT*3),haloSeeds=[];
-for(let i=0;i<HALO_COUNT;i++){
- const y=1-2*(i+.5)/HALO_COUNT,a=i*golden,side=Math.sqrt(1-y*y);
- const dir=new THREE.Vector3(side*Math.cos(a),y,side*Math.sin(a));
- haloSeeds.push({dir,radius:5.2+(i%9)*.24,phase:i*.39});
-}
-const haloGeometry=new THREE.BufferGeometry();
-haloGeometry.setAttribute('position',new THREE.BufferAttribute(haloPositions,3).setUsage(THREE.DynamicDrawUsage));
-const haloMaterial=new THREE.PointsMaterial({color:0xa6d5ff,size:.025,transparent:true,opacity:.2,depthWrite:false});
-const halo=new THREE.Points(haloGeometry,haloMaterial);halo.frustumCulled=false;world.add(halo);
-function updateReactiveAccents(t,lo,me,hi){
- const e=Math.min(2,lo*.45+me*.35+hi*.2);
- reactiveArcs.forEach((arc,i)=>{
-  const v=arc.geometry.attributes.position.array,az=i*golden+t*.035;
-  const tilt=.7*Math.sin(i*.77),ct=Math.cos(az),st=Math.sin(az),cl=Math.cos(tilt),sl=Math.sin(tilt);
-  for(let j=0;j<=ARC_SEGMENTS;j++){
-   const a=j/ARC_SEGMENTS*Math.PI*2;
-   const ripple=Math.sin(a*(6+i%5)-t*(.8+me*2)+i)*(.06+lo*.6+hi*.28);
-   const rad=3.0+i*.48+ripple;
-   const x=rad*Math.cos(a),z=rad*Math.sin(a);
-   const X=x*ct-z*st;
-   v[j*3]=X*cl;v[j*3+1]=1.6+X*sl;v[j*3+2]=x*st+z*ct;
-  }
-  arc.geometry.attributes.position.needsUpdate=true;
-  arc.material.opacity=Math.min(.55,.07+e*.44);
- });
- reactiveSpokes.forEach((line,i)=>{
-  const v=line.geometry.attributes.position.array,y=1-2*(i+.5)/SPOKE_COUNT,angle=i*golden+t*.07,side=Math.sqrt(1-y*y);
-  const dx=side*Math.cos(angle),dz=side*Math.sin(angle);
-  const near=3.3+lo*.4,far=near+.28+me*1.4+hi*.9;
-  v[0]=dx*near;v[1]=1.6+y*near;v[2]=dz*near;
-  v[3]=dx*far;v[4]=1.6+y*far;v[5]=dz*far;
-  line.geometry.attributes.position.needsUpdate=true;
-  line.material.opacity=Math.min(.55,.06+me*.36+hi*.2);
- });
- const v=haloGeometry.attributes.position.array;
- for(let i=0;i<HALO_COUNT;i++){
-  const p=haloSeeds[i],radius=p.radius*(1+.075*Math.sin(t*.3+p.phase)+lo*.17);
-  v[i*3]=p.dir.x*radius;
-  v[i*3+1]=1.6+p.dir.y*radius;
-  v[i*3+2]=p.dir.z*radius;
- }
- haloGeometry.attributes.position.needsUpdate=true;
- haloMaterial.size=.017+hi*.05;
- haloMaterial.opacity=Math.min(.85,.13+e*.43);
-}
-
-// Volumetric 360° FFT sculpture.
-// Rounded spectral columns plus three double-sided breathing tubular wave belts.
-const SPECTRAL_BARS=144;
-const spectralGeometry=new THREE.CylinderGeometry(.056,.09,1,8,1);
-const spectralMaterial=new THREE.MeshPhongMaterial({color:0x85bfff,emissive:0x173c69,emissiveIntensity:.22,transparent:true,opacity:.24,depthWrite:false,shininess:75});
-const spectralMesh=new THREE.InstancedMesh(spectralGeometry,spectralMaterial,SPECTRAL_BARS);
-spectralMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);spectralMesh.frustumCulled=false;
-world.add(spectralMesh);
-const spectrumDummy=new THREE.Object3D(),spectrumAxis=new THREE.Vector3(0,1,0),spectrumLevels=new Float32Array(SPECTRAL_BARS);
-const WAVE_BELTS=3,BELT_SEGMENTS=144,BELT_SIDES=9,volumetricBelts=[];
-for(let belt=0;belt<WAVE_BELTS;belt++){
- const geo=new THREE.BufferGeometry();
- const vertices=new Float32Array((BELT_SEGMENTS+1)*(BELT_SIDES+1)*3);
- const normals=new Float32Array(vertices.length),indices=[];
- for(let j=0;j<BELT_SEGMENTS;j++)for(let k=0;k<BELT_SIDES;k++){
-  const a=j*(BELT_SIDES+1)+k,b=a+BELT_SIDES+1;
-  indices.push(a,b,a+1,b,b+1,a+1);
- }
- geo.setAttribute('position',new THREE.BufferAttribute(vertices,3).setUsage(THREE.DynamicDrawUsage));
- geo.setIndex(indices);
- const material=new THREE.MeshPhongMaterial({
-  color:new THREE.Color().setHSL(.54+belt*.06,.72,.6),emissive:0x0d2543,emissiveIntensity:.48,
-  transparent:true,opacity:.26,depthWrite:false,side:THREE.DoubleSide,shininess:90
- });
- const mesh=new THREE.Mesh(geo,material);mesh.frustumCulled=false;world.add(mesh);volumetricBelts.push(mesh);
-}
-const spectrumLight=new THREE.PointLight(0x7aaeff,2,14);spectrumLight.position.set(0,1.6,0);world.add(spectrumLight);
-function updateSpectralCrown(t){
- const playing=analyser&&!audio.paused&&!audio.ended;
- const ny=ctx?ctx.sampleRate/2:22050,visualGain=Number($('visual').value);
- let spectralTotal=0;
- for(let i=0;i<SPECTRAL_BARS;i++){
-  const theta=i/SPECTRAL_BARS*Math.PI*2;
-  const frequency=45*Math.pow(12000/45,i/(SPECTRAL_BARS-1));
-  const bin=playing?Math.min(fft.length-1,Math.round(frequency/ny*fft.length)):0;
-  const raw=playing?fft[bin]/255:0;
-  spectrumLevels[i]+=(raw-spectrumLevels[i])*.22;
-  const amount=Math.pow(Math.min(1,spectrumLevels[i]*3.5*visualGain),.8);
-  spectralTotal+=amount;
-  const y=Math.sin(i*.47)*1.22,r=2.8+.40*Math.sin(i*.29);
-  const direction=new THREE.Vector3(Math.cos(theta)*.94,y*.19,Math.sin(theta)*.94).normalize();
-  const length=.045+amount*1.85;
-  spectrumDummy.position.set(Math.cos(theta)*r+direction.x*length*.5,1.6+y+direction.y*length*.5,Math.sin(theta)*r+direction.z*length*.5);
-  spectrumDummy.quaternion.setFromUnitVectors(spectrumAxis,direction);
-  spectrumDummy.scale.set(1+amount*.85,length,1+amount*.85);
-  spectrumDummy.updateMatrix();spectralMesh.setMatrixAt(i,spectrumDummy.matrix);
- }
- spectralMesh.instanceMatrix.needsUpdate=true;
- volumetricBelts.forEach((mesh,belt)=>{
-  const out=mesh.geometry.attributes.position.array,base=4.7+belt*.95;
-  for(let j=0;j<=BELT_SEGMENTS;j++){
-   const u=j/BELT_SEGMENTS,theta=u*Math.PI*2,index=j%SPECTRAL_BARS;
-   // Each angular cell samples a nearby FFT band; it has real radial depth.
-   const fftBand=(index+Math.floor(belt*SPECTRAL_BARS/3))%SPECTRAL_BARS;
-   const nearby=spectrumLevels[fftBand],strength=Math.pow(Math.min(1,nearby*3.5*visualGain),.8);
-   const radius=base+strength*(.65+belt*.2)+Math.sin(theta*9-t*.55+belt)*(.04+strength*.18);
-   const latitude=.45*Math.sin(theta*2+belt*2.1+t*.035);
-   const centerY=1.6+Math.sin(latitude)*1.1;
-   for(let k=0;k<=BELT_SIDES;k++){
-    const angle=k/BELT_SIDES*Math.PI*2,thickness=.035+strength*.22;
-    const radial=radius+Math.cos(angle)*thickness,dy=Math.sin(angle)*thickness;
-    const ix=(j*(BELT_SIDES+1)+k)*3;
-    out[ix]=Math.cos(theta)*radial;
-    out[ix+1]=centerY+dy;
-    out[ix+2]=Math.sin(theta)*radial;
-   }
-  }
-  mesh.geometry.attributes.position.needsUpdate=true;
-  mesh.geometry.computeVertexNormals();
-  mesh.material.opacity=playing?Math.min(.34,.09+spectralTotal/SPECTRAL_BARS*.23):.07;
- });
- spectrumLight.intensity=1+spectralTotal/SPECTRAL_BARS*6;
-}
-// Orbiting nests are distributed in all directions, not lined up at the horizon.
-const anchorDirs=Array.from({length:9},(_,i)=>{
- const y=1-2*(i+.5)/9,a=i*golden,f=Math.sqrt(1-y*y);
- return new THREE.Vector3(Math.cos(a)*f,y,Math.sin(a)*f);
-});
-function updateObjects(t,react,lo,me,hi){
- const form=.5+.5*Math.sin(t*.16), radius=2.65+.35*Math.sin(t*.09);
- centers.forEach((c,i)=>{
-   c.copy(anchorDirs[i]).multiplyScalar(radius+1.0*Math.sin(t*.13+i*.95));
-   c.y+=1.6;
- });
- const positions=pg.attributes.position.array;
- for(let i=0;i<N;i++){
-  const s=seeds[i],k=i*3;
-  // Transition between a spherical shell around the viewer and small swarms
-  // scattered throughout 360 space. Every group has a different phase.
-  const phase=.5+.5*Math.sin(t*.27+s.group*1.21);
-  const gather=Math.pow(phase,.9)*(.2+.58*form);
-  const center=centers[s.group];
-  const nestR=.45+.6*s.rand+lo*.5;
-  const breathing=1+.07*Math.sin(t*.42+s.phase)+hi*.19;
-  const x=center.x+s.dir.x*nestR, y=center.y+s.dir.y*nestR,z=center.z+s.dir.z*nestR;
-  positions[k]=(scatter[k]*(1-gather)+x*gather)*breathing;
-  positions[k+1]=1.6+(scatter[k+1]-1.6)*(1-gather)+(y-1.6)*gather;
-  positions[k+2]=(scatter[k+2]*(1-gather)+z*gather)*breathing;
- }
- pg.attributes.position.needsUpdate=true;
- particleMat.size=.019+hi*.026;particleMat.opacity=Math.min(.96,.48+hi*.7);
- for(let i=0;i<pyramidCount;i++){
-  const q=pyramidSeeds[i],r=shellRadius[q.shell]*(.8+.16*Math.sin(t*.15+q.phase))+lo*.35;
-  dummy.position.copy(q.dir).multiplyScalar(r);dummy.position.y+=1.6;
-  dummy.rotation.set(t*.17+i*.2,t*.12+q.phase,t*.08);
-  const sc=.65+lo*2+hi*.3;
-  dummy.scale.setScalar(sc);dummy.updateMatrix();pyramids.setMatrixAt(i,dummy.matrix);
- }
- pyramids.instanceMatrix.needsUpdate=true;
- for(let i=0;i<R;i++){
-   const a=ribbons[i].geometry.attributes.position.array;
-   const band=i%4,r=shellRadius[band]*(.83+.08*Math.sin(t*.21+i*.8))+me*.35;
-   const tilt=i*golden,drift=t*(.025+me*.14);
-   for(let j=0;j<=SEG;j++){
-     const u=j/SEG,ang=(u*1.62-.81)*Math.PI+drift+i*.93;
-     const latitude=.65*Math.sin(ang*.67+i*.74+t*.11);
-     const x=Math.cos(ang)*Math.cos(latitude),y=Math.sin(latitude),z=Math.sin(ang)*Math.cos(latitude);
-     const ct=Math.cos(tilt),st=Math.sin(tilt);
-     const X=x*ct-y*st,Y=x*st+y*ct;
-     const wobble=1+.085*Math.sin(u*14-t*.6+i)+hi*.1;
-     const width=.008+.013*hi;
-     const k=j*6;
-     a[k]=X*r*wobble; a[k+1]=1.6+Y*r*wobble; a[k+2]=z*r*wobble;
-     a[k+3]=X*(r*wobble+width);a[k+4]=1.6+Y*(r*wobble+width);a[k+5]=z*(r*wobble+width);
-   }
-   ribbons[i].geometry.attributes.position.needsUpdate=true;
-   ribbons[i].material.opacity=Math.min(.68,.17+.38*me);
- }
-}
-
-const introCanvas=document.createElement('canvas');introCanvas.width=1024;introCanvas.height=512;
-const introC=introCanvas.getContext('2d'),introTex=new THREE.CanvasTexture(introCanvas);
-const intro3D=new THREE.Mesh(new THREE.PlaneGeometry(2.15,1.075),new THREE.MeshBasicMaterial({map:introTex,transparent:true,depthTest:false}));
-intro3D.visible=false;intro3D.renderOrder=120;intro3D.position.set(0,1.6,-2.7);scene.add(intro3D);
-function wrapLines(text,maxWidth){
- const words=text.split(' '),rows=[];let row='';
- for(const word of words){const test=row?row+' '+word:word;
- if(introC.measureText(test).width>maxWidth&&row){rows.push(row);row=word}else row=test}
- rows.push(row);return rows;
-}
-function drawIntroPanel(p){
- if(!introC)return;
- introC.clearRect(0,0,1024,512);
- introC.fillStyle='rgba(2,5,15,.86)';introC.fillRect(0,0,1024,512);
- introC.textAlign='center';introC.fillStyle='#8caad0';introC.font='24px Arial';
- introC.fillText('ATMOSPHERE · TECHNO POESIS',512,95);
- introC.fillStyle='#f4f7ff';introC.font='40px Arial';
- wrapLines(p.en,890).forEach((line,i)=>introC.fillText(line,512,212+i*55));
- introC.fillStyle='#adc1da';introC.font='27px Arial';
- wrapLines(p.es,890).forEach((line,i)=>introC.fillText(line,512,348+i*42));
- introTex.needsUpdate=true;
-}
-
-// World-space VR control panel with controller selection and thumbstick adjustments.
-const panelCanvas=document.createElement('canvas');panelCanvas.width=768;panelCanvas.height=512;
-const pc=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
-const vrPanel=new THREE.Mesh(new THREE.PlaneGeometry(.86,.575),new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,depthTest:false}));
-vrPanel.position.set(-1.30,1.21,-.88);vrPanel.rotation.y=.82;vrPanel.renderOrder=100;vrPanel.visible=false;scene.add(vrPanel);
-function drawPanel(){if(!pc)return;pc.clearRect(0,0,768,512);pc.fillStyle='rgba(5,12,30,.94)';pc.fillRect(0,0,768,512);pc.strokeStyle='#526b99';pc.strokeRect(3,3,762,506);pc.fillStyle='#f0f4ff';pc.font='32px Arial';pc.fillText('ATMOSPHERE · EQ',28,49);
- pc.fillStyle='#a7bddc';pc.font='22px Arial';pc.fillText('Gatillo izq.: banda · Stick der. ↔: ajustar',28,88);
- ['GRAVES','MEDIOS','AGUDOS'].forEach((label,i)=>{const y=161+i*110;pc.fillStyle=i===selected?'#d4e9ff':'#91a6c7';pc.font='26px Arial';pc.fillText((i===selected?'▶ ':'  ')+label,30,y);
- pc.fillStyle='#243854';pc.fillRect(45,y+19,560,15);pc.fillStyle='#69b7ef';const x=45+(eq[i]+12)/24*560;pc.fillRect(45,y+19,x-45,15);pc.fillStyle='#ecf4ff';pc.fillText((eq[i]>0?'+':'')+eq[i]+' dB',620,y+37)});
- pc.fillStyle='#99adc9';pc.font='19px Arial';pc.fillText('Stick izquierdo ↕: respuesta visual',28,491);panelTexture.needsUpdate=true}
-drawPanel();const controllers=[renderer.xr.getController(0),renderer.xr.getController(1)];
-controllers.forEach((controller,i)=>{scene.add(controller);const ray=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-2)]),new THREE.LineBasicMaterial({color:i===0?0x7e9fe0:0x77d3ff}));controller.add(ray);
- controller.addEventListener('selectstart',(event)=>{if(!renderer.xr.isPresenting||event.data?.handedness!=='left')return;selected=(selected+1)%3;applyEQ()})});
-let stickCooldown=0;
-function handleControllers(dt){if(!renderer.xr.isPresenting)return;stickCooldown=Math.max(0,stickCooldown-dt);
- const session=renderer.xr.getSession();if(!session)return;
- const sources=[...session.inputSources].filter(s=>s.gamepad);
- for(const src of sources){const axes=src.gamepad.axes||[],x=axes.length>=4?axes[2]:axes[0]||0,y=axes.length>=4?axes[3]:axes[1]||0;
- if(src.handedness==='right'&&Math.abs(x)>.25&&stickCooldown===0){eq[selected]=Math.max(-12,Math.min(12,eq[selected]+Math.sign(x)));applyEQ();stickCooldown=.1}
- if(src.handedness==='left'){if(Math.abs(x)>.7&&stickCooldown===0){selected=(selected+(x>0?1:2))%3;applyEQ();stickCooldown=.24}
- if(Math.abs(y)>.3){$('visual').value=Math.max(.2,Math.min(3,Number($('visual').value)-y*dt*.6))}}}
-}
-let t=0;const clock=new THREE.Clock();
-renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);analyze();handleControllers(dt);t+=dt*(audio.paused?.28:1);
-const factor=Number($('visual').value),lo=low*factor,me=mid*factor,hi=high*factor;
-updateObjects(t,lo*.48+me*.33+hi*.19,lo,me,hi);updateFrequencyShells(t,lo,me,hi);updateReactiveAccents(t,lo,me,hi);updateCrossedFilaments(t,lo,me,hi);updateSpectralCrown(t);drawVoiceActivity(dt);if(musicViz.style.display!=='none')drawMusicSpectrum();renderer.render(scene,camera)});
-startIntro();
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
