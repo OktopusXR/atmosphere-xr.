@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {scoreEnvelope} from './score.js?build=score-v8';
 import {makeClouds} from './cloud.js?build=score-v7b';
 import {createWatch} from './watch.js?build=score-v7b';
 import {createForeground} from './stage.js?build=score-v7b';
@@ -119,7 +120,7 @@ class Atmosphere extends xb.Script {
   }
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=music.currentTime*402/duration;
-  const env=null;
+  const env=scoreEnvelope(t);
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
   cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,env.bass,env.mid,env.high,env.attack);
   foreground.update(t,env,params);
