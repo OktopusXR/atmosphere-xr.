@@ -403,62 +403,131 @@ const jointNames=['wrist','thumb-metacarpal','thumb-phalanx-proximal','thumb-pha
 'ring-finger-metacarpal','ring-finger-phalanx-proximal','ring-finger-phalanx-intermediate','ring-finger-phalanx-distal','ring-finger-tip',
 'pinky-finger-metacarpal','pinky-finger-phalanx-proximal','pinky-finger-phalanx-intermediate','pinky-finger-phalanx-distal','pinky-finger-tip'];
 const bonePairs=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[8,9],[0,10],[10,11],[11,12],[12,13],[13,14],[0,15],[15,16],[16,17],[17,18],[18,19],[0,20],[20,21],[21,22],[22,23],[23,24]];
-const handMaterial=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.7,depthWrite:false});
-const handJointGeometry=new THREE.SphereGeometry(.007,6,5);
-const handBoneGeometry=new THREE.CylinderGeometry(.0027,.0027,1,5);
-const axisY=new THREE.Vector3(0,1,0);
+// Fascial / mycelial hands: drawn as an atmospheric fiber network rather than anatomical bones.
+// Tracking and pinches still use the native 25 WebXR hand joints.
+const fascialLinks=[...bonePairs,[0,9],[0,14],[0,19],[0,24],[4,9],[9,14],[14,19],[19,24],[5,10],[10,15],[15,20]];
+const HAND_STRANDS=3,HAND_STEPS=5,HAND_DUST=210;
+const handFiberMat=new THREE.LineBasicMaterial({color:0xe7e9e7,transparent:true,opacity:.4,depthWrite:false,depthTest:true});
+const handDustMat=new THREE.PointsMaterial({color:0xffffff,size:.007,transparent:true,opacity:.47,depthWrite:false,sizeAttenuation:true});
+const handCoreMat=new THREE.PointsMaterial({color:0xeeeeee,size:.014,transparent:true,opacity:.72,depthWrite:false,sizeAttenuation:true});
 function buildHand(){
- const group=new THREE.Group(),points=[],bones=[],positions=jointNames.map(()=>new THREE.Vector3());
- for(let i=0;i<jointNames.length;i++){const m=new THREE.Mesh(handJointGeometry,handMaterial);points.push(m);group.add(m)}
- for(let i=0;i<bonePairs.length;i++){const m=new THREE.Mesh(handBoneGeometry,handMaterial);bones.push(m);group.add(m)}
- scene.add(group);group.visible=false;return {group,points,bones,positions,pinching:false};
+ const group=new THREE.Group(),positions=jointNames.map(()=>new THREE.Vector3());
+ const fibersGeo=new THREE.BufferGeometry();
+ const fiberArray=new Float32Array(fascialLinks.length*HAND_STRANDS*HAND_STEPS*6);
+ fibersGeo.setAttribute('position',new THREE.BufferAttribute(fiberArray,3).setUsage(THREE.DynamicDrawUsage));
+ const fibers=new THREE.LineSegments(fibersGeo,handFiberMat);fibers.frustumCulled=false;group.add(fibers);
+ const dustGeo=new THREE.BufferGeometry();
+ const dustArray=new Float32Array(HAND_DUST*3);
+ dustGeo.setAttribute('position',new THREE.BufferAttribute(dustArray,3).setUsage(THREE.DynamicDrawUsage));
+ const dust=new THREE.Points(dustGeo,handDustMat);dust.frustumCulled=false;group.add(dust);
+ const coreGeo=new THREE.BufferGeometry();
+ const coreArray=new Float32Array(jointNames.length*3);
+ coreGeo.setAttribute('position',new THREE.BufferAttribute(coreArray,3).setUsage(THREE.DynamicDrawUsage));
+ const cores=new THREE.Points(coreGeo,handCoreMat);cores.frustumCulled=false;group.add(cores);
+ scene.add(group);group.visible=false;
+ return {group,positions,visible:new Array(jointNames.length).fill(false),fibers,dust,cores,pinching:false,phase:0};
 }
 const trackedHands={left:buildHand(),right:buildHand()};
+function redrawMycelialHand(hand,dt,side){
+ hand.phase+=dt;
+ const fp=hand.fibers.geometry.attributes.position.array;
+ let index=0;
+ // Multiple subtly braided strands per connection, with transverse links across the palm.
+ for(let n=0;n<fascialLinks.length;n++){
+  const [a,b]=fascialLinks[n];
+  if(!hand.visible[a]||!hand.visible[b])continue;
+  const p=hand.positions[a],q=hand.positions[b],len=p.distanceTo(q);
+  const dx=q.x-p.x,dy=q.y-p.y,dz=q.z-p.z;
+  // Construct a local transverse vector so the fibers are not identical straight bones.
+  let nx=-dy,ny=dx,nz=.25*dz;
+  const normal=Math.hypot(nx,ny,nz)||1;nx/=normal;ny/=normal;nz/=normal;
+  for(let strand=0;strand<HAND_STRANDS;strand++){
+   const seed=n*2.398+strand*2.094;
+   const width=(.003+len*.07)*(strand===0?.35:1);
+   for(let k=0;k<HAND_STEPS;k++){
+    for(let end=0;end<2;end++){
+     const t=(k+end)/HAND_STEPS,edge=Math.sin(Math.PI*t);
+     const ripple=Math.sin(t*9+seed+hand.phase*1.4+low*8)*width*edge;
+     const offset=ripple+Math.cos(seed*1.31+t*6)*width*.45*edge;
+     fp[index++]=p.x+dx*t+nx*offset;
+     fp[index++]=p.y+dy*t+ny*offset;
+     fp[index++]=p.z+dz*t+nz*offset;
+    }
+   }
+  }
+ }
+ hand.fibers.geometry.setDrawRange(0,index/3);
+ hand.fibers.geometry.attributes.position.needsUpdate=true;
+ const cp=hand.cores.geometry.attributes.position.array;
+ let joints=0;
+ for(let j=0;j<jointNames.length;j++){
+  if(!hand.visible[j])continue;
+  const p=hand.positions[j];
+  cp[joints*3]=p.x;cp[joints*3+1]=p.y;cp[joints*3+2]=p.z;joints++;
+ }
+ hand.cores.geometry.setDrawRange(0,joints);
+ hand.cores.geometry.attributes.position.needsUpdate=true;
+ const dp=hand.dust.geometry.attributes.position.array;
+ let count=0;
+ for(let i=0;i<HAND_DUST;i++){
+  // Repeatable quasi-random seeding; particles travel along the tracked fascial paths.
+  const n=(i*13)%fascialLinks.length,[a,b]=fascialLinks[n];
+  if(!hand.visible[a]||!hand.visible[b])continue;
+  const p=hand.positions[a],q=hand.positions[b];
+  const t=(i*.61803398875+hand.phase*(.025+.045*high))%1;
+  const r=.003+.012*Math.pow((Math.sin(i*27.47)*.5+.5),2);
+  const spin=i*2.39996+hand.phase*.32;
+  dp[count*3]=p.x+(q.x-p.x)*t+Math.cos(spin)*r;
+  dp[count*3+1]=p.y+(q.y-p.y)*t+Math.sin(spin)*r;
+  dp[count*3+2]=p.z+(q.z-p.z)*t+Math.sin(spin*.7)*r*.6;
+  count++;
+ }
+ hand.dust.geometry.setDrawRange(0,count);
+ hand.dust.geometry.attributes.position.needsUpdate=true;
+}
 function updateHands(frame,dt){
- if(!renderer.xr.isPresenting||!frame){trackedHands.left.group.visible=false;trackedHands.right.group.visible=false;return}
+ if(!renderer.xr.isPresenting||!frame){
+  for(const hand of Object.values(trackedHands))hand.group.visible=false;
+  return;
+ }
  const space=renderer.xr.getReferenceSpace(),session=renderer.xr.getSession();
  if(!space||!session)return;
  const seen={left:false,right:false};
  for(const src of session.inputSources){
   if(!src.hand||!trackedHands[src.handedness])continue;
   const hand=trackedHands[src.handedness];seen[src.handedness]=true;
-  let n=0;
+  let valid=0;
   for(let i=0;i<jointNames.length;i++){
    const joint=src.hand.get(jointNames[i]);
    const pose=joint?frame.getJointPose(joint,space):null;
-   hand.points[i].visible=!!pose;
+   hand.visible[i]=!!pose;
    if(!pose)continue;
    const p=pose.transform.position;
-   hand.positions[i].set(p.x,p.y,p.z);
-   hand.points[i].position.copy(hand.positions[i]);
-   hand.points[i].scale.setScalar(THREE.MathUtils.clamp((pose.radius||.007)/.007,.6,1.6));n++;
+   hand.positions[i].set(p.x,p.y,p.z);valid++;
   }
-  hand.group.visible=n>=12;
-  for(let i=0;i<bonePairs.length;i++){
-   const [a,b]=bonePairs[i],bone=hand.bones[i];
-   bone.visible=hand.points[a].visible&&hand.points[b].visible;
-   if(!bone.visible)continue;
-   const first=hand.positions[a],second=hand.positions[b];
-   const direction=second.clone().sub(first),length=direction.length();
-   bone.position.copy(first).add(second).multiplyScalar(.5);
-   bone.quaternion.setFromUnitVectors(axisY,direction.normalize());
-   bone.scale.set(1,length,1);
-  }
-  if(!hand.group.visible||!hand.points[4].visible||!hand.points[9].visible)continue;
+  hand.group.visible=valid>=12;
+  if(!hand.group.visible){hand.pinching=false;continue}
+  redrawMycelialHand(hand,dt,src.handedness);
+  if(!hand.visible[4]||!hand.visible[9]){hand.pinching=false;continue}
   const tip=hand.positions[9],thumb=hand.positions[4];
   const pinch=tip.distanceTo(thumb)<.03;
   if(pinch){
    tactileEnergy=Math.min(1.2,tactileEnergy+dt*2);
    tactileX+=(tip.x-tactileX)*.16;tactileY+=(tip.y-1.5-tactileY)*.16;
-   if(!hand.pinching){if(!entered&&src.handedness==='right')triggerXRIntro();else if(entered&&src.handedness==='left'){selected=(selected+1)%3;paintPanel()}}
+   if(!hand.pinching){
+    if(!entered&&src.handedness==='right')triggerXRIntro();
+    else if(entered&&src.handedness==='left'){selected=(selected+1)%3;paintPanel()}
+   }
   }
   hand.pinching=pinch;
-  if(src.handedness==='right'&&hand.points[24].visible){
+  if(src.handedness==='right'&&hand.visible[24]){
    const spread=hand.positions[9].distanceTo(hand.positions[24]);
    tactileSpread+=(THREE.MathUtils.clamp((spread-.085)*5,0,.8)-tactileSpread)*.15;
   }
  }
- for(const side of ['left','right'])if(!seen[side]){trackedHands[side].group.visible=false;trackedHands[side].pinching=false}
+ for(const side of ['left','right'])if(!seen[side]){
+  trackedHands[side].group.visible=false;trackedHands[side].pinching=false;
+ }
 }
 
 let inputCooldown=0;
