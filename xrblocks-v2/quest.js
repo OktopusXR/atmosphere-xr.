@@ -128,6 +128,7 @@ function updateScore(){
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
 scene.add(controller1,controller2);
 const watch=createWatch(scene,params,()=>changeMode());
+watch.setMode('VR');
 let lastAdvance=0;
 function advance(){
  if(entered)return;
@@ -170,7 +171,7 @@ async function enterXR(mode='VR'){
  if(!navigator.xr){$('status').textContent='WebXR unavailable';return false}
  if(renderer.xr.isPresenting) return true;
  try{
-  selectedMode=mode;drawIntro();
+  selectedMode=mode;watch.setMode(mode);drawIntro();
   const vr=mode==='VR';
   scene.background=vr?new THREE.Color(0):null;renderer.setClearColor(0,vr?1:0);
   const session=await navigator.xr.requestSession(vr?'immersive-vr':'immersive-ar',
