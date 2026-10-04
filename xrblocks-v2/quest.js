@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js';
+import {makeClouds} from './cloud.js?build=pointcloud-v4';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -210,8 +210,10 @@ function selectWristController(controller){
  const intersect=raycaster.intersectObject(wristPanel,false)[0];
  return intersect?applyWrist(intersect.point):false;
 }
+let lastAdvance=0;
 function advance(){
  if(entered)return;
+ const now=performance.now();if(now-lastAdvance<650)return;lastAdvance=now;
  if(!introStarted)startIntro();else if(!introFinished)finishIntro();
  else enterExperience();
 }
@@ -357,7 +359,7 @@ renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
  drawVoiceMeter();
- introBoard.visible=!entered&&!completed;
+ introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
   cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
