@@ -14,7 +14,7 @@ const phrases=[
  ['From body to Earth. From Earth to cosmos.','Del cuerpo a la Tierra. De la Tierra al cosmos.'],
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
-let introStarted=false,introFinished=false,started=false,mode='VR',timers=[];
+let introStarted=false,introFinished=false,started=false,mode=new URLSearchParams(location.search).get('mode')==='mr'?'MR':'VR',timers=[];
 let audioContext,analyser,timeBins,freqBins,audioSource,prevEnergy=0;
 let bass=0,mid=0,high=0,rms=0,pulse=0,transient=0,smoothedMid=0;
 let lastAudioTime=0,lastFrameSec=0,showScene=-1;
@@ -259,22 +259,22 @@ class Atmosphere extends xb.Script {
 }
 // XR Blocks creates the ONE renderer, camera and WebXR lifecycle.
 const options=new xb.Options().enableXRTransitions();
+options.xrSessionMode=mode==='VR'?'immersive-vr':'immersive-ar';
 options.enableHands();
 options.hands.visualization=false;
 options.simulator.defaultMode=xb.SimulatorMode.CONTROLLER;
 options.xrButton.showEnterSimulatorButton=true;
 xb.add(new Atmosphere());
 xb.init(options).then(()=>{
- function setMode(selected){
-  mode=selected;paintIntro();
-  if(xb.core.transition){
-   if(mode==='VR')xb.core.transition.toVR({color:0x000000});
-   else xb.core.transition.toAR();
-  }
-  const btn=xb.core.xrButton?.xrButtonElement;
-  if(btn&&!xb.core.renderer.xr.isPresenting&&!btn.disabled)btn.click();
- }
- $('vr').onclick=()=>setMode('VR');
- $('mr').onclick=()=>setMode('MR');
- setMode(mode);
+ const xrTransition=xb.core.transition;
+ if(mode==='VR')xrTransition?.toVR({color:0x000000});else xrTransition?.toAR();
+ $('status').textContent='Mode: '+(mode==='VR'?'virtual reality':'mixed reality')+' · select ENTER XR';
+ $('vr').onclick=()=>{
+  if(mode==='VR')return;
+  location.href='./?mode=vr';
+ };
+ $('mr').onclick=()=>{
+  if(mode==='MR')return;
+  location.href='./?mode=mr';
+ };
 }).catch(e=>$('status').textContent='XR Blocks error: '+e.message);
