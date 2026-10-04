@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {scoreEnvelope} from './score.js?build=score-v7';
 import {makeClouds} from './cloud.js?build=score-v6b';
 import {createWatch} from './watch.js?build=score-v6b';
 import {createForeground} from './stage.js?build=score-v6b';
@@ -104,53 +105,22 @@ function startIntro(){
 $('start').onclick=()=>{enterXR('VR');startIntro()};$('skip').onclick=finishIntro;
 async function startMusic(){
  if(!introFinished)finishIntro();
- if(!context){
-  context=new (window.AudioContext||window.webkitAudioContext)();
-  analyser=context.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.35;
-  fft=new Uint8Array(analyser.frequencyBinCount);
-  td=new Float32Array(analyser.fftSize);
-  source=context.createMediaElementSource(music);source.connect(analyser);analyser.connect(context.destination);
- }
- const a=context.resume(),b=music.play();await Promise.all([a,b]);
+ await music.play();
  entered=true;completed=false;$('intro').style.display='none';introBoard.visible=false;
  $('status').textContent='ATMOSPHERE · MUSIC MASTER CLOCK';
 }
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
 music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;entered=false;introBoard.visible=false};
-function spectrum(f1,f2){
- const hi=Math.min(fft.length,Math.ceil(f2/(context.sampleRate/2)*fft.length));
- const lo=Math.floor(f1/(context.sampleRate/2)*fft.length);let sum=0;
- for(let i=lo;i<hi;i++)sum+=fft[i];
- return sum/Math.max(1,hi-lo)/255;
-}
-function analyze(dt){
- if(!analyser||music.paused)return;
- analyser.getByteFrequencyData(fft);analyser.getFloatTimeDomainData(td);
- let sum=0;for(let i=0;i<td.length;i+=4)sum+=td[i]*td[i];
- const r=Math.sqrt(sum/(td.length/4));
- const lowNow=spectrum(25,170),midNow=spectrum(170,2000),highNow=spectrum(2000,12000);
- rms+=(r-rms)*.25;
- // Fast rise with restrained decay exposes actual low-end rhythmic articulation.
- bass+=(lowNow-bass)*(lowNow>bass?.43:.12);
- mid+=(midNow-mid)*.24;high+=(highNow-high)*.26;
- const lowRise=lowNow-prevRawBass,midRise=midNow-prevRawMid;
- attack=Math.max(0,attack-dt*3.7);
- if((r-previousRms>.008&&r>.019)||(lowRise>.032&&lowNow>.09)||(midRise>.045&&midNow>.1))attack=1;
- prevRawBass=lowNow;prevRawMid=midNow;previousRms=r;
-}
-
-// Musical score is tied to music.currentTime; cue times still require fine annotation.
-const onsets=[0,9,22,39,54,69,84,97,119,142,158,175,190,210,224,241,263,276,289,314,335,353,372,391];
-function updateScore(dt){
- analyze(dt);
+// Playback time alone drives a precomposed, continuously interpolated score.
+function updateScore(){
  const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:soundtrackDuration;
  const t=music.currentTime*soundtrackDuration/duration;
- let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
- let last=0;for(const o of onsets)if(o<=t)last=o;else break;
- const accent=Math.max(attack,Math.exp(-(t-last)*3.4)*.85);
- cloudEngine.update(t,{...params,intensity:params.intensity*.38},cue,bass,mid,high,accent);
- foreground.update(t,{bass,mid,high,attack:accent},params);
- if(cue!==lastCue){lastCue=cue;$('status').textContent=foreground.active+' · '+Math.floor(t)+'s'}
+ const env=scoreEnvelope(t);
+ cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,
+  env.bass,env.mid,env.high,env.attack);
+ foreground.update(t,env,params);
+ const marker=Math.floor(t/2);
+ if(marker!==lastCue){lastCue=marker;$('status').textContent=foreground.active+' · '+Math.floor(t)+'s'}
 }
 
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
