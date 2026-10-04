@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js?build=score-v5';
-import {createForeground} from './stage.js?build=score-v5';
+import {makeClouds} from './cloud.js?build=score-v6';
+import {createWatch} from './watch.js?build=score-v6';
+import {createForeground} from './stage.js?build=score-v6';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -24,12 +25,12 @@ const cues=[
  {sec:353,name:'RESPIRATION'},
  {sec:402,name:'END'}
 ];
-const params={intensity:.95,density:.82,scale:1,speed:.6,motion:.8};
+const params={intensity:1,density:.67,scale:1,speed:.6,motion:.8,variation:.55};
 const scene=new THREE.Scene();scene.background=new THREE.Color(0);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
 camera.position.set(0,1.6,0);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
-renderer.xr.enabled=true;renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);
+renderer.xr.enabled=true;renderer.setPixelRatio(Math.min(devicePixelRatio,1.1));renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);renderer.domElement.style.position='fixed';renderer.domElement.style.inset=0;renderer.domElement.style.zIndex='0';
 $('intro').style.zIndex='100';
 const root=new THREE.Group();scene.add(root);
@@ -142,67 +143,14 @@ function updateScore(dt){
  let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
  let last=0;for(const o of onsets)if(o<=t)last=o;else break;
  const accent=Math.max(attack,Math.exp(-(t-last)*3.4)*.85);
- cloudEngine.update(t,{...params,intensity:params.intensity*.36},cue,bass,mid,high,accent);
- foreground.update(t,{bass,mid,high,attack:accent});
+ cloudEngine.update(t,{...params,intensity:params.intensity*.38},cue,bass,mid,high,accent);
+ foreground.update(t,{bass,mid,high,attack:accent},params);
  if(cue!==lastCue){lastCue=cue;$('status').textContent=foreground.active+' · '+Math.floor(t)+'s'}
 }
 
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
 scene.add(controller1,controller2);
-const wristCanvas=document.createElement('canvas');wristCanvas.width=1024;wristCanvas.height=650;
-const wc=wristCanvas.getContext('2d'),wristTexture=new THREE.CanvasTexture(wristCanvas);
-const wristMat=new THREE.MeshBasicMaterial({map:wristTexture,transparent:true,depthWrite:false,depthTest:false,side:THREE.DoubleSide});
-const wristPanel=new THREE.Mesh(new THREE.PlaneGeometry(.56,.355),wristMat);
-wristPanel.visible=false;wristPanel.renderOrder=130;scene.add(wristPanel);
-const controlRows=[
- {key:'intensity',min:.25,max:2,title:'BRIGHTNESS'},
- {key:'density',min:.22,max:1,title:'DENSITY'},
- {key:'scale',min:.4,max:2.4,title:'SCALE'},
- {key:'motion',min:.08,max:2,title:'MOVEMENT'},
- {key:'speed',min:.05,max:2,title:'SPEED'}
-];
-function paintWrist(){
- wc.clearRect(0,0,1024,650);
- // Matte floating typographic panel on hand only, not micelial decoration.
- wc.fillStyle='rgba(4,4,4,.77)';wc.fillRect(0,0,1024,650);
- wc.strokeStyle='rgba(230,230,230,.28)';wc.strokeRect(15,15,994,620);
- wc.fillStyle='#fff';wc.textAlign='left';wc.font='32px Arial';wc.fillText('ATMOSPHERE / PARAMETERS',54,75);
- controlRows.forEach((r,i)=>{
-  const y=141+i*86,f=(params[r.key]-r.min)/(r.max-r.min);
-  wc.font='24px Arial';wc.fillStyle='#ddd';wc.fillText(r.title,54,y);
-  wc.fillStyle='#444';wc.fillRect(420,y-18,450,5);
-  wc.fillStyle='#eee';wc.fillRect(420,y-18,450*Math.max(0,Math.min(1,f)),5);
-  wc.beginPath();wc.arc(420+450*f,y-16,13,0,Math.PI*2);wc.fill();
- });
- wc.fillStyle='#ddd';wc.font='27px Arial';
- wc.fillText('SWITCH TO MIXED REALITY',54,615);
- wristTexture.needsUpdate=true;
-}
-paintWrist();
-function applyWrist(point){
- if(!wristPanel.visible)return false;
- wristPanel.updateMatrixWorld(true);
- const p=wristPanel.worldToLocal(point.clone());
- if(Math.abs(p.z)>.17||Math.abs(p.x)>.28||Math.abs(p.y)>.1775)return false;
- const x=(p.x/.56+.5)*1024,y=(.5-p.y/.355)*650;
- if(y>555){
-  switchToMixedReality();
-  return true;
- }
- const i=Math.round((y-141)/86);
- if(i<0||i>=controlRows.length||Math.abs(y-(141+i*86))>34)return false;
- const c=controlRows[i],fraction=Math.max(0,Math.min(1,(x-420)/450));
- params[c.key]=c.min+(c.max-c.min)*fraction;
- paintWrist();return true;
-}
-const raycaster=new THREE.Raycaster(),hitDir=new THREE.Vector3();
-function selectWristController(controller){
- if(!wristPanel.visible)return false;
- controller.getWorldDirection(hitDir);hitDir.negate();
- raycaster.set(controller.getWorldPosition(new THREE.Vector3()),hitDir);
- const intersect=raycaster.intersectObject(wristPanel,false)[0];
- return intersect?applyWrist(intersect.point):false;
-}
+const watch=createWatch(scene,params,()=>switchToMixedReality());
 let lastAdvance=0;
 function advance(){
  if(entered)return;
@@ -210,58 +158,29 @@ function advance(){
  if(!introStarted)startIntro();else if(!introFinished)finishIntro();
  else enterExperience();
 }
-for(const ctl of [controller1,controller2])ctl.addEventListener('selectstart',()=>{
- if(entered){selectWristController(ctl);return}
+for(const ctl of [controller1,controller2])ctl.addEventListener('selectstart',event=>{
+ if(entered){
+  const handed=event?.data?.handedness||event?.inputSource?.handedness;
+  if(handed!=='left')watch.controllerSelect(ctl);
+  return;
+ }
  advance();
 });
 let pinched=false;
-let handPoint=new THREE.Vector3(),handOrientation=new THREE.Quaternion(),menuInputHeld=false;
-const LOOK=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
 function handInput(frame){
- if(!renderer.xr.isPresenting||!frame)return;
+ if(!renderer.xr.isPresenting||!frame||entered)return;
  const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
  if(!space)return;
- let touching=false,rightTip=null,leftWrist=null;
+ let touching=false;
  for(const src of session.inputSources){
   if(!src.hand)continue;
-  const wrist=frame.getJointPose(src.hand.get('wrist'),space);
-  const thumb=frame.getJointPose(src.hand.get('thumb-tip'),space);
-  const finger=frame.getJointPose(src.hand.get('index-finger-tip'),space);
-  if(!thumb||!finger)continue;
-  const p=thumb.transform.position,q=finger.transform.position;
-  const pinch=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032;
-  if(src.handedness==='left'&&wrist)leftWrist=wrist;
-  if(src.handedness==='right'){rightTip=new THREE.Vector3(q.x,q.y,q.z);touching=pinch}
-  if(!entered&&pinch)touching=true;
+  const a=frame.getJointPose(src.hand.get('thumb-tip'),space);
+  const b=frame.getJointPose(src.hand.get('index-finger-tip'),space);
+  if(!a||!b)continue;
+  const p=a.transform.position,q=b.transform.position;
+  if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032)touching=true;
  }
- if(entered){
-  if(leftWrist){
-   const p=leftWrist.transform.position;
-   wristPanel.position.set(p.x+.09,p.y+.18,p.z-.08);
-   const cam=renderer.xr.getCamera();
-   cam.getWorldPosition(LOOK);
-   wristPanel.lookAt(LOOK);
-   wristPanel.visible=true;
-  }else{
-   // Controller-only or hands hidden: a small wrist-like panel beside left controller.
-   const left=session.inputSources.find(src=>src.handedness==='left');
-   if(left&&left.gripSpace){
-    const pose=frame.getPose(left.gripSpace,space);
-    if(pose){
-     const p=pose.transform.position;
-     wristPanel.position.set(p.x+.05,p.y+.16,p.z-.06);
-     wristPanel.lookAt(renderer.xr.getCamera().getWorldPosition(LOOK));
-     wristPanel.visible=true;
-    }
-   }
-  }
-  if(touching&&!menuInputHeld&&rightTip)applyWrist(rightTip);
-  menuInputHeld=touching;
- }else{
-  wristPanel.visible=false;
-  if(touching&&!pinched)advance();
-  pinched=touching;
- }
+ if(touching&&!pinched)advance();pinched=touching;
 }
 
 async function enterXR(mode='VR'){
@@ -317,10 +236,10 @@ async function switchToMixedReality(){
 }
 renderer.xr.addEventListener('sessionstart',()=>{
  $('xrButton').style.display='none';
- wristPanel.visible=false;
+ watch.watch.visible=false;
 });
 renderer.xr.addEventListener('sessionend',()=>{
- wristPanel.visible=false;
+ watch.watch.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
 });
 $('modebar').style.display='none';
@@ -329,6 +248,7 @@ const clock=new THREE.Clock(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(
 renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
+ watch.update(frame,renderer,entered);
  introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
