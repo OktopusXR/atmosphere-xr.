@@ -2,6 +2,7 @@
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ATMOSPHERE — TECHNO POESIS | XR Blocks prototype</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/google/xrblocks@main/samples/main.css">
 <script type="importmap">
 {"imports":{
 "three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
@@ -19,10 +20,10 @@
 #credit{font-size:12px;color:#bbb;margin:28px 0 18px;line-height:1.9}a{color:#ddd}
 button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;letter-spacing:.12em;cursor:pointer;margin:7px}
 #status{position:fixed;left:14px;bottom:16px;z-index:80;color:#bcbcbc;font-size:11px;letter-spacing:.08em;pointer-events:none}
-#modebar{position:fixed;right:12px;top:12px;z-index:85;display:flex;gap:5px}
+#modebar{position:fixed;right:12px;top:12px;z-index:140;display:flex;gap:5px}
 #modebar button{font-size:10px;padding:8px 10px}
 #voice{width:min(500px,85vw);height:40px;margin-top:14px;display:none}
-#development{display:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
+#XRButtonWrapper{z-index:150!important;position:fixed!important;right:12px!important;bottom:12px!important}#development{display:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
 </style>
 </head><body>
 <div id="intro">
