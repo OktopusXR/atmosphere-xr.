@@ -33,7 +33,7 @@ const cues=[
  {sec:353,name:'RESPIRATION'},
  {sec:402,name:'END'}
 ];
-const params={intensity:1.32,density:.79,scale:1,speed:.6,motion:.8,variation:.55};
+const params={intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1};
 function caption(i){$('en').textContent=phrases[i][0];$('es').textContent=phrases[i][1];paintIntro();}
 function finishIntro(){
  if(introFinished)return;
@@ -65,7 +65,34 @@ async function startMusic(){
  $('status').textContent='ATMOSPHERE — score follows music.currentTime';
 }
 $('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='Audio pending; visual animation active · '+e.message);
-music.onended=()=>{started=false;$('status').textContent='ATMOSPHERE · END';};
+
+let completed=false,endPlane;
+const endOverlay=document.createElement('div');
+endOverlay.style.cssText='display:none;position:fixed;inset:0;z-index:180;background:#000e;color:white;align-items:center;justify-content:center;flex-direction:column;gap:36px;font-family:Arial';
+endOverlay.innerHTML='<div style="font-size:clamp(48px,10vw,100px);font-weight:700">THE END</div>';
+const replayButton=document.createElement('button');
+replayButton.textContent='COMENZAR NUEVAMENTE';
+replayButton.style.cssText='font:bold 22px Arial;padding:22px 34px;border:2px solid white;background:#111;color:white';
+endOverlay.appendChild(replayButton);document.body.appendChild(endOverlay);
+function showEnd(){
+ started=false;completed=true;root.visible=false;
+ if(endPlane)endPlane.visible=true;
+ endOverlay.style.display='flex';
+ $('status').textContent='THE END';
+}
+async function restartExperience(){
+ if(!completed)return;
+ completed=false;root.visible=true;
+ if(endPlane)endPlane.visible=false;
+ endOverlay.style.display='none';
+ music.pause();music.currentTime=0;
+ visualStartedAt=performance.now();showScene=-1;started=true;
+ $('status').textContent='ATMOSPHERE · RESTARTED';
+ try{await music.play()}catch(e){$('status').textContent='Audio pending · '+e.message}
+}
+replayButton.onclick=restartExperience;
+music.onended=showEnd;
+
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
@@ -83,13 +110,13 @@ function paintIntro(){
  cx.textAlign='center';
  cx.strokeStyle='rgba(242,242,242,.22)';cx.lineWidth=1;
  cx.beginPath();cx.ellipse(512,255,184,184,0,0,Math.PI*2);cx.stroke();
- cx.font='19px Arial';cx.fillStyle='#bbb';cx.fillText('TECHNO POESIS',512,80);
+ cx.font='bold 29px Arial';cx.fillStyle='#eee';cx.fillText('TECHNO POESIS',512,80);
  if(introStarted&&!introFinished){
   const l=phrases.find(p=>p[0]===$('en').textContent)||phrases[0];
   cx.fillStyle='#fff';cx.font='bold 27px Arial';cx.fillText(l[0],512,226);
   cx.fillStyle='#bbb';cx.font='bold 20px Arial';cx.fillText(l[1],512,268);
  }else{
-  cx.fillStyle='#fff';cx.font='38px Arial';cx.fillText('A T M O S P H E R E',512,239);
+  cx.fillStyle='#fff';cx.font='bold 62px Arial';cx.fillText('ATMOSPHERE',512,239);
  }
  cx.font='bold 20px Arial';cx.fillStyle='#bbb';cx.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,348);
  cx.font='bold 18px Arial';cx.fillText('@oktopus.art',512,379);
@@ -102,22 +129,40 @@ let lastCue=-1;
 class Atmosphere extends xb.Script {
  init(){
   this.add(root);
-  introPlane=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.8),
+  introPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.15),
     new THREE.MeshBasicMaterial({map:introTexture,transparent:true,depthWrite:false,depthTest:false}));
   introPlane.renderOrder=110;this.add(introPlane);
+  const c=document.createElement('canvas');c.width=1024;c.height=576;
+  const x=c.getContext('2d');x.textAlign='center';x.fillStyle='#fff';
+  x.font='bold 112px Arial';x.fillText('THE END',512,222);
+  x.strokeStyle='#fff';x.lineWidth=2;x.strokeRect(174,334,676,104);
+  x.font='bold 42px Arial';x.fillText('COMENZAR NUEVAMENTE',512,400);
+  const tex=new THREE.CanvasTexture(c);
+  endPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.25,1.265),
+   new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));
+  endPlane.renderOrder=210;endPlane.visible=false;this.add(endPlane);
   this.last=0;
  }
  update(time,frame){
   const now=performance.now()/1000,dt=Math.min(.06,Math.max(0,now-this.last));this.last=now;
   if(introPlane){
-   introPlane.visible=!started;
+   introPlane.visible=!started&&!completed;
    const cam=xb.core.camera,p=new THREE.Vector3(),q=new THREE.Quaternion();
    cam.getWorldPosition(p);cam.getWorldQuaternion(q);
-   introPlane.position.copy(p).add(new THREE.Vector3(0,0,-1.4).applyQuaternion(q));
+   introPlane.position.copy(p).add(new THREE.Vector3(0,0,-1.85).applyQuaternion(q));
    introPlane.quaternion.copy(q);
   }
   const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
   if(renderer?.xr){wrist.update(frame||renderer.xr.getFrame?.(),renderer,started)}
+  if(completed&&endPlane){
+   const cam=xb.core.camera,p=new THREE.Vector3(),q=new THREE.Quaternion();
+   cam.getWorldPosition(p);cam.getWorldQuaternion(q);
+   endPlane.position.copy(p).add(new THREE.Vector3(0,0,-1.8).applyQuaternion(q));
+   endPlane.quaternion.copy(q);
+   endPlane.visible=true;
+   // End panel in XR, HTML button remains a non-XR fallback.
+   endOverlay.style.display=renderer?.xr?.isPresenting?'none':'flex';
+  }
   if(!started){countdown.update(null,0,false);return;}
   // XR Blocks supplies selected controller rays, including trigger drag.
   for(const ctl of xb.core?.input?.controllers||[]){
@@ -133,10 +178,12 @@ class Atmosphere extends xb.Script {
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectStart(event){
+  if(completed){restartExperience();return;}
   if(!started)return;
   if(event?.intersection?.point)wrist.hitPosition(event.intersection.point);
  }
  onSelectEnd(){
+  if(completed){restartExperience();return;}
   if(started){wrist.releaseSelection();return;}
   if(!introStarted)beginIntro();else if(!introFinished)finishIntro();
   else startMusic().catch(err=>$('status').textContent=err.message);
