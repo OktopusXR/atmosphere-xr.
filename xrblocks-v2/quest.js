@@ -26,7 +26,7 @@ const cues=[
  {sec:353,name:'RESPIRATION'},
  {sec:402,name:'END'}
 ];
-const params={intensity:1,density:.67,scale:1,speed:.6,motion:.8,variation:.55};
+const params={intensity:1.32,density:.79,scale:1,speed:.6,motion:.8,variation:.55};
 const scene=new THREE.Scene();scene.background=new THREE.Color(0);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
 camera.position.set(0,1.6,0);
@@ -118,7 +118,7 @@ function updateScore(){
  const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:soundtrackDuration;
  const t=(music.currentTime>0||!music.paused)?music.currentTime*soundtrackDuration/duration:Math.min(soundtrackDuration,Math.max(0,(performance.now()-visualStartedAt)/1000));
  const env=scoreEnvelope(t);
- cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,
+ cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,
   env.bass,env.mid,env.high,env.attack);
  foreground.update(t,env,params);
  const marker=Math.floor(t/2);
