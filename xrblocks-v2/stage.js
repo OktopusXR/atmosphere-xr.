@@ -53,10 +53,15 @@ function makeChapter(root,kind,index){
  function add(object){objects.push(object);return object}
  if(kind==='tunnel'){
   g.position.z=0;
-  for(let j=0;j<11;j++){
-   const ring=new THREE.Mesh(new THREE.TorusGeometry(.68-j*.016,.008,4,72),
-    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
-   ring.position.z=-2.05-j*.37;g.add(ring);add(ring);
+  // True interior-scale passage: wide rings encircle the viewer's body.
+  // Each ring crosses the headset ONCE, rather than looping or teleporting.
+  for(let j=0;j<21;j++){
+   const radius=1.58+.13*Math.sin(j*.42);
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(radius,.0095,4,88),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,
+     depthWrite:false,side:THREE.DoubleSide}));
+   ring.position.z=-1.65-j*.43;
+   g.add(ring);add(ring);
   }
  }else if(kind==='condensation'){
   add(makePoints(g,2400,(i,n)=>{
@@ -247,22 +252,32 @@ export function createForeground(root){
    // Smooth musical phrasing: translation in tangent / vertical directions.
    // Crucially NO bass-driven forward-back Z jumps and no frame FFT input.
    const sway=movement*Math.sin(slow*.42+i*.7);
-   group.position.set(x+Math.cos(azimuth)*sway,
+   if(kind==='tunnel')group.position.set(0,1.6,0);
+   else group.position.set(x+Math.cos(azimuth)*sway,
     height+.12*Math.sin(slow*.54+i*.41)+.06*note,
     z+Math.sin(azimuth)*sway);
    group.rotation.set(kind==='tunnel'?0:.11*Math.sin(slow*.26+i),
     kind==='tunnel'?.025*Math.sin(slow*.32):time*(.045+.025*speed)+i*.29,
     kind==='tunnel'?0:.06*Math.sin(slow*.39+i));
    const breathe=1+.065*Math.sin(slow*.78+i*.67)+.038*note;
-   group.scale.setScalar(scale*breathe*(1+.12*variation*((i%4)/4)));
+   group.scale.setScalar(kind==='tunnel'?1:scale*breathe*(1+.12*variation*((i%4)/4)));
    for(let j=0;j<objects.length;j++){
     const o=objects[j];o.visible=true;
     o.material.opacity=Math.min(1,weight*intensity*
       (.67+.14*Math.sin(slow*.63+j*.19)+.08*note));
     if(kind==='tunnel'){
      // Once, during the opening only, a continuous optical-depth movement.
-     o.position.z=-2.05-j*.37+.34*smooth(local/26);
-     o.scale.setScalar(1+.045*Math.sin(slow*.66+j*.54)+.04*note);
+     // Viewer stays physically still while the complete tunnel flows
+     // past their head and behind them, creating actual 360 traversal.
+     const passage=12.25*smooth(local/26);
+     o.position.z=-1.65-j*.43+passage;
+     o.scale.setScalar(1+.026*Math.sin(slow*.6+j*.31)+.02*note);
+     // Fade each ring in/out close to clipping and far behind the viewer.
+     const distance=Math.abs(o.position.z);
+     const visibility=smooth((10-distance)/2);
+     o.material.opacity=Math.min(1,weight*intensity*
+       (.42+.13*Math.sin(slow*.34+j*.27)+.1*note))*
+       visibility;
     }
    }
   }
@@ -271,7 +286,7 @@ export function createForeground(root){
   const chapter=chapters3d[index].group;
   titlePlane.position.set(chapter.position.x,
    Math.min(3.25,Math.max(1.12,chapter.position.y+1.27)),
-   chapter.position.z+(index===0?-2.5:0));
+   chapter.position.z+(index===0?-3.3:0));
   titlePlane.lookAt(0,1.6,0);
   const start=index===0?0:chapters[index-1].end;
   const end=chapters[index].end;
