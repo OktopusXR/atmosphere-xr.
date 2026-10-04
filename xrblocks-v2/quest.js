@@ -107,7 +107,7 @@ function startIntro(){
  if(playback?.catch)playback.catch(()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))});
  timers.push(setTimeout(finishIntro,Math.max(12,duration+3)*1000));
 }
-$('start').onclick=startIntro;$('skip').onclick=finishIntro;
+$('start').onclick=()=>{enterXR('VR');startIntro()};$('skip').onclick=finishIntro;
 async function startMusic(){
  if(!introFinished)finishIntro();
  if(!context){
