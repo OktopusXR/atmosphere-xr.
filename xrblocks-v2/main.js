@@ -85,6 +85,8 @@ async function restartExperience(){
  completed=false;root.visible=true;
  if(endPlane)endPlane.visible=false;
  endOverlay.style.display='none';
+ Object.assign(params,{intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1});
+ wrist.paint();
  music.pause();music.currentTime=0;
  visualStartedAt=performance.now();showScene=-1;started=true;
  $('status').textContent='ATMOSPHERE · RESTARTED';
