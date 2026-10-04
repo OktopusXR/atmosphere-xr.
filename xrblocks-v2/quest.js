@@ -148,7 +148,7 @@ for(const ctl of [controller1,controller2]){
  }
  advance();
  });
- ctl.addEventListener('selectend',()=>{ctl.userData.watchSelecting=false});
+ ctl.addEventListener('selectend',()=>{ctl.userData.watchSelecting=false;watch.releaseSelection()});
 }
 let pinched=false;
 function handInput(frame){
