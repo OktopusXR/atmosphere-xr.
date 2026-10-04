@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {scoreEnvelope} from './score.js?build=score-v8';
 import {makeClouds} from './cloud.js?build=score-v7b';
 import {createWatch} from './watch.js?build=score-v7b';
 import {createForeground} from './stage.js?build=score-v7b';
@@ -114,7 +115,7 @@ music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;en
 function updateScore(){
  const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:soundtrackDuration;
  const t=music.currentTime*soundtrackDuration/duration;
- const env=null;
+ const env=scoreEnvelope(t);
  cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,
   env.bass,env.mid,env.high,env.attack);
  foreground.update(t,env,params);
