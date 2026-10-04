@@ -82,7 +82,7 @@ export function createWatch(scene,controls,onMode){
   laser.visible=watch.visible;
  }
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3(),temp=new THREE.Vector3(),look=new THREE.Vector3();
- let highlight=-1,hold=false,modeLock=0,anchor=false,modeName='VR';
+ let highlight=-1,modeLock=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
@@ -115,14 +115,16 @@ export function createWatch(scene,controls,onMode){
   if(!watch.visible)return false;
   watch.updateMatrixWorld(true);
   const p=watch.worldToLocal(world.clone());
-  if(Math.abs(p.z)>.11||Math.abs(p.x)>size.w/2||Math.abs(p.y)>size.h/2)return false;
+  if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
+    (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(y>=585){
-   if(performance.now()>modeLock){modeLock=performance.now()+1600;onMode?.()}
+  if(activeRow<0&&y>=585){
+   if(performance.now()>modeLock){modeLock=performance.now()+1700;onMode?.()}
    return true;
   }
-  const i=Math.round((y-245)/55);
-  if(i<0||i>=rows.length||Math.abs(y-(245+i*55))>32)return false;
+  const i=activeRow>=0?activeRow:Math.round((y-245)/55);
+  if(i<0||i>=rows.length||(activeRow<0&&Math.abs(y-(245+i*55))>36))return false;
+  if(activeRow<0)activeRow=i;
   const r=rows[i],v=clamp((x-215)/225,0,1);
   const next=r.min+(r.max-r.min)*v;
   if(Math.abs(controls[r.key]-next)>.007||highlight!==i){
@@ -134,7 +136,19 @@ export function createWatch(scene,controls,onMode){
   if(!watch.visible)return false;
   ray.set(origin,vector.clone().normalize());
   const result=ray.intersectObject(watch,false)[0];
-  return result?hitPosition(result.point,true):false;
+  if(result)return hitPosition(result.point,true);
+  // Drag can leave the visual surface; intersect its infinite plane while
+  // retaining captured parameter, rather than suddenly losing the slider.
+  if(activeRow>=0){
+   watch.updateMatrixWorld(true);
+   const normal=new THREE.Vector3(0,0,1).transformDirection(watch.matrixWorld);
+   const denom=normal.dot(ray.ray.direction);
+   if(Math.abs(denom)>.0001){
+    const dist=normal.dot(watch.getWorldPosition(new THREE.Vector3()).sub(ray.ray.origin))/denom;
+    if(dist>0&&dist<2)return hitPosition(ray.ray.at(dist,new THREE.Vector3()),true);
+   }
+  }
+  return false;
  }
  function controllerSelect(controller){
   if(!watch.visible)return false;
@@ -143,9 +157,10 @@ export function createWatch(scene,controls,onMode){
   return hitRay(temp,direction);
  }
  let lastPinch=false;
+ function releaseSelection(){if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
  function update(frame,renderer,enabled){
   if(!renderer?.xr?.isPresenting||!frame||!enabled){
-   watch.visible=false;lastPinch=false;return;
+   watch.visible=false;lastPinch=false;controllerPressed=false;releaseSelection();return;
   }
   const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
   if(!session||!space)return;
@@ -160,15 +175,19 @@ export function createWatch(scene,controls,onMode){
   if(leftPose){
    const p=leftPose.transform.position;
    const target=new THREE.Vector3(p.x+.095,p.y+.19,p.z-.055);
-   if(!watch.visible)watch.position.copy(target);else watch.position.lerp(target,.22);
-   renderer.xr.getCamera().getWorldPosition(look);watch.lookAt(look);
+   if(!watch.visible)watch.position.copy(target);
+   else if(activeRow<0&&!controllerPressed&&!lastPinch)watch.position.lerp(target,.12);
+   renderer.xr.getCamera().getWorldPosition(look);
+   if(activeRow<0&&!controllerPressed&&!lastPinch)watch.lookAt(look);
    watch.visible=true;
   }else watch.visible=false;
   const handPresent=updateHandVisual(frame,space,right);
   updateLaser(frame,space,right,handPresent);
   // Right controller: targetRaySpace + live trigger works regardless of
   // controller array ordering and supports sliding while held.
-  if(watch.visible&&right?.targetRaySpace&&right.gamepad?.buttons?.[0]?.pressed){
+  const held=!!right?.gamepad?.buttons?.[0]?.pressed;
+  if(controllerPressed&&!held)releaseSelection();controllerPressed=held;
+  if(watch.visible&&right?.targetRaySpace&&held){
    const pose=frame.getPose(right.targetRaySpace,space);
    if(pose){
     const p=pose.transform.position,o=pose.transform.orientation;
@@ -177,7 +196,7 @@ export function createWatch(scene,controls,onMode){
     hitRay(new THREE.Vector3(p.x,p.y,p.z),dir);
    }
   }
-  if(!watch.visible||!right?.hand){lastPinch=false;return}
+  if(!watch.visible||!right?.hand){lastPinch=false;if(!controllerPressed)releaseSelection();return}
   const thumb=frame.getJointPose(right.hand.get('thumb-tip'),space);
   const index=frame.getJointPose(right.hand.get('index-finger-tip'),space);
   const distal=frame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
@@ -194,8 +213,8 @@ export function createWatch(scene,controls,onMode){
     did=hitRay(tip,vec);
    }
   }
-  if(!pinching&&lastPinch){highlight=-1;paint()}
+  if(!pinching&&lastPinch&&!controllerPressed)releaseSelection();
   lastPinch=pinching;
  }
- return {watch,update,controllerSelect,paint,hitPosition,setMode(mode){if(modeName!==mode){modeName=mode;paint()}}};
+ return {watch,update,controllerSelect,paint,hitPosition,releaseSelection,setMode(mode){if(modeName!==mode){modeName=mode;paint()}}};
 }
