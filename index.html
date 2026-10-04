@@ -76,8 +76,8 @@ $('startIntro').onclick=()=>{
  // HTML media, rather than browser speech synthesis, works in Quest Browser.
  const attempt=narration.play();
  attempt.catch(()=>{playSpeechFallback()});
- const steps=[4500,9000];steps.forEach((ms,i)=>setTimeout(()=>{if(!introDone)caption(i+1)},ms));
- setTimeout(finishIntro,14600);
+ const steps=[2350,4800];steps.forEach((ms,i)=>setTimeout(()=>{if(!introDone)caption(i+1)},ms));
+ setTimeout(finishIntro,8800);
 };
 narration.onended=()=>{voiceLive=false;finishIntro()};
 narration.onerror=()=>{if(introStarted&&!introDone&&!narrationFallback)playSpeechFallback()};
