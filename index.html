@@ -50,12 +50,14 @@ const narrative=[
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
 let introStarted=false,introDone=false,voiceLive=false,narrationFallback=false;
+const INTRO_TIMINGS=[0,4000,8300],INTRO_TOTAL=13300;let introTimers=[];
+function clearIntroTimers(){introTimers.forEach(clearTimeout);introTimers=[]}
 const introText=$('introEn'),introSub=$('introEs'),voiceCanvas=$('voiceWave'),vc=voiceCanvas.getContext('2d');
 let captionIndex=0;
 function caption(n){captionIndex=n;introText.textContent=narrative[n]?.[0]||'';introSub.textContent=narrative[n]?.[1]||'';if(renderer.xr.isPresenting)paintXRIntro()}
 function finishIntro(){
  if(introDone)return;
- introDone=true;voiceLive=false;narration.pause();voiceCanvas.style.display='none';
+ introDone=true;voiceLive=false;clearIntroTimers();narration.pause();voiceCanvas.style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
  introText.textContent='';introSub.textContent='';if(renderer.xr.isPresenting)paintXRIntro();
  $('introAuthor').style.display='block';$('startIntro').style.display='none';
@@ -75,11 +77,11 @@ $('startIntro').onclick=()=>{
  voiceCanvas.style.display='block';caption(0);if(renderer.xr.isPresenting)paintXRIntro();
  // HTML media, rather than browser speech synthesis, works in Quest Browser.
  const attempt=narration.play();
- attempt.catch(()=>{playSpeechFallback()});
- const steps=[2350,4800];steps.forEach((ms,i)=>setTimeout(()=>{if(!introDone)caption(i+1)},ms));
- setTimeout(finishIntro,8800);
+ if(attempt?.catch)attempt.catch(()=>{if(!narrationFallback)playSpeechFallback()});
+ INTRO_TIMINGS.slice(1).forEach((ms,i)=>introTimers.push(setTimeout(()=>{if(!introDone)caption(i+1)},ms)));
+ introTimers.push(setTimeout(finishIntro,INTRO_TOTAL));
 };
-narration.onended=()=>{voiceLive=false;finishIntro()};
+narration.onended=()=>{voiceLive=false};
 narration.onerror=()=>{if(introStarted&&!introDone&&!narrationFallback)playSpeechFallback()};
 $('skip').onclick=finishIntro;
 let voiceTime=0;
@@ -127,13 +129,15 @@ let avgFlux=.01,onset=0,onsetCooldown=0,quiet=0;
 // stage changes are held, not retriggered by every small FFT fluctuation.
 const STAGES=['FIELD','TRACES','WIREFRAME','INTERWEAVE','FRACTURE','DRIFT','RETURN','DISSOLUTION'];
 let stage=0,stageHold=0,stageMix=0,energyMemory=0,textureMemory=0,gestureMemory=0;
-let act=0,actTime=0,actBlend=0,impact=0;
+let act=0,actTime=0,actBlend=0,impact=0,panelUpdateClock=0;
+let lastAct=-1,activityGate=0;
 // Music-time dramaturgy: acts give the composition a visual syntax;
 // live spectrum, RMS, novelty and gestures define the movement *inside* each act.
 const ACTS=['FIELD / LATENCY','TRACES / EMERGENCE','WIREFRAME / GROWTH',
  'INTERWEAVE / TENSION','FRACTURE / RELEASE','PARTICLE / DRIFT',
  'RETURN / RESONANCE','DISSOLUTION'];
 const ACT_CUTS=[0,.09,.21,.34,.48,.61,.75,.88,1];
+const VISUAL_GAP=.13; // allocated dark prelude to each visual event
 function smooth01(v){v=THREE.MathUtils.clamp(v,0,1);return v*v*(3-2*v)}
 function updateDramaturgy(dt){
  const energy=Math.min(1,rms*6.5);
@@ -150,7 +154,10 @@ function updateDramaturgy(dt){
  actBlend=smooth01(actTime/.12);
  stage=act;stageMix+=(act-stageMix)*Math.min(1,dt*.55);
  impact+=((onset+flux*1.7)-impact)*Math.min(1,dt*5.4);
- if(renderer.xr.isPresenting&&hud.visible)paintPanel();
+ panelUpdateClock+=dt;
+ if(renderer.xr.isPresenting&&hud.visible&&(act!==lastAct||panelUpdateClock>.4)){
+  paintPanel();panelUpdateClock=0;lastAct=act;
+ }
 }
 
 function analyze(dt){
@@ -181,7 +188,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWid
 renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
 const root=new THREE.Group();scene.add(root);
 // Bakkslide-inspired grayscale wireframe deformation, not a separate random particle effect.
-const FIELD_GRID=46,fieldGeo=new THREE.SphereGeometry(3.25,FIELD_GRID,34);
+const FIELD_GRID=40,fieldGeo=new THREE.SphereGeometry(3.25,FIELD_GRID,28);
 const fieldBase=Float32Array.from(fieldGeo.attributes.position.array);
 const fieldMat=new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.15,depthWrite:false,side:THREE.DoubleSide});
 const wireField=new THREE.Mesh(fieldGeo,fieldMat);
@@ -295,7 +302,7 @@ function deformWireField(t,pressure,texture){
  fieldMat.opacity=Math.min(.65,(act===2||act===3||act===4||act===6?.16:.018)+(act===2||act===4?.39:.16)*texture+.12*tactileEnergy);
 }
 const GOLD=Math.PI*(3-Math.sqrt(5));
-const P=1900,particleArray=new Float32Array(P*3),particleDirections=[];
+const P=1100,particleArray=new Float32Array(P*3),particleDirections=[];
 for(let i=0;i<P;i++){
  const y=1-2*(i+.5)/P,a=i*GOLD,c=Math.sqrt(1-y*y);
  particleDirections.push(new THREE.Vector3(c*Math.cos(a),y,c*Math.sin(a)));
@@ -344,31 +351,40 @@ function evolve(dt){
  const lo=low*gain,mi=mid*gain,hi=high*gain;
  const pressure=THREE.MathUtils.clamp(energyMemory*2.4,0,1.2);
  const weave=THREE.MathUtils.clamp(textureMemory*2,0,1.2);
- const appear=smooth01(actTime/.16);
- const leave=1-smooth01((actTime-.85)/.15);
+ const appear=smooth01((actTime-VISUAL_GAP)/.2);
+ const leave=1-smooth01((actTime-.78)/.19);
  const envelope=appear*leave;
+ const cueIntensity=THREE.MathUtils.clamp(.47+pressure*.4+impact*.24,0,1);
  const shellActive=[0,0,1,0,0,0,.72,0][act];
  const strandActive=[0,.7,0,0,0,0,0,0][act];
  const dustActive=[.018,.018,.018,.018,.025,.075,.018,.008][act];
  const breathing=1+.18*pressure+.12*lo+.25*tactileSpread;
  const fold=.09+weave*.56+tactileEnergy*.3;
- deformWireField(animationT,pressure,weave);
- fieldMat.opacity*=shellActive*(.12+.62*envelope)*.72;
+ wireField.visible=shellActive>.001&&envelope>.002;
+ facetShell.visible=act===2||act===6;
+ if(wireField.visible)deformWireField(animationT,pressure,weave);
+ fieldMat.opacity*=shellActive*(.12+.62*envelope)*.76*cueIntensity;
  wireField.rotation.y=animationT*(act===4?.24:act===2||act===6?.11:.045)+mi*.22;
  wireField.rotation.x=Math.sin(animationT*.22)*.19+lo*.12;
  wireField.rotation.z=animationT*(act===4?.08:.024)+Math.sin(animationT*.12)*.08;
  // The sphere's expansion remains the central motif across multiple acts.
- const luminous=[0,0,.7,0,0,0,.88,0][act]*envelope;
+ const luminous=[0,0,.7,0,0,0,.88,0][act]*envelope*cueIntensity;
  facetShell.rotation.copy(wireField.rotation);
  facetShell.scale.setScalar(1+pressure*.11+impact*.05);
  facetMat.opacity=.21*luminous;
- illuminateFaces(animationT,luminous);
- updateMeteors(animationT,pressure,[0,0,0,0,.78,0,0,0][act]*envelope);
+ if(facetShell.visible)illuminateFaces(animationT,luminous);
+ const meteorLevel=act===4?.72*envelope*cueIntensity:0;
+ meteorField.visible=meteorLevel>.003;
+ if(meteorField.visible)updateMeteors(animationT,pressure,meteorLevel);
  tunnel.position.set(Math.cos(focusAngle)*.8,1.6+focusHeight,Math.sin(focusAngle)*.8-1.4);
- updateTunnel(animationT,pressure,[0,0,0,.7,0,0,0,0][act]*envelope);
- updateBlobs(animationT,pressure,[0,0,0,0,0,.72,0,0][act]*envelope);
+ const tunnelLevel=act===3?.7*envelope*cueIntensity:0;
+ tunnel.visible=tunnelLevel>.003;
+ if(tunnel.visible)updateTunnel(animationT,pressure,tunnelLevel);
+ const blobLevel=act===5?.72*envelope*cueIntensity:0;
+ blobCloud.visible=blobLevel>.003;
+ if(blobCloud.visible)updateBlobs(animationT,pressure,blobLevel);
  tactileEnergy*=Math.exp(-dt*1.4);tactileSpread*=Math.exp(-dt*.2);
- driveShock(dt);
+ if(act===2)driveShock(dt);else for(const shock of shocks)shock.mesh.material.opacity=0;
  for(let i=0;i<P;i++){
   const d=particleDirections[i],distance=3.8+(i%13)*.2+Math.sin(i*14.7)*.15;
   // Per-particle phase is stable; the audio governs coherent cloud expansion.
@@ -379,9 +395,12 @@ function evolve(dt){
   particleArray[i*3+2]=d.z*radial-d.x*sweep*.16;
  }
  pg.attributes.position.needsUpdate=true;
- particleMaterial.opacity=(.002+.14*dustActive*(.35+.65*weave)+.006*impact)*(.18+.82*envelope);
+ particleMaterial.opacity=(.002+.14*dustActive*(.35+.65*weave)+.006*impact)*(.18+.82*envelope)*cueIntensity;
  particleMaterial.size=.012+.02*hi;
+ particleMesh.visible=act===0||act===4||act===5||act===7;
  filaments.forEach((mesh,i)=>{
+  mesh.visible=act===1&&envelope>.002;
+  if(!mesh.visible)return;
   const v=mesh.geometry.attributes.position.array;
   const angle=i*GOLD,ct=Math.cos(angle),st=Math.sin(angle);
   const radius=(2.65+i%3*.38)*breathing;
@@ -412,6 +431,7 @@ function evolve(dt){
  }
  tetra.instanceMatrix.needsUpdate=true;
  tetraMat.opacity=0;
+ tetra.visible=false;
 }
 function openControlPanel(){ $('controls').style.display='none';button.style.display='block';button.textContent='CONTROLS'}
 $('enter').onclick=async()=>{
@@ -508,7 +528,7 @@ const bonePairs=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[8,9],[0,10],[1
 // Fascial / mycelial hands: drawn as an atmospheric fiber network rather than anatomical bones.
 // Tracking and pinches still use the native 25 WebXR hand joints.
 const fascialLinks=[...bonePairs,[0,9],[0,14],[0,19],[0,24],[4,9],[9,14],[14,19],[19,24],[5,10],[10,15],[15,20]];
-const HAND_STRANDS=3,HAND_STEPS=5,HAND_DUST=210;
+const HAND_STRANDS=3,HAND_STEPS=4,HAND_DUST=145;
 const handFiberMat=new THREE.LineBasicMaterial({color:0xe7e9e7,transparent:true,opacity:.4,depthWrite:false,depthTest:true});
 const handDustMat=new THREE.PointsMaterial({color:0xffffff,size:.007,transparent:true,opacity:.47,depthWrite:false,sizeAttenuation:true});
 const handCoreMat=new THREE.PointsMaterial({color:0xeeeeee,size:.014,transparent:true,opacity:.72,depthWrite:false,sizeAttenuation:true});
