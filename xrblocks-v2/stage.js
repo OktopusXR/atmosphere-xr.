@@ -141,7 +141,11 @@ function makeChapter(root,kind,index){
    varying vec3 vEye;
    void main(){
     vEntry=position;
-    vEye=(inverse(modelMatrix)*vec4(cameraPosition,1.)).xyz;
+    vec3 delta=cameraPosition-modelMatrix[3].xyz;
+    vEye=vec3(
+      dot(delta,modelMatrix[0].xyz)/dot(modelMatrix[0].xyz,modelMatrix[0].xyz),
+      dot(delta,modelMatrix[1].xyz)/dot(modelMatrix[1].xyz,modelMatrix[1].xyz),
+      dot(delta,modelMatrix[2].xyz)/dot(modelMatrix[2].xyz,modelMatrix[2].xyz));
     gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);
    }
   `;
@@ -189,7 +193,7 @@ function makeChapter(root,kind,index){
     for(int i=0;i<32;i++){
      float d=field(p);
      if(d<.018){hit=true;break;}
-     p+=dir*clamp(d*.73,.02,.115);
+     p+=dir*clamp(d*.8,.022,.18);
      if(any(greaterThan(abs(p),vec3(1.62))))break;
     }
     if(!hit)discard;
