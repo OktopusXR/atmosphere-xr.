@@ -68,28 +68,17 @@ function drawIntro(){
 function setCaption(i){captionIndex=i;$('en').textContent=lines[i][0];$('es').textContent=lines[i][1];drawIntro()}
 function clearTimers(){timers.forEach(clearTimeout);timers=[]}
 function finishIntro(){
- if(introFinished)return;introFinished=true;clearTimers();narration.pause();if(speechFallback&&'speechSynthesis' in window)speechSynthesis.cancel();
+ if(introFinished)return;introFinished=true;clearTimers();narration.pause();
  $('en').textContent='';$('es').textContent='';$('start').hidden=true;$('skip').hidden=true;
  $('enter').hidden=false;$('voice').style.display='none';drawIntro();
 }
-let speechFallback=null;
-let introVoiceStartedAt=0, introVoiceTimer=0;
+// Never use browser speechSynthesis: its timbre is robotic and unpredictable.
+// The master narration must be replaced by a studio-quality female voice file.
 function speechBackup(){
- if(introFinished||speechFallback)return;
- narration.pause();clearTimers();
- if(!('speechSynthesis' in window)){
-  $('status').textContent='Narrator audio unavailable · subtitles';
-  timers.push(setTimeout(finishIntro,10000));return;
- }
- const utterance=new SpeechSynthesisUtterance(lines.map(x=>x[0]).join(' ... '));
- utterance.lang='en-US';utterance.rate=.93;utterance.pitch=1;utterance.volume=1;
- utterance.onend=()=>finishIntro();
- speechFallback=utterance;
- speechSynthesis.cancel();
- timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},3800));
- timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},7700));
- timers.push(setTimeout(finishIntro,18000));
- speechSynthesis.speak(utterance);
+ if(introFinished)return;
+ narration.pause();
+ $('status').textContent='Narration recording unavailable · subtitles only';
+ // Preserve the full caption progression, without generating synthetic speech.
 }
 function startIntro(){
  if(introStarted)return;
@@ -105,7 +94,7 @@ function startIntro(){
  narration.onerror=speechBackup;
  const play=narration.play();
  if(play?.catch)play.catch(speechBackup);
- timers.push(setTimeout(()=>{if(!introFinished&&!speechFallback)finishIntro()},Math.max(12,dur+3)*1000));
+ timers.push(setTimeout(()=>{if(!introFinished)finishIntro()},Math.max(12,dur+3)*1000));
 }
 $('start').onclick=()=>{enterXR('VR');startIntro()};$('skip').onclick=finishIntro;
 async function startMusic(){
