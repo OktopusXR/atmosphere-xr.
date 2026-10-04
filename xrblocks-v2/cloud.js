@@ -26,7 +26,7 @@ void main(){
  float mask=smoothstep(.22,.68-uDensity*.1,fog)*step(uDensity*.45,aSeed);
  vec4 view=modelViewMatrix*vec4(p,1.);
  gl_Position=projectionMatrix*view;
- gl_PointSize=min(6.,max(1.1,aSize*(.9+uHigh*1.4+uImpact*.8)*uScale*15./max(1.,-view.z)));
+ gl_PointSize=min(2.0,max(.85,aSize*(.65+uHigh*.12)*uScale*5.0/max(1.,-view.z)));
  float gaze=dot(normalize(-p.xz),normalize(vec2(sin(uFocus),-cos(uFocus))));
  vSeed=mask;vLight=(.13+.32*abs(n)+.28*uImpact+.16*uHigh)*(.73+.27*gaze);
 }`;
@@ -36,7 +36,8 @@ void main(){
  vec2 p=gl_PointCoord-.5;float d=length(p);
  float disk=1.-smoothstep(.1,.49,d);
  float core=exp(-d*d*32.);
- float brightness=(disk*.24+core*.76)*vLight*uAlpha*vSeed;
+ if(d>.43)discard;
+ float brightness=core*vLight*uAlpha*vSeed;
  gl_FragColor=vec4(vec3(1.),brightness);
 }`;
 export function makeClouds(root){
