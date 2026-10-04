@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ATMOSPHERE — TECHNO POESIS | Spatial score V5</title>
+<title>ATMOSPHERE — TECHNO POESIS | Spatial score V6</title>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
 <style>
@@ -9,13 +9,13 @@
 html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
 button{color:#eee;background:transparent;border:1px solid #8889;border-radius:24px;padding:12px 23px;font-size:11px;letter-spacing:.18em;font-weight:300;cursor:pointer}
 button:active{background:#eee;color:#111}
-#intro{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px;background:transparent;z-index:100;pointer-events:none}
+#intro{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;text-align:left;padding:clamp(26px,7vw,92px);background:transparent;z-index:100;pointer-events:none}
 #intro>div,#intro>canvas{pointer-events:auto}
-.kicker{font-size:11px;letter-spacing:.45em;opacity:.65;font-weight:300;margin-bottom:33px}
-.title{font-size:clamp(22px,5vw,48px);letter-spacing:.39em;font-weight:200;margin:0 0 36px 0;padding-left:.39em}
-#en{font-size:clamp(14px,2.5vw,23px);line-height:1.55;min-height:38px;letter-spacing:.055em;font-weight:300;max-width:85vw}
+.kicker{font-size:12px;letter-spacing:.32em;opacity:.8;font-weight:300;margin-bottom:23px}
+.title{font-size:clamp(39px,11vw,110px);letter-spacing:.01em;font-weight:750;margin:30px 0 38px;line-height:1.03}
+#en{font-size:clamp(19px,3vw,31px);line-height:1.55;min-height:38px;letter-spacing:.055em;font-weight:300;max-width:85vw}
 #es{font-size:clamp(12px,1.7vw,16px);line-height:1.5;min-height:27px;color:#aaa;max-width:85vw}
-#credit{color:#b7b7b7;font-size:11px;line-height:2;letter-spacing:.12em;margin:30px 0}
+#credit{color:#b7b7b7;font-size:12px;line-height:2;letter-spacing:.12em;margin:30px 0}
 #credit a{color:#bbb;text-decoration:none}
 #voice{width:min(430px,80vw);height:32px;display:none;opacity:.4;margin-top:8px}
 #modebar{display:none}#status{position:fixed;bottom:11px;left:14px;font-size:10px;color:#b6b6b6;z-index:95}
@@ -54,5 +54,5 @@ button:active{background:#eee;color:#111}
 })();
 </script>
 
-<script type="module" src="./quest.js?build=score-v5"></script>
+<script type="module" src="./quest.js?build=score-v6"></script>
 </body></html>
