@@ -2,27 +2,27 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ATMOSPHERE — Oktopus Art Studio</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#01040b;color:#e9f3ff;font:13px system-ui,Arial}
-canvas{display:block}button{color:#e6f3ff;background:#14243fbc;border:1px solid #6683a4;border-radius:7px;padding:11px 17px;letter-spacing:.12em;cursor:pointer}
-#intro{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;background:rgba(2,5,14,.42);backdrop-filter:blur(8px)}
-#title{font-size:clamp(40px,9vw,104px);font-weight:250;letter-spacing:.15em;line-height:1.1;text-shadow:0 0 22px #31547a88}
-#kicker{font-size:10px;letter-spacing:.37em;margin-bottom:16px;color:#9ab3ca}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#f3f3f3;font:13px system-ui,Arial}
+canvas{display:block}button{color:#fff;background:#111c;border:1px solid #888;border-radius:7px;padding:11px 17px;letter-spacing:.12em;cursor:pointer}
+#intro{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;background:rgba(0,0,0,.83)}
+#title{font-size:clamp(40px,9vw,104px);font-weight:250;letter-spacing:.15em;line-height:1.1;text-shadow:0 0 18px #ffffff2c}
+#kicker{font-size:10px;letter-spacing:.37em;margin-bottom:16px;color:#bcbcbc}
 #introEn{font-size:clamp(19px,3vw,30px);max-width:720px;margin-top:24px;line-height:1.45}
-#introEs{font-size:clamp(13px,2vw,18px);color:#a0b8d0;margin-top:12px;max-width:720px}
-#introAuthor{margin-top:20px;line-height:1.8;font-size:12px;color:#a6bfd4}
-#introAuthor a,.links a{color:#add5ff;text-decoration:none}#intro button{margin-top:25px}
+#introEs{font-size:clamp(13px,2vw,18px);color:#bcbcbc;margin-top:12px;max-width:720px}
+#introAuthor{margin-top:20px;line-height:1.8;font-size:12px;color:#c5c5c5}
+#introAuthor a,.links a{color:#eee;text-decoration:none}#intro button{margin-top:16px}
 #voiceWave{display:none;width:min(540px,75vw);height:68px;margin-top:17px}
 #controlsBtn{display:none;position:fixed;z-index:12;left:12px;bottom:12px}
-#controls{display:none;position:fixed;z-index:11;left:12px;bottom:66px;width:min(286px,calc(100% - 24px));padding:15px;background:#061024d9;border:1px solid #3c5874;border-radius:10px;backdrop-filter:blur(10px)}
-#controls label{display:block;margin-top:14px;font-size:11px;color:#aac4dd}#controls input{width:100%;accent-color:#7aaddd}
-#controls p{font-size:11px;color:#97aec8;line-height:1.5}#controls .links{margin-top:12px;font-size:11px;display:flex;gap:14px}
+#controls{display:none;position:fixed;z-index:11;left:12px;bottom:66px;width:min(286px,calc(100% - 24px));padding:15px;background:#080808e8;border:1px solid #666;border-radius:10px;backdrop-filter:blur(10px)}
+#controls label{display:block;margin-top:14px;font-size:11px;color:#ccc}#controls input{width:100%;accent-color:#ddd}
+#controls p{font-size:11px;color:#aaa;line-height:1.5}#controls .links{margin-top:12px;font-size:11px;display:flex;gap:14px}
 #xrButton{position:fixed;bottom:14px;right:14px;z-index:45;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:90vw}#skip{background:transparent;font-size:10px;border:0}
 </style></head><body>
 <div id="intro">
  <div id="kicker">TECHNO POESIS</div><div id="title">ATMOSPHERE</div>
  <div id="introEn"></div><div id="introEs"></div>
  <canvas id="voiceWave" width="640" height="88"></canvas>
- <div id="introAuthor" style="display:none">Ricardo P. Tapia Fernández · Oktopus Art Studio<br>Art, nature and technology · <a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗</a></div>
+ <div id="introAuthor">Ricardo P. Tapia Fernández · Oktopus Art Studio<br>Art, nature and technology · <a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗</a></div>
  <button id="startIntro">START</button><button id="skip" style="display:none">SKIP INTRO</button><button id="enter" style="display:none">ENTER EXPERIENCE</button>
 </div>
 <button id="controlsBtn">CONTROLS</button>
@@ -136,32 +136,41 @@ function band(from,to){
 let avgFlux=.01,onset=0,onsetCooldown=0,quiet=0;
 // Deterministic sound dramaturgy. Stages respond to longer-term audio conditions;
 // stage changes are held, not retriggered by every small FFT fluctuation.
-const STAGES=['FIELD','TRACES','WIREFRAME','INTERWEAVE','FRACTURE','DRIFT','RETURN','DISSOLUTION'];
-let stage=0,stageHold=0,stageMix=0,energyMemory=0,textureMemory=0,gestureMemory=0;
-let act=0,actTime=0,actBlend=0,impact=0,panelUpdateClock=0;
-let lastAct=-1,activityGate=0;
-// Music-time dramaturgy: acts give the composition a visual syntax;
-// live spectrum, RMS, novelty and gestures define the movement *inside* each act.
-const ACTS=['FIELD / LATENCY','TRACES / EMERGENCE','WIREFRAME / GROWTH',
- 'INTERWEAVE / TENSION','FRACTURE / RELEASE','PARTICLE / DRIFT',
- 'RETURN / RESONANCE','DISSOLUTION'];
-const ACT_CUTS=[0,.09,.21,.34,.48,.61,.75,.88,1];
-const VISUAL_GAP=.13; // allocated dark prelude to each visual event
+// VISUAL SCORE v3: dramaturgy is authored, spectrum modulates within each scene.
+// Cue seconds are provisional musical landmarks and are intentionally explicit,
+// rather than arbitrary geometric randomness or percentage-only thresholds.
+const VISUAL_SCORE=[
+ {at:0, name:'SIGNAL', geometry:'signal', cue:'first texture'},
+ {at:39, name:'FRAME', geometry:'architecture', cue:'tonal expansion'},
+ {at:97, name:'VOLUME', geometry:'sphere', cue:'harmonic density'},
+ {at:158, name:'ROTATION', geometry:'facets', cue:'rhythmic activation'},
+ {at:224, name:'AXIS', geometry:'tunnel', cue:'spatial convergence'},
+ {at:289, name:'MATTER', geometry:'particles', cue:'spectral release'},
+ {at:353, name:'DISSOLUTION', geometry:'residue', cue:'decay'},
+ {at:402, name:'END', geometry:'none'}
+];
+const STAGES=VISUAL_SCORE.slice(0,-1).map(x=>x.name);
+let stage=0,stageMix=0,energyMemory=0,textureMemory=0,gestureMemory=0;
+let act=0,actTime=0,impact=0,panelUpdateClock=0,lastAct=-1;
+const VISUAL_GAP=.06;
 function smooth01(v){v=THREE.MathUtils.clamp(v,0,1);return v*v*(3-2*v)}
+function sceneEnvelope(t){
+ return smooth01((t-.025)/.15)*(1-smooth01((t-.85)/.15));
+}
 function updateDramaturgy(dt){
- const energy=Math.min(1,rms*6.5);
- const texture=Math.min(1,mid*1.9+high*.9);
+ const energy=Math.min(1,rms*6.5),texture=Math.min(1,mid*1.9+high*.9);
  energyMemory+=(energy-energyMemory)*Math.min(1,dt*.4);
  textureMemory+=(texture-textureMemory)*Math.min(1,dt*.6);
  gestureMemory+=(onset-gestureMemory)*Math.min(1,dt*1.6);
- const total=Number.isFinite(music.duration)&&music.duration>0?music.duration:402;
- const progress=THREE.MathUtils.clamp(music.currentTime/total,0,.999999);
- let next=ACT_CUTS.findIndex((cut,i)=>i<ACT_CUTS.length-1&&progress>=cut&&progress<ACT_CUTS[i+1]);
- next=THREE.MathUtils.clamp(next,0,ACTS.length-1);
- act=next;actTime=(progress-ACT_CUTS[act])/(ACT_CUTS[act+1]-ACT_CUTS[act]);
- // Near act boundaries old and new systems overlap gently rather than jump.
- actBlend=smooth01(actTime/.12);
- stage=act;stageMix+=(act-stageMix)*Math.min(1,dt*.55);
+ // Scale score only to real master length; no continuously rotating independent cue clocks.
+ const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
+ const seconds=THREE.MathUtils.clamp(music.currentTime*402/duration,0,401.999);
+ const index=VISUAL_SCORE.findIndex((item,i)=>i<VISUAL_SCORE.length-1&&seconds>=item.at&&seconds<VISUAL_SCORE[i+1].at);
+ act=Math.max(0,Math.min(6,index));
+ const start=VISUAL_SCORE[act].at,end=VISUAL_SCORE[act+1].at;
+ actTime=(seconds-start)/Math.max(1,end-start);
+ stage=act;
+ stageMix+=(act-stageMix)*Math.min(1,dt*.45);
  impact+=((onset+flux*1.7)-impact)*Math.min(1,dt*5.4);
  panelUpdateClock+=dt;
  if(renderer.xr.isPresenting&&hud.visible&&(act!==lastAct||panelUpdateClock>.4)){
@@ -293,6 +302,50 @@ function updateBlobs(t,energy,visibility){
  blobMat.opacity=visibility*(.05+.23*energy);
 }
 
+
+// NONOTAK-inspired material principles, original geometry: one white spatial light gesture at a time.
+const lineMat=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthWrite:false});
+const signalVertices=new Float32Array(144*3);
+const signalGeo=new THREE.BufferGeometry();
+signalGeo.setAttribute('position',new THREE.BufferAttribute(signalVertices,3).setUsage(THREE.DynamicDrawUsage));
+const signalLine=new THREE.Line(signalGeo,lineMat);signalLine.frustumCulled=false;scene.add(signalLine);
+const frameGroup=new THREE.Group(),frames=[];
+for(let i=0;i<3;i++){
+ const w=1.4+i*.75,h=1.15+i*.6;
+ const points=[
+ new THREE.Vector3(-w,-h,0),new THREE.Vector3(w,-h,0),
+ new THREE.Vector3(w,h,0),new THREE.Vector3(-w,h,0),new THREE.Vector3(-w,-h,0)];
+ const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),
+   new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.18,depthWrite:false}));
+ line.position.set((i-1)*.35,1.6,-(2.2+i*1.3));frameGroup.add(line);frames.push(line);
+}
+scene.add(frameGroup);
+function updateSignal(visibility){
+ signalLine.visible=visibility>.002;
+ if(!signalLine.visible)return;
+ const a=signalGeo.attributes.position.array;
+ const amplitude=(.014+low*.09+mid*.07+onset*.035);
+ const t=music.currentTime;
+ for(let i=0;i<144;i++){
+  const u=i/143,x=(u-.5)*3.8,falloff=Math.pow(Math.max(0,1-Math.abs(u-.5)*2),1.7);
+  a[i*3]=x;
+  a[i*3+1]=1.6+Math.sin(u*18-t*.55)*falloff*amplitude;
+  a[i*3+2]=-2.4+Math.sin(u*6)*.06;
+ }
+ signalGeo.attributes.position.needsUpdate=true;
+ lineMat.opacity=.22*visibility+Math.min(.23,impact*.12);
+}
+function updateArchitecture(visibility){
+ frameGroup.visible=visibility>.002;
+ if(!frameGroup.visible)return;
+ frames.forEach((o,i)=>{
+  const focus=i===1?1:.28;
+  o.material.opacity=visibility*(.11+.31*focus*(.2+mid*.9+impact*.4));
+  o.rotation.y=Math.sin(music.currentTime*.035+i*.8)*(.045+.075*mid);
+  o.scale.x=1+Math.min(.25,low*.23);
+ });
+}
+
 let tactileEnergy=0,tactileSpread=0,tactileX=0,tactileY=0;
 function deformWireField(t,pressure,texture){
  const a=fieldGeo.attributes.position.array;
@@ -358,90 +411,63 @@ function evolve(dt){
  steerAttention(dt);
  const gain=+$('sensitivity').value;
  const lo=low*gain,mi=mid*gain,hi=high*gain;
- const pressure=THREE.MathUtils.clamp(energyMemory*2.4,0,1.2);
- const weave=THREE.MathUtils.clamp(textureMemory*2,0,1.2);
- const appear=smooth01((actTime-VISUAL_GAP)/.2);
- const leave=1-smooth01((actTime-.78)/.19);
- const envelope=appear*leave;
- const cueIntensity=THREE.MathUtils.clamp(.47+pressure*.4+impact*.24,0,1);
- const shellActive=[0,0,1,0,0,0,.72,0][act];
- const strandActive=[0,.7,0,0,0,0,0,0][act];
- const dustActive=[.018,.018,.018,.018,.025,.075,.018,.008][act];
- const breathing=1+.18*pressure+.12*lo+.25*tactileSpread;
- const fold=.09+weave*.56+tactileEnergy*.3;
- wireField.visible=shellActive>.001&&envelope>.002;
- facetShell.visible=act===2||act===6;
- if(wireField.visible)deformWireField(animationT,pressure,weave);
- fieldMat.opacity*=shellActive*(.12+.62*envelope)*.76*cueIntensity;
- wireField.rotation.y=animationT*(act===4?.24:act===2||act===6?.11:.045)+mi*.22;
- wireField.rotation.x=Math.sin(animationT*.22)*.19+lo*.12;
- wireField.rotation.z=animationT*(act===4?.08:.024)+Math.sin(animationT*.12)*.08;
- // The sphere's expansion remains the central motif across multiple acts.
- const luminous=[0,0,.7,0,0,0,.88,0][act]*envelope*cueIntensity;
- facetShell.rotation.copy(wireField.rotation);
- facetShell.scale.setScalar(1+pressure*.11+impact*.05);
- facetMat.opacity=.21*luminous;
- if(facetShell.visible)illuminateFaces(animationT,luminous);
- const meteorLevel=act===4?.72*envelope*cueIntensity:0;
- meteorField.visible=meteorLevel>.003;
- if(meteorField.visible)updateMeteors(animationT,pressure,meteorLevel);
- tunnel.position.set(Math.cos(focusAngle)*.8,1.6+focusHeight,Math.sin(focusAngle)*.8-1.4);
- const tunnelLevel=act===3?.7*envelope*cueIntensity:0;
+ const pressure=THREE.MathUtils.clamp(energyMemory*2.2,0,1);
+ const weave=THREE.MathUtils.clamp(textureMemory*1.9,0,1);
+ const envelope=sceneEnvelope(actTime);
+ const response=THREE.MathUtils.clamp(.4+pressure*.45+impact*.14,.12,1);
+ const exposure=envelope*response;
+ // Frame, line, volume, rotation, axis and particulate matter NEVER accumulate.
+ updateSignal(act===0?exposure:0);
+ updateArchitecture(act===1?exposure:0);
+ wireField.visible=(act===2||act===3)&&exposure>.002;
+ facetShell.visible=act===3&&exposure>.002;
+ if(wireField.visible){
+  deformWireField(animationT,pressure,weave);
+  fieldMat.opacity*=(act===2?.58:.21)*exposure;
+  wireField.rotation.y=music.currentTime*(act===3?.095:.038)+mi*.27;
+  wireField.rotation.x=Math.sin(music.currentTime*.12)*(.13+.08*low);
+  wireField.rotation.z=Math.sin(music.currentTime*.09)*.08;
+ }
+ if(facetShell.visible){
+  facetShell.rotation.copy(wireField.rotation);
+  facetShell.scale.setScalar(1+pressure*.17+tactileSpread*.13);
+  facetMat.opacity=.42*exposure;
+  illuminateFaces(animationT,exposure);
+ }
+ const tunnelLevel=act===4?exposure*.81:0;
  tunnel.visible=tunnelLevel>.003;
- if(tunnel.visible)updateTunnel(animationT,pressure,tunnelLevel);
- const blobLevel=act===5?.72*envelope*cueIntensity:0;
- blobCloud.visible=blobLevel>.003;
- if(blobCloud.visible)updateBlobs(animationT,pressure,blobLevel);
- tactileEnergy*=Math.exp(-dt*1.4);tactileSpread*=Math.exp(-dt*.2);
- if(act===2)driveShock(dt);else for(const shock of shocks)shock.mesh.material.opacity=0;
- for(let i=0;i<P;i++){
-  const d=particleDirections[i],distance=3.8+(i%13)*.2+Math.sin(i*14.7)*.15;
-  // Per-particle phase is stable; the audio governs coherent cloud expansion.
-  const sweep=act===5?(actTime*3.8):0;
-  const radial=distance*(1+.2*pressure)+(.17*impact+.22*tactileEnergy)*Math.sin(i*.05+sweep);
-  particleArray[i*3]=d.x*radial+d.z*sweep*.16;
-  particleArray[i*3+1]=1.6+d.y*radial;
-  particleArray[i*3+2]=d.z*radial-d.x*sweep*.16;
+ if(tunnel.visible){
+  tunnel.position.set(Math.cos(focusAngle)*.55,1.6+focusHeight*.5,-1.8);
+  updateTunnel(animationT,pressure,tunnelLevel);
  }
- pg.attributes.position.needsUpdate=true;
- particleMaterial.opacity=(.002+.14*dustActive*(.35+.65*weave)+.006*impact)*(.18+.82*envelope)*cueIntensity;
- particleMaterial.size=.012+.02*hi;
- particleMesh.visible=act===0||act===4||act===5||act===7;
- filaments.forEach((mesh,i)=>{
-  mesh.visible=act===1&&envelope>.002;
-  if(!mesh.visible)return;
-  const v=mesh.geometry.attributes.position.array;
-  const angle=i*GOLD,ct=Math.cos(angle),st=Math.sin(angle);
-  const radius=(2.65+i%3*.38)*breathing;
-  const topology=i%2===0?1:-1;
-  for(let j=0;j<=SEG;j++){
-   const u=j/SEG,a=u*Math.PI*2,layer=Math.sin(a*3+topology*act*.65+animationT*.035);
-   const displacement=fold*layer*strandActive*(.3+envelope);
-   const x=radius*Math.cos(a)+displacement*Math.sin(2*a);
-   const y=radius*.63*Math.sin(a)+displacement*.55*Math.cos(2*a);
-   const z=radius*.66*Math.sin(2*a+i*.3)+displacement*Math.cos(a);
-   const X=x*ct-y*st,Y=x*st+y*ct;
-   for(let k=0;k<=SIDES;k++){
-    const p=(j*(SIDES+1)+k)*3,q=k/SIDES*Math.PI*2;
-    const thickness=.003+.009*pressure+.018*impact;
-    v[p]=X+Math.cos(q)*thickness;
-    v[p+1]=1.6+Y+Math.sin(q)*thickness;
-    v[p+2]=z+Math.sin(q)*thickness;
-   }
+ const particulateLevel=act===5?exposure*.85:0;
+ blobCloud.visible=particulateLevel>.003;
+ if(blobCloud.visible)updateBlobs(animationT,pressure,particulateLevel);
+ const meteorLevel=act===5&&impact>.3?Math.min(.2,impact*.09)*exposure:0;
+ meteorField.visible=meteorLevel>.01;
+ if(meteorField.visible)updateMeteors(animationT,pressure,meteorLevel);
+ const residue=act===6?exposure*.22:0;
+ particleMesh.visible=(act===5||act===6)&&exposure>.001;
+ if(particleMesh.visible){
+  for(let i=0;i<P;i++){
+   const d=particleDirections[i],radius=(3.3+(i%17)*.15)*(1+.2*pressure);
+   const k=i*3;
+   particleArray[k]=d.x*radius;
+   particleArray[k+1]=1.6+d.y*radius;
+   particleArray[k+2]=d.z*radius;
   }
-  mesh.geometry.attributes.position.needsUpdate=true;
-  mesh.material.opacity=Math.min(.36,strandActive*(.04+.28*weave+.06*impact)*envelope);
- });
- for(let i=0;i<T;i++){
-  const y=1-2*(i+.5)/T,a=i*GOLD,c=Math.sqrt(1-y*y),r=3.4+impact*.8;
-  dummy.position.set(r*c*Math.cos(a),1.6+r*y,r*c*Math.sin(a));
-  dummy.rotation.set(animationT*.12,animationT*.26+i,0);
-  dummy.scale.setScalar(.08+.9*impact);dummy.updateMatrix();tetra.setMatrixAt(i,dummy.matrix);
+  pg.attributes.position.needsUpdate=true;
+  particleMaterial.opacity=(act===5?.038:residue)*exposure*(.35+.65*weave);
+  particleMaterial.size=.006+.008*high;
  }
- tetra.instanceMatrix.needsUpdate=true;
- tetraMat.opacity=0;
+ // Existing filaments, shock rings and tetrahedron are intentionally retired.
+ filaments.forEach(mesh=>mesh.visible=false);
+ shocks.forEach(shock=>shock.mesh.visible=false);
  tetra.visible=false;
+ tactileEnergy*=Math.exp(-dt*1.4);
+ tactileSpread*=Math.exp(-dt*.2);
 }
+
 function openControlPanel(){ $('controls').style.display='none';button.style.display='block';button.textContent='CONTROLS'}
 $('enter').onclick=async()=>{
  try{
@@ -481,7 +507,8 @@ function paintXRIntro(){
  xi.fillText(introDone?'ENTER EXPERIENCE':introStarted?'NARRATION · LISTENING':'START NARRATION',512,445);
  xi.fillStyle='#bdbdbd';xi.font='21px Arial';
  xi.fillText(introDone?'Pull trigger / pinch to enter':introStarted?'Pull trigger / pinch to skip':'Pull trigger / pinch to start',512,497);
- xi.font='18px Arial';xi.fillText(xrMode==='ar'?'MIXED REALITY':'IMMERSIVE VR',512,574);
+ xi.font='19px Arial';xi.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,550);
+ xi.font='18px Arial';xi.fillText((xrMode==='ar'?'MIXED REALITY':'IMMERSIVE VR')+'  ·  @oktopus.art',512,588);
  xrIntroTex.needsUpdate=true;
 }
 function triggerXRIntro(){
