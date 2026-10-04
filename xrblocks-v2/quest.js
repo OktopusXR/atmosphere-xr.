@@ -30,7 +30,7 @@ const scene=new THREE.Scene();scene.background=new THREE.Color(0);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
 camera.position.set(0,1.6,0);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
-renderer.xr.enabled=true;renderer.setPixelRatio(Math.min(devicePixelRatio,1.0));renderer.setSize(innerWidth,innerHeight);
+renderer.xr.enabled=true;renderer.xr.setFramebufferScaleFactor(.82);renderer.setPixelRatio(Math.min(devicePixelRatio,1.0));renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);renderer.domElement.style.position='fixed';renderer.domElement.style.inset=0;renderer.domElement.style.zIndex='0';
 $('intro').style.zIndex='100';
 const root=new THREE.Group();scene.add(root);
@@ -166,7 +166,7 @@ function advance(){
 for(const ctl of [controller1,controller2])ctl.addEventListener('selectstart',event=>{
  if(entered){
   const handed=event?.data?.handedness||event?.inputSource?.handedness;
-  if(handed!=='left')watch.controllerSelect(ctl);
+  if(handed==='right'||(!handed&&ctl===controller2))watch.controllerSelect(ctl);
   return;
  }
  advance();
