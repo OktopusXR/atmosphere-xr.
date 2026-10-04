@@ -147,6 +147,10 @@ class Atmosphere extends xb.Script {
   const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
   if(renderer?.xr){wrist.update(frame||renderer.xr.getFrame?.(),renderer,started)}
   if(!started)return;
+  // XR Blocks supplies selected controller rays, including trigger drag.
+  for(const ctl of xb.core?.input?.controllers||[]){
+   if(ctl?.userData?.selected&&ctl?.userData?.handedness!=='left')wrist.controllerSelect(ctl);
+  }
   soundFrame(dt);
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=music.currentTime*402/duration;
@@ -154,6 +158,10 @@ class Atmosphere extends xb.Script {
   cloudEngine.update(t,{...params,intensity:params.intensity*.38},cue,bass,mid,high,transient);
   foreground.update(t,{bass,mid,high,attack:transient},params);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
+ }
+ onSelectStart(event){
+  if(!started)return;
+  if(event?.intersection?.point)wrist.hitPosition(event.intersection.point);
  }
  onSelectEnd(){
   if(started)return;
