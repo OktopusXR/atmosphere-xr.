@@ -48,12 +48,13 @@ export function createWatch(scene,controls,onMode){
   let i=0;
   for(const chain of fingerNames)for(let j=1;j<chain.length;j++){
    const a=poses.get(chain[j-1]),b=poses.get(chain[j]);
-   if(!a||!b)return false;
+   if(!a||!b)continue;
    const off=i++*6;
    handData[off]=a.x;handData[off+1]=a.y;handData[off+2]=a.z;
    handData[off+3]=b.x;handData[off+4]=b.y;handData[off+5]=b.z;
   }
-  handGeo.attributes.position.needsUpdate=true;handMesh.visible=true;
+  handGeo.setDrawRange(0,i*2);
+  handGeo.attributes.position.needsUpdate=true;handMesh.visible=i>4;
   const tip=poses.get('index-finger-tip');
   if(tip){fingertip.position.set(tip.x,tip.y,tip.z);fingertip.visible=true}
   return true;
@@ -81,7 +82,7 @@ export function createWatch(scene,controls,onMode){
   laser.visible=watch.visible;
  }
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3(),temp=new THREE.Vector3(),look=new THREE.Vector3();
- let highlight=-1,hold=false,modeLock=0,anchor=false;
+ let highlight=-1,hold=false,modeLock=0,anchor=false,modeName='VR';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
@@ -106,7 +107,7 @@ export function createWatch(scene,controls,onMode){
   });
   cx.strokeStyle='#888';cx.strokeRect(40,588,432,55);
   cx.fillStyle='#fff';cx.font='bold 19px Arial';cx.textAlign='center';
-  cx.fillText('VR  /  SWITCH TO MR',256,624);
+  cx.fillText(modeName==='VR'?'SWITCH TO MR':'SWITCH TO VR',256,624);
   texture.needsUpdate=true;
  }
  paint();
@@ -185,5 +186,5 @@ export function createWatch(scene,controls,onMode){
   if(!pinching&&lastPinch){highlight=-1;paint()}
   lastPinch=pinching;
  }
- return {watch,update,controllerSelect,paint,hitPosition};
+ return {watch,update,controllerSelect,paint,hitPosition,setMode(mode){if(modeName!==mode){modeName=mode;paint()}}};
 }
