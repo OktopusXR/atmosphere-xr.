@@ -169,10 +169,10 @@ export function createForeground(root){
  function drawCaption(title,index){
   ctx.clearRect(0,0,1536,384);
   ctx.fillStyle='#ffffff';ctx.textAlign='left';
-  ctx.font='bold 47px Arial';ctx.fillText('ATMOSPHERE    /    TECHNO POESIS',25,78);
-  ctx.font='bold 108px Arial';ctx.fillText(title,25,215,1480);
-  ctx.font='bold 46px Arial';ctx.fillStyle='#ffffff';
-  ctx.fillText(String(index+1).padStart(2,'0')+'     /     14',26,302);
+  ctx.font='bold 62px Arial';ctx.fillText('ATMOSPHERE / TECHNO POESIS',25,82);
+  ctx.font='bold 126px Arial';ctx.fillText(title,25,218,1480);
+  ctx.font='bold 66px Arial';ctx.fillStyle='#ffffff';
+  ctx.fillText(String(index+1).padStart(2,'0')+'  /  14',26,315);
   tex.needsUpdate=true;
  }
  function update(t,_score,controls={}){
@@ -187,7 +187,7 @@ export function createForeground(root){
   const own=smooth(phrase/fade)*(1-smooth((phrase-(span-fade))/fade));
   const incoming=1-smooth(phrase/fade),outgoing=smooth((phrase-(span-fade))/fade);
   if(index!==previous){previous=index;drawCaption(chapters[index].title,index)}
-  titlePlane.material.opacity=.74*own;active=chapters[index].title;
+  titlePlane.material.opacity=.95*own;active=chapters[index].title;
   for(let i=0;i<chapters3d.length;i++){
    const {group,objects,kind}=chapters3d[i];
    const weight=i===index?own:i===index-1?incoming:i===index+1?outgoing:0;
