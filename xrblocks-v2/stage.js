@@ -1,193 +1,224 @@
 import * as THREE from 'three';
-// ATMOSPHERE V6 - GPU-conscious score. One dominant family at a time.
-// 402s composed itinerary, never a 48/90-second looping scene.
-const TAU=Math.PI*2;
-const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
-const scenes=[
- {end:26,type:'PORTAL',variant:0,title:'RESONANCE'},
- {end:57,type:'CLOUD',variant:0,title:'FORMATION'},
- {end:89,type:'HERO',variant:0,title:'ANATOMY OF LIGHT'},
- {end:114,type:'CLOUD',variant:1,title:'DISPERSION'},
- {end:143,type:'HERO',variant:1,title:'TRANSMISSION'},
- {end:172,type:'HERO',variant:1,title:'FIELDS'},
- {end:199,type:'CLOUD',variant:2,title:'DIFFUSION'},
- {end:226,type:'HERO',variant:2,title:'ENTANGLEMENT'},
- {end:258,type:'CLOUD',variant:2,title:'ORBIT'},
- {end:287,type:'CLOUD',variant:3,title:'PRESENCE'},
- {end:314,type:'HERO',variant:3,title:'MORPHOGENESIS'},
- {end:348,type:'HERO',variant:3,title:'SYMMETRY'},
- {end:374,type:'HERO',variant:4,title:'AFTERIMAGE'},
- {end:402,type:'CLOUD',variant:4,title:'DISSOLUTION'}
+// ATMOSPHERE XR V10 — 14 distinct spatial compositions, with one tunnel ever.
+// No duplicate hero sculpture and no live FFT. All animation follows track time.
+const PI=Math.PI, TAU=2*PI;
+const clamp=x=>Math.max(0,Math.min(1,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const chapters=[
+ {end:26,title:'RESONANCE',kind:'tunnel'},
+ {end:57,title:'FORMATION',kind:'condensation'},
+ {end:89,title:'ANATOMY OF LIGHT',kind:'facets'},
+ {end:114,title:'DISPERSION',kind:'vortex'},
+ {end:143,title:'TRANSMISSION',kind:'woven'},
+ {end:172,title:'FIELDS',kind:'fold'},
+ {end:199,title:'DIFFUSION',kind:'strata'},
+ {end:226,title:'ENTANGLEMENT',kind:'cell'},
+ {end:258,title:'ORBIT',kind:'orbitdust'},
+ {end:287,title:'PRESENCE',kind:'wave'},
+ {end:314,title:'MORPHOGENESIS',kind:'crystal'},
+ {end:348,title:'SYMMETRY',kind:'axis'},
+ {end:374,title:'AFTERIMAGE',kind:'shards'},
+ {end:402,title:'DISSOLUTION',kind:'residue'}
 ];
-export function createForeground(root){
- const portals=new THREE.Group();root.add(portals);
- const rings=[];
- // Reduced from 33 torus meshes to 15, fewer triangles per ring.
- for(let k=0;k<1;k++){
-  const sector=new THREE.Group();sector.rotation.y=-k*TAU/3;portals.add(sector);
-  for(let i=0;i<11;i++){
-   const mesh=new THREE.Mesh(new THREE.TorusGeometry(.68-i*.024,.009,4,56),
+function fract(x){return x-Math.floor(x)}
+function rnd(i,seed){return fract(Math.sin(i*127.1+seed*311.7)*43758.5453123)}
+function dotTexture(){
+ const c=document.createElement('canvas');c.width=c.height=64;
+ const g=c.getContext('2d'),grad=g.createRadialGradient(32,32,0,32,32,31);
+ grad.addColorStop(0,'#ffffff');grad.addColorStop(.25,'rgba(255,255,255,.95)');
+ grad.addColorStop(.7,'rgba(255,255,255,.55)');grad.addColorStop(1,'rgba(255,255,255,0)');
+ g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);
+}
+const texture=dotTexture();
+function pMaterial(size=.024){return new THREE.PointsMaterial({
+ color:0xffffff,size,map:texture,transparent:true,opacity:0,depthWrite:false,
+ alphaTest:.08,sizeAttenuation:true
+})}
+function lineMaterial(){return new THREE.LineBasicMaterial({
+ color:0xffffff,transparent:true,opacity:0,depthWrite:false
+})}
+function makePoints(group,count,fun,size=.026){
+ const xyz=new Float32Array(count*3);
+ for(let i=0;i<count;i++){const p=fun(i,count);xyz[i*3]=p[0];xyz[i*3+1]=p[1];xyz[i*3+2]=p[2]}
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(xyz,3));
+ const obj=new THREE.Points(geo,pMaterial(size));obj.frustumCulled=false;group.add(obj);return obj;
+}
+function line(group,vertices){
+ const obj=new THREE.Line(new THREE.BufferGeometry().setFromPoints(vertices),lineMaterial());
+ obj.frustumCulled=false;group.add(obj);return obj;
+}
+function makeChapter(root,kind,index){
+ const g=new THREE.Group();g.position.set(0,1.6,-3.35);
+ root.add(g);const objects=[],fx={};
+ function add(object){objects.push(object);return object}
+ if(kind==='tunnel'){
+  g.position.z=0;
+  for(let j=0;j<11;j++){
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(.68-j*.016,.008,4,72),
     new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
-   mesh.position.set(0,1.6,-1.9-i*.42);sector.add(mesh);rings.push({mesh,sector,k,i});
+   ring.position.z=-2.05-j*.37;g.add(ring);add(ring);
   }
+ }else if(kind==='condensation'){
+  add(makePoints(g,2400,(i,n)=>{
+   const a=i*2.399963,z=1-2*(i+.5)/n,r=Math.sqrt(1-z*z)*(.82+.33*rnd(i,1));
+   return [Math.cos(a)*r,Math.sin(a)*r,z*r*.9]
+  },.033));
+ }else if(kind==='facets'){
+  const geo=new THREE.IcosahedronGeometry(1.1,1);
+  const mesh=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
+   color:0xe9e9e9,flatShading:true,transparent:true,opacity:0,depthWrite:false,
+   side:THREE.DoubleSide
+  }));g.add(mesh);add(mesh);
+  add(makePoints(g,700,(i,n)=>{
+   const a=i*2.399963,z=1-2*(i+.5)/n,r=Math.sqrt(1-z*z)*1.43;
+   return [Math.cos(a)*r,Math.sin(a)*r,z*1.3]
+  },.02));
+ }else if(kind==='vortex'){
+  add(makePoints(g,2900,(i,n)=>{
+   const v=i/n,a=v*TAU*12,rad=.13+1.7*Math.sqrt(v);
+   return [Math.cos(a)*rad,(v-.5)*2.7,Math.sin(a)*rad]
+  },.027));
+ }else if(kind==='woven'){
+  for(let j=0;j<24;j++){
+   const pts=[];for(let i=0;i<65;i++){
+    const u=i/64,a=(u-.5)*2.5;
+    pts.push(new THREE.Vector3(Math.sin(a)*1.7,((j/23)-.5)*2.45+
+      .13*Math.sin(a*4+j*.3),Math.cos(a)*.6));
+   }add(line(g,pts));
+  }
+ }else if(kind==='fold'){
+  const geo=new THREE.TorusKnotGeometry(.76,.3,120,7,2,5);
+  const mesh=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
+   color:0xf4f4f4,transparent:true,opacity:0,depthWrite:false,flatShading:true,
+   side:THREE.DoubleSide
+  }));g.add(mesh);add(mesh);
+ }else if(kind==='strata'){
+  add(makePoints(g,2500,(i,n)=>{
+   const layer=i%7,a=i*2.399963,r=.4+(layer/6)*1.55;
+   return [r*Math.cos(a),Math.sin(a*.3)*.11+(layer-3)*.27,r*Math.sin(a)]
+  },.027));
+ }else if(kind==='cell'){
+  // Non-repeating cellular connections, independent 3D cellular structure.
+  const points=[];
+  for(let i=0;i<115;i++){
+   const a=i*2.399963,z=1-2*(i+.5)/115,r=Math.sqrt(1-z*z);
+   points.push(new THREE.Vector3(Math.cos(a)*r*1.3,Math.sin(a)*r*1.25,z*1.35))
+  }
+  for(let i=0;i<points.length;i+=3){
+   add(line(g,[points[i],points[(i+13)%points.length],
+     points[(i+39)%points.length]]));
+  }
+ }else if(kind==='orbitdust'){
+  add(makePoints(g,2400,(i,n)=>{
+   const v=i/n,a=i*2.399963,rad=1.2+.38*Math.sin(i*.19);
+   return [rad*Math.cos(a),.9*Math.sin(a*.31)+.25*Math.cos(v*TAU*9),
+     .55*Math.sin(a)-1.2*(v-.5)]
+  },.03));
+ }else if(kind==='wave'){
+  add(makePoints(g,2600,(i,n)=>{
+   const x=(i%65)/64*3.65-1.825,z=Math.floor(i/65)/39*2.3-1.15;
+   return [x,.66*Math.sin(x*2.9+z*3.4),z]
+  },.031));
+ }else if(kind==='crystal'){
+  for(let i=0;i<21;i++){
+   const a=i*2.399963,rad=.52+1.03*rnd(i,4);
+   const b=new THREE.Vector3(Math.cos(a)*rad,-1.1,Math.sin(a)*rad);
+   add(line(g,[b,new THREE.Vector3(Math.cos(a)*rad*.72,
+    .5+1.1*rnd(i,7),Math.sin(a)*rad*.72)]));
+  }
+  const geo=new THREE.DodecahedronGeometry(.8,0);
+  const mesh=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
+   color:0xffffff,flatShading:true,transparent:true,opacity:0,depthWrite:false,
+   side:THREE.DoubleSide
+  }));g.add(mesh);add(mesh);
+ }else if(kind==='axis'){
+  for(let i=0;i<14;i++){
+   const a=i*TAU/14,rad=.45+(i%3)*.38;
+   add(line(g,[new THREE.Vector3(rad*Math.cos(a),-1.55,rad*Math.sin(a)),
+    new THREE.Vector3(rad*.5*Math.cos(a),1.55,rad*.5*Math.sin(a))]));
+  }
+ }else if(kind==='shards'){
+  for(let i=0;i<33;i++){
+   const a=i*2.399963,z=1-2*(i+.5)/33,rad=Math.sqrt(1-z*z);
+   const m=new THREE.Mesh(new THREE.TetrahedronGeometry(.12+.26*rnd(i,8),0),
+    new THREE.MeshPhongMaterial({color:0xffffff,transparent:true,opacity:0,
+     flatShading:true,depthWrite:false}));
+   m.position.set(rad*Math.cos(a)*1.2,rad*Math.sin(a)*1.15,z*1.2);
+   g.add(m);add(m);
+  }
+ }else if(kind==='residue'){
+  add(makePoints(g,1500,(i,n)=>{
+   const v=i/n,a=i*2.399963,r=.5+2.1*v;
+   return [Math.cos(a)*r,(v-.5)*2.3,Math.sin(a)*r]
+  },.026));
  }
- const center=new THREE.Group();center.position.set(0,1.6,-3.3);root.add(center);
- // Dense point sculpture, bounded count, static buffers, inexpensive analytic turbulence.
- const n=3600,pos=new Float32Array(n*3),color=new Float32Array(n*3);
- for(let i=0;i<n;i++){
-  const a=i*2.39996323,z=1-2*(i+.5)/n,r=Math.sqrt(1-z*z)*(1+.21*Math.sin(i*4.17));
-  pos[i*3]=Math.cos(a)*r;pos[i*3+1]=Math.sin(a)*r;pos[i*3+2]=z*r*.9;
-  const lum=.55+.45*Math.abs(Math.sin(i*2.9));color[i*3]=color[i*3+1]=color[i*3+2]=lum;
- }
- const cloudGeo=new THREE.BufferGeometry();
- cloudGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
- cloudGeo.setAttribute('color',new THREE.BufferAttribute(color,3));
- const dot=document.createElement('canvas');dot.width=32;dot.height=32;
- const g=dot.getContext('2d'),grad=g.createRadialGradient(16,16,0,16,16,14);
- grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.25,'rgba(255,255,255,.8)');grad.addColorStop(1,'rgba(255,255,255,0)');
- g.fillStyle=grad;g.fillRect(0,0,32,32);
- const dotTex=new THREE.CanvasTexture(dot);
- const cloudMat=new THREE.PointsMaterial({vertexColors:true,color:0xffffff,size:.017,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false});
- const cloud=new THREE.Points(cloudGeo,cloudMat);cloud.frustumCulled=false;center.add(cloud);
- // Sculptural polygonal body from reference: faceted translucent solid, soft blobs,
- // and a single particulate veil, not a wireframe/fractal tree.
- const body=new THREE.Group();body.position.set(0,1.6,-3.15);root.add(body);
- const polyGeo=new THREE.IcosahedronGeometry(1.02,1);
- const a=polyGeo.attributes.position;
- for(let i=0;i<a.count;i++){
-  const x=a.getX(i),y=a.getY(i),z=a.getZ(i);
-  const distortion=1+.12*Math.sin(x*6+y*3+z*4);
-  a.setXYZ(i,x*1.12*distortion,y*.98*distortion,z*.84*distortion);
- }
- a.needsUpdate=true;polyGeo.computeVertexNormals();
- const poly=new THREE.Mesh(polyGeo,new THREE.MeshPhongMaterial({
-  color:0xf1f1f1,specular:0xffffff,shininess:27,flatShading:true,
-  transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide
- }));
- body.add(poly);
- const pale=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false});
- const blobs=[];
- for(let i=0;i<2;i++){
-  const m=new THREE.Mesh(new THREE.SphereGeometry(.36,12,9),pale.clone());
-  m.scale.set(1.15+i*.15,.76,1.23+i*.18);
-  m.position.set(i===0?.77:1.38,i===0?-.71:-1.25,i===0?.22:.36);
-  body.add(m);blobs.push(m);
- }
- const vn=1450,vp=new Float32Array(vn*3);
- for(let i=0;i<vn;i++){
-  const v=(i+.5)/vn,z=1-2*v,theta=i*2.39996323;
-  const r=Math.sqrt(1-z*z)*(1.27+.45*Math.sin(i*.319));
-  vp[i*3]=Math.cos(theta)*r;
-  vp[i*3+1]=Math.sin(theta)*r;
-  vp[i*3+2]=z*r;
- }
- const vg=new THREE.BufferGeometry();
- vg.setAttribute('position',new THREE.BufferAttribute(vp,3));
- const veil=new THREE.Points(vg,new THREE.PointsMaterial({color:0xffffff,size:.015,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false}));
- body.add(veil);
- const light=new THREE.DirectionalLight(0xffffff,1.65);light.position.set(-3,5,4);root.add(light);
- const ambient=new THREE.AmbientLight(0xffffff,.35);root.add(ambient);
- // Editorial floating typography, based on reference hierarchy but adapted to artwork.
- const canvas=document.createElement('canvas');canvas.width=768;canvas.height=256;
+ for(const item of objects)item.visible=false;
+ return {group:g,objects,kind,index};
+}
+export function createForeground(root){
+ const chapters3d=chapters.map((c,i)=>makeChapter(root,c.kind,i));
+ const light=new THREE.DirectionalLight(0xffffff,1.9);light.position.set(-3,4,4);root.add(light);
+ root.add(new THREE.AmbientLight(0xffffff,.47));
+ // High-resolution, fully legible editorial caption. No micro typography in headset.
+ const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=384;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);
- const label=new THREE.Mesh(new THREE.PlaneGeometry(1.95,.65),
-  new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));
- label.position.set(-.66,1.66,-2.5);label.renderOrder=55;root.add(label);
- let previous=-1,active='RESONANCE';
- function drawTitle(title,actIndex){
-  ctx.clearRect(0,0,768,256);ctx.textAlign='left';
-  ctx.fillStyle='#ffffff';ctx.font='bold 30px Arial';ctx.fillText('ATMOSPHERE / TECHNO POESIS',20,29);
-  ctx.font='bold 67px Arial';ctx.fillStyle='#ffffff';
-  ctx.fillText(title,20,121,740);
-  ctx.font='bold 29px Arial';ctx.fillStyle='#eeeeee';
-  ctx.fillText(String(actIndex+1).padStart(2,'0')+' / 14',22,173);
+ const titlePlane=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.65),
+   new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,depthTest:false,depthWrite:false}));
+ titlePlane.position.set(-.35,2.05,-2.55);titlePlane.renderOrder=60;root.add(titlePlane);
+ let previous=-1,active='';
+ function drawCaption(title,index){
+  ctx.clearRect(0,0,1536,384);
+  ctx.fillStyle='#ffffff';ctx.textAlign='left';
+  ctx.font='bold 47px Arial';ctx.fillText('ATMOSPHERE    /    TECHNO POESIS',25,78);
+  ctx.font='bold 108px Arial';ctx.fillText(title,25,215,1480);
+  ctx.font='bold 46px Arial';ctx.fillStyle='#ffffff';
+  ctx.fillText(String(index+1).padStart(2,'0')+'     /     14',26,302);
   tex.needsUpdate=true;
  }
- // Artist-authored deterministic animation. No analyser, FFT or instantaneous
- // sound amplitude ever drives the transform. Playback time is the ONLY clock.
- // Section boundaries are provisional artistic cues pending final track annotation.
- const fades=3.8;
- const impulseTimes=[
-  4.5,11,18,24,31,40,48,54,64,72,82,94,102,110,
-  119,128,137,146,156,166,177,186,194,206,216,222,
-  234,243,253,262,274,284,296,306,314,326,336,
-  346,359,368,379,389,399
- ];
- const gentleAccent=t=>{
-  // Slow smooth raised-cosine envelopes, not raw transients.
-  let v=0;
-  for(const beat of impulseTimes){
-   const delta=Math.abs(t-beat);
-   if(delta<1.8)v=Math.max(v,(1+Math.cos(delta*Math.PI/1.8))*.5);
-  }
-  return v;
- };
- function update(t,_unused,controls={}){
+ function update(t,_score,controls={}){
   const time=Math.max(0,Math.min(401.999,Number.isFinite(t)?t:0));
-  let index=scenes.findIndex(v=>time<v.end);
-  if(index<0)index=scenes.length-1;
-  const current=scenes[index],start=index?scenes[index-1].end:0;
+  let index=chapters.findIndex(c=>time<c.end);if(index<0)index=chapters.length-1;
   const intensity=controls.intensity??1,scale=controls.scale??1;
   const variation=controls.variation??.55,motion=controls.motion??.8,speed=controls.speed??.6;
-  const vScale=.65+.45*variation;
-  const clock=time*(.4+.45*speed);
-  const phase=time-start,dur=current.end-start;
-  const accent=gentleAccent(time);
-  const drift=Math.sin(clock*.33+current.variant*.9);
-  const slowPulse=.5+.5*Math.cos(clock*.9+current.variant*.21);
-  const fadeIn=smooth(phase/fades),fadeOut=1-smooth((phase-(dur-fades))/fades);
-  const currentWeight=fadeIn*fadeOut;
-  const prev=scenes[index-1],next=scenes[index+1];
-  // Adjacent scenes overlap for 3.8 seconds: no hard scene switch.
-  const inWeight=prev?(1-fadeIn):0,outWeight=next?(1-fadeOut):0;
-  const contributions=[{scene:current,w:currentWeight}];
-  if(prev)contributions.push({scene:prev,w:inWeight});
-  if(next)contributions.push({scene:next,w:outWeight});
-  const typeWeight=type=>contributions.filter(v=>v.scene.type===type).reduce((a,v)=>a+v.w,0);
-  const winner=contributions.reduce((a,b)=>b.w>a.w?b:a);
-  const weightSum=Math.max(.0001,contributions.reduce((sum,c)=>sum+c.w,0));
-  const currentVariant=contributions.reduce((sum,c)=>sum+c.scene.variant*c.w,0)/weightSum;
-  const portalsWeight=typeWeight('PORTAL'),cloudWeight=typeWeight('CLOUD'),heroWeight=typeWeight('HERO');
-  active=winner.scene.title;
-  if(index!==previous){previous=index;drawTitle(current.title,index)}
-  label.material.opacity=.80*currentWeight;
-  label.position.x=-.68+.04*Math.sin(clock*.13);
-  label.position.z=-2.55;
-  rings.forEach(({mesh,sector,k,i})=>{
-   mesh.visible=portalsWeight>.001;
-   if(!mesh.visible)return;
-   sector.rotation.y=-k*TAU/3+currentVariant*.17+
-     Math.sin(clock*.13+k*.09)*.08;
-   mesh.position.z=-1.95-i*.40-.085*Math.sin(clock*.14);
-   mesh.scale.setScalar(scale*(.98+.085*slowPulse+.07*accent*vScale));
-   mesh.material.opacity=portalsWeight*intensity*(.42+.19*slowPulse+.16*accent);
-   mesh.rotation.z=.055*Math.sin(clock*.18+i*.3);
-  });
-  center.visible=cloudWeight>.001;
-  if(center.visible){
-   cloudMat.opacity=cloudWeight*intensity*(.32+.18*slowPulse+.13*accent);
-   center.rotation.set(.13*Math.sin(clock*.19),time*.095,.065*Math.sin(clock*.27));
-   center.position.set(.32*Math.sin(clock*.2+currentVariant),1.6+.17*Math.cos(clock*.2),-3.15);
-   const expansion=scale*(.9+.14*Math.sin(clock*.42)+.08*accent*vScale);
-   cloud.scale.set(expansion,expansion*(1.07+.14*Math.sin(currentVariant*1.13)),expansion);
-  }
-  body.visible=heroWeight>.001;
-  if(body.visible){
-   body.position.set(.29*Math.sin(clock*.18+currentVariant),1.6+.08*Math.sin(clock*.28),-3.15);
-   body.rotation.set(time*.055*speed,time*.086*speed+currentVariant*.3,.085*Math.sin(clock*.15));
-   const expansion=scale*(.94+.07*Math.sin(clock*.35)+.055*accent);
-   body.scale.set(expansion,expansion*(1.05+.1*Math.sin(currentVariant*1.2)),expansion);
-   poly.material.opacity=heroWeight*intensity*(.36+.10*slowPulse);
-   veil.material.opacity=heroWeight*(.30+.16*slowPulse+.06*accent);
-   veil.rotation.y=-time*.064*speed;
-   blobs.forEach((blob,j)=>{
-    blob.material.opacity=heroWeight*.43*(j===0?1:.84);
-    blob.position.y=(j===0?-.71:-1.25)+.12*Math.sin(clock*(.25+.13*motion)+j);
-    blob.scale.x=1.03+.22*variation+.045*Math.cos(clock*.41+j);
-   });
+  const start=index===0?0:chapters[index-1].end,end=chapters[index].end;
+  const phrase=time-start,span=end-start;
+  const fade=3.5;
+  // One unique geometry per chapter; overlap only the preceding and next geometry.
+  const own=smooth(phrase/fade)*(1-smooth((phrase-(span-fade))/fade));
+  const incoming=1-smooth(phrase/fade),outgoing=smooth((phrase-(span-fade))/fade);
+  if(index!==previous){previous=index;drawCaption(chapters[index].title,index)}
+  titlePlane.material.opacity=.74*own;active=chapters[index].title;
+  for(let i=0;i<chapters3d.length;i++){
+   const {group,objects,kind}=chapters3d[i];
+   const weight=i===index?own:i===index-1?incoming:i===index+1?outgoing:0;
+   const visible=weight>.002;
+   group.visible=visible;
+   if(!visible)continue;
+   const local=time-(i===0?0:chapters[i-1].end);
+   const drift=time*(.08+.07*speed);
+   // Slow independent authored animation curves — never instantaneous FFT.
+   group.position.x=.22*Math.sin(drift*.31+i*.7);
+   group.position.y=1.6+.12*Math.sin(drift*.48+i*.6);
+   group.position.z=kind==='tunnel'?0:-3.25;
+   group.rotation.set(kind==='tunnel'?0:.07*Math.sin(drift*.27+i),
+    kind==='tunnel'?.03*Math.sin(drift*.19):drift*.35+i*.18,
+    kind==='tunnel'?0:.065*Math.sin(drift*.4+i));
+   const breath=1+.055*Math.sin(drift*.9+i*.4)+.025*Math.cos(drift*.51+i);
+   const size=scale*breath*(1+.13*variation*(i%3)/3);
+   group.scale.setScalar(size);
+   for(let j=0;j<objects.length;j++){
+    const o=objects[j];o.visible=true;
+    const glow=.67+.13*Math.sin(drift*.48+j*.17)+.07*Math.cos(drift*.8+i);
+    o.material.opacity=weight*intensity*glow;
+    if(kind==='tunnel'){
+     const z=-2.15-j*.34;
+     // A one-time optical depth migration, authored and eased over 26s.
+     o.position.z=z+.2*smooth(Math.max(0,Math.min(1,local/26)));
+     o.scale.setScalar(1+.055*Math.sin(drift*.3+j*.55));
+    }
+   }
   }
  }
- return {update,get active(){return active},scenes};
+ return {update,chapters,get active(){return active}};
 }
-// Preserve existing import name for both XR runtimes.
 export const createStage=createForeground;
