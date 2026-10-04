@@ -15,14 +15,14 @@ float noise3(vec3 p){
 void main(){
  vec3 p=position;float speed=uTime*(.045+uSpeed*.18);
  float n=noise3(p*.52+vec3(speed,aSeed*2.1,0.));
- float n2=noise3(p*.83+vec3(0.,-speed*1.4,aSeed));
+ float n2=sin(p.y*2.+speed+aSeed*6.283)*.5;
  vec3 q=normalize(p+vec3(.001));
  float pulse=uBass*2.8+uImpact*.78;
  p+=q*(n*(.5+uMotion*.72)+pulse*(.4+uScale*.66));
  p.x+=n2*(.2+uMid*.65);
- p.y+=noise3(p*.34+vec3(speed*.7,1.,3.))*(.22+uMotion*.35);
+ p.y+=sin(p.x*.7+speed)*(.11+uMotion*.21);
  p.z+=n*(.22+uMid*.38);
- float fog=.5+.5*noise3(p*.57+vec3(speed*.17,0.,0.));
+ float fog=.5+.5*sin(p.x*1.1+p.y*.6+speed*.3);
  float mask=smoothstep(.22,.68-uDensity*.1,fog)*step(uDensity*.45,aSeed);
  vec4 view=modelViewMatrix*vec4(p,1.);
  gl_Position=projectionMatrix*view;
@@ -41,10 +41,10 @@ void main(){
 }`;
 export function makeClouds(root){
  const presets=[
-  {count:4400,radius:4.7,spread:2.8,sector:0},
-  {count:5200,radius:3.6,spread:2.0,sector:1},
-  {count:3800,radius:6.3,spread:3.0,sector:2},
-  {count:2800,radius:5.5,spread:3.2,sector:3}
+  {count:1800,radius:4.7,spread:2.8,sector:0},
+  {count:1600,radius:3.6,spread:2.0,sector:1},
+  {count:1200,radius:6.3,spread:3.0,sector:2},
+  {count:950,radius:5.5,spread:3.2,sector:3}
  ];
  const clouds=presets.map((preset,k)=>{
   const n=preset.count,p=new Float32Array(n*3),seeds=new Float32Array(n),sizes=new Float32Array(n);
@@ -93,7 +93,7 @@ export function makeClouds(root){
     u.uSpeed.value=params.speed;
     u.uMotion.value=params.motion;
     // A residual cloud is always visible, including pauses and ending.
-    u.uAlpha.value=Math.max(i===0?.21:.035,weights[i]*params.intensity*(.75+impact*.25));
+    u.uAlpha.value=Math.max(i===0?.085:.018,weights[i]*params.intensity*.38*(.75+impact*.25));
     u.uDensity.value=Math.max(0,1-params.density);
     u.uFocus.value=t*.013+i*1.57;
     points.rotation.y=t*(.0012+.001*params.speed)*(i%2?-1:1);
