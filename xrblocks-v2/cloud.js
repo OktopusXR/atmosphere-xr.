@@ -77,7 +77,11 @@ export function makeClouds(root){
  });
  return {
   clouds,
-  update(t,params,cue,bass,mid,high,impact){
+  update(t,params,cue){
+   // All particle motion is an authored smooth function of soundtrack time.
+   const slow=.5+.5*Math.sin(t*.19);
+   const breath=.5+.5*Math.cos(t*.34);
+   const shimmer=.5+.5*Math.sin(t*.68);
    const envelopes=[
     [.31,.55,.22,.28], [.56,.67,.14,.28],
     [.35,.9,.31,.23], [.53,.73,.6,.31],
@@ -88,12 +92,13 @@ export function makeClouds(root){
    for(let i=0;i<clouds.length;i++){
     const {points,uniforms:u}=clouds[i];
     u.uTime.value=t;
-    u.uBass.value=bass;u.uMid.value=mid;u.uHigh.value=high;u.uImpact.value=impact;
+    u.uBass.value=.07+.11*breath;u.uMid.value=.08+.06*slow;
+    u.uHigh.value=.06+.05*shimmer;u.uImpact.value=0;
     u.uScale.value=params.scale;
     u.uSpeed.value=params.speed;
     u.uMotion.value=params.motion;
     // A residual cloud is always visible, including pauses and ending.
-    u.uAlpha.value=Math.max(i===0?.085:.018,weights[i]*params.intensity*.38*(.75+impact*.25));
+    u.uAlpha.value=Math.max(i===0?.085:.018,weights[i]*params.intensity*.38*(.8+.2*breath));
     u.uDensity.value=Math.max(0,1-params.density);
     u.uFocus.value=t*.013+i*1.57;
     points.rotation.y=t*(.0012+.001*params.speed)*(i%2?-1:1);
