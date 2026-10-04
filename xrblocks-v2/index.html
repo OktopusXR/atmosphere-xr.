@@ -23,7 +23,7 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
 #modebar{position:fixed;right:12px;top:12px;z-index:140;display:flex;gap:5px}
 #modebar button{font-size:10px;padding:8px 10px}
 #voice{width:min(500px,85vw);height:40px;margin-top:14px;display:none}
-#XRButtonWrapper{z-index:150!important;position:fixed!important;right:12px!important;bottom:12px!important}#development{display:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
+#XRButtonWrapper{z-index:150!important;position:fixed!important;right:12px!important;bottom:12px!important}#development{display:block;max-width:min(450px,92vw);padding:5px 8px;background:#000b;white-space:pre-line;pointer-events:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
 </style>
 </head><body>
 <div id="intro">
@@ -34,6 +34,21 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
 </div>
 <div id="modebar"><button id="vr">VR</button><button id="mr">MIXED REALITY</button></div>
 <div id="status">XR Blocks · desktop preview / XR entry through native XR control</div>
-<div id="development"></div>
+<div id="development">CHECKING ENGINE...</div>
+<script>
+(function(){
+ let errors=[];
+ let d=document.getElementById('development');
+ window.atmosDiagnostic=function(msg){
+  const value=String(msg||'Unknown error');
+  errors.push(value);if(errors.length>5)errors.shift();
+  d.textContent=errors.join('\n');
+  const s=document.getElementById('status');if(s)s.textContent=value;
+ };
+ window.addEventListener('error',e=>atmosDiagnostic('JS ERROR: '+(e.message||e.error?.message||'script could not load')));
+ window.addEventListener('unhandledrejection',e=>atmosDiagnostic('ASYNC ERROR: '+(e.reason?.message||e.reason)));
+ setTimeout(()=>{if(!window.atmosAppReady)atmosDiagnostic('XR Blocks did not initialize. Check network, CDN and supported browser.')},10000);
+})();
+</script>
 <script type="module" src="./main.js"></script>
 </body></html>
