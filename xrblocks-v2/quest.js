@@ -6,7 +6,7 @@ const music=new Audio('../atmosphereADM_binaural.mp3');music.preload='auto';
 const narration=new Audio('../atmosphere-intro.ogg');narration.preload='auto';
 const lines=[
  ['Invisible networks connect all forms of life.','Redes invisibles conectan todas las formas de vida.'],
- ['From body to Earth. From Earth to cosmos.','Del cuerpo a la Tierra. Del planeta al cosmos.'],
+ ['From body to Earth. From Earth to cosmos.','Del cuerpo a la Tierra. De la Tierra al cosmos.'],
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
 let selectedMode=vrMode,introStarted=false,introFinished=false,entered=false,timers=[],captionIndex=0;
@@ -232,8 +232,8 @@ async function enterXR(mode){
   $('status').textContent='XR SESSION ACTIVE · '+mode;
  }catch(e){$('status').textContent='XR SESSION ERROR: '+e.message}
 }
-$('vr').onclick=()=>{if(!renderer.xr.isPresenting)selectedMode='VR';drawIntro()};
-$('mr').onclick=()=>{if(!renderer.xr.isPresenting)selectedMode='MR';drawIntro()};
+$('vr').onclick=()=>{if(!renderer.xr.isPresenting){selectedMode='VR';btn.textContent='ENTER VR'}drawIntro()};
+$('mr').onclick=()=>{if(!renderer.xr.isPresenting){selectedMode='MR';btn.textContent='ENTER MR'}drawIntro()};
 const btn=document.createElement('button');btn.textContent='ENTER '+vrMode;
 $('xrButton').appendChild(btn);
 btn.onclick=()=>enterXR(selectedMode);
