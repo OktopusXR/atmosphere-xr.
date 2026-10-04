@@ -95,11 +95,7 @@ function soundFrame(dt){
  pulse+=(bass-pulse)*Math.min(1,dt*26);
  smoothedMid+=(mid-smoothedMid)*Math.min(1,dt*4);
 }
-function findCue(t){
- // Real time, not animation-frame accumulation.
- for(let i=CUES.length-2;i>=0;i--)if(t>=CUES[i].sec)return i;
- return 0;
-}
+
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
@@ -139,7 +135,7 @@ class Atmosphere extends xb.Script {
   introPlane.renderOrder=110;this.add(introPlane);
   this.last=0;
  }
- update(){
+ update(time,frame){
   const now=performance.now()/1000,dt=Math.min(.06,Math.max(0,now-this.last));this.last=now;
   if(introPlane){
    introPlane.visible=!started;
@@ -149,7 +145,7 @@ class Atmosphere extends xb.Script {
    introPlane.quaternion.copy(q);
   }
   const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
-  if(renderer?.xr){wrist.update(renderer.xr.getFrame?.(),renderer,started)}
+  if(renderer?.xr){wrist.update(frame||renderer.xr.getFrame?.(),renderer,started)}
   if(!started)return;
   soundFrame(dt);
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
