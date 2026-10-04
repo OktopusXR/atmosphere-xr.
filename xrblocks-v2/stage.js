@@ -238,14 +238,18 @@ export function createForeground(root){
    const local=time-start;
    const slow=local*(.28+.23*speed);
    const [angle,height,radius]=positions[i];
-   const x=Math.sin(angle)*radius,z=-Math.cos(angle)*radius;
+   const span=chapters[i].end-start;
+   const u=smooth(local/span);
+   const travel=(i===0?0:.2+.12*(i%3))*Math.sin(u*Math.PI*.75);
+   const azimuth=angle+travel*(i%2===0?1:-1);
+   const x=Math.sin(azimuth)*radius,z=-Math.cos(azimuth)*radius;
    const movement=.13+.13*motion;
    // Smooth musical phrasing: translation in tangent / vertical directions.
    // Crucially NO bass-driven forward-back Z jumps and no frame FFT input.
    const sway=movement*Math.sin(slow*.42+i*.7);
-   group.position.set(x+Math.cos(angle)*sway,
+   group.position.set(x+Math.cos(azimuth)*sway,
     height+.12*Math.sin(slow*.54+i*.41)+.06*note,
-    z+Math.sin(angle)*sway);
+    z+Math.sin(azimuth)*sway);
    group.rotation.set(kind==='tunnel'?0:.11*Math.sin(slow*.26+i),
     kind==='tunnel'?.025*Math.sin(slow*.32):time*(.045+.025*speed)+i*.29,
     kind==='tunnel'?0:.06*Math.sin(slow*.39+i));
