@@ -98,54 +98,86 @@ export function createForeground(root){
   ctx.fillText(String(actIndex+1).padStart(2,'0')+' / 14',22,173);
   tex.needsUpdate=true;
  }
- function update(t,audio,controls={}){
-  const dt=Number.isFinite(t)?Math.max(0,Math.min(401.999,t)):0;
-  let index=scenes.findIndex(v=>dt<v.end);
+ // Artist-authored deterministic animation. No analyser, FFT or instantaneous
+ // sound amplitude ever drives the transform. Playback time is the ONLY clock.
+ // Section boundaries are provisional artistic cues pending final track annotation.
+ const fades=3.8;
+ const impulseTimes=[
+  4.5,11,18,24,31,40,48,54,64,72,82,94,102,110,
+  119,128,137,146,156,166,177,186,194,206,216,222,
+  234,243,253,262,274,284,296,306,314,326,336,
+  346,359,368,379,389,399
+ ];
+ const gentleAccent=t=>{
+  // Slow smooth raised-cosine envelopes, not raw transients.
+  let v=0;
+  for(const beat of impulseTimes){
+   const delta=Math.abs(t-beat);
+   if(delta<1.8)v=Math.max(v,(1+Math.cos(delta*Math.PI/1.8))*.5);
+  }
+  return v;
+ };
+ function update(t,_unused,controls={}){
+  const time=Math.max(0,Math.min(401.999,Number.isFinite(t)?t:0));
+  let index=scenes.findIndex(v=>time<v.end);
   if(index<0)index=scenes.length-1;
   const current=scenes[index],start=index?scenes[index-1].end:0;
-  const progress=(dt-start)/(current.end-start);
-  const visible=smooth(progress/.095)*(1-smooth((progress-.91)/.09));
-  const bass=audio.bass||0,mid=audio.mid||0,high=audio.high||0,attack=audio.attack||0;
-  const intensity=controls.intensity??1,variation=controls.variation??.55;
-  const scale=controls.scale??1,motion=controls.motion??1,speed=controls.speed??1;
-  active=current.title;
+  const intensity=controls.intensity??1,scale=controls.scale??1;
+  const variation=controls.variation??.55,motion=controls.motion??.8,speed=controls.speed??.6;
+  const vScale=.65+.45*variation;
+  const clock=time*(.4+.45*speed);
+  const phase=time-start,dur=current.end-start;
+  const accent=gentleAccent(time);
+  const drift=Math.sin(clock*.33+current.variant*.9);
+  const slowPulse=.5+.5*Math.cos(clock*.9+current.variant*.21);
+  const fadeIn=smooth(phase/fades),fadeOut=1-smooth((phase-(dur-fades))/fades);
+  const currentWeight=fadeIn*fadeOut;
+  const prev=scenes[index-1],next=scenes[index+1];
+  // Adjacent scenes overlap for 3.8 seconds: no hard scene switch.
+  const inWeight=prev?(1-fadeIn):0,outWeight=next?(1-fadeOut):0;
+  const contributions=[{scene:current,w:currentWeight}];
+  if(prev)contributions.push({scene:prev,w:inWeight});
+  if(next)contributions.push({scene:next,w:outWeight});
+  const typeWeight=type=>contributions.filter(v=>v.scene.type===type).reduce((a,v)=>a+v.w,0);
+  const winner=contributions.reduce((a,b)=>b.w>a.w?b:a);
+  const currentVariant=winner.scene.variant;
+  const portalsWeight=typeWeight('PORTAL'),cloudWeight=typeWeight('CLOUD'),heroWeight=typeWeight('HERO');
+  active=winner.scene.title;
   if(index!==previous){previous=index;drawTitle(current.title,index)}
-  const hero=current.type==='HERO',portal=current.type==='PORTAL',dense=current.type==='CLOUD';
-  label.material.opacity=Math.min(.62,visible*.38);
-  label.position.x=(current.variant%2?-.9:-1.32);
-  label.position.z=-2.4-.1*current.variant;
+  label.material.opacity=.34*currentWeight;
+  label.position.x=-1.25+.09*Math.sin(clock*.13);
+  label.position.z=-2.55;
   rings.forEach(({mesh,sector,k,i})=>{
-   mesh.visible=portal;
-   if(!portal)return;
-   sector.rotation.y=-k*TAU/3+current.variant*.22+
-    .10*Math.sin(t*.11*speed+current.variant);
-   mesh.position.z=-2.3-i*(.47+.045*current.variant);
-   mesh.scale.setScalar(scale*(1+.09*bass+.13*attack+.04*Math.sin(t*.65+i*.9)));
-   mesh.material.opacity=visible*intensity*(.23+.45*attack+.26*bass)*(k===0?1:.7);
+   mesh.visible=portalsWeight>.001;
+   if(!mesh.visible)return;
+   sector.rotation.y=-k*TAU/3+currentVariant*.17+
+     Math.sin(clock*.13+k*.09)*.08;
+   mesh.position.z=-2.35-i*(.47+.025*currentVariant);
+   mesh.scale.setScalar(scale*(.97+.07*slowPulse+.045*accent*vScale));
+   mesh.material.opacity=portalsWeight*intensity*(.23+.13*slowPulse+.12*accent)*(k===0?1:.72);
+   mesh.rotation.z=.055*Math.sin(clock*.18+i*.3);
   });
-  center.visible=dense;
-  if(dense){
-   cloudMat.opacity=visible*intensity*(.35+.33*attack+.28*bass);
-   center.rotation.set(.18*Math.sin(t*.17),t*(.12+.1*speed)*(current.variant%2?1:-1),0);
-   center.position.set(Math.sin(current.variant*1.37)*.48,1.6+(current.variant%2)*.25,
-     -2.85-current.variant*.32+.2*bass);
-   const expansion=scale*(.9+.28*bass+.19*attack+.12*Math.sin(t*.34));
-   cloud.scale.set(expansion,expansion*(current.variant%2?1.4:.9),expansion);
-   // Finite analytic warp, using transform rather than per-point CPU loops.
+  center.visible=cloudWeight>.001;
+  if(center.visible){
+   cloudMat.opacity=cloudWeight*intensity*(.32+.18*slowPulse+.13*accent);
+   center.rotation.set(.13*Math.sin(clock*.19),time*.095*(currentVariant%2?-1:1),.065*Math.sin(clock*.27));
+   center.position.set(.32*Math.sin(clock*.2+currentVariant),1.6+.17*Math.cos(clock*.2),-3.15);
+   const expansion=scale*(.9+.14*Math.sin(clock*.42)+.08*accent*vScale);
+   cloud.scale.set(expansion,expansion*(currentVariant%2?1.22:.94),expansion);
   }
-  body.visible=hero;
-  if(hero){
-   body.position.set(Math.sin(current.variant*.83)*.44,1.6,-3.05-current.variant*.2+.3*attack);
-   body.rotation.set(t*.08*speed,t*.11*speed+current.variant*.47,.09*Math.sin(t*.2));
-   const expansion=scale*(.86+.13*bass+.09*attack);
-   body.scale.set(expansion,expansion*(current.variant%2?1.22:.94),expansion);
-   poly.material.opacity=visible*intensity*(.25+.16*high+.13*bass);
-   veil.material.opacity=visible*(.28+.45*attack+.1*high);
-   veil.rotation.y=-t*.09*speed;
+  body.visible=heroWeight>.001;
+  if(body.visible){
+   body.position.set(.29*Math.sin(clock*.18+currentVariant),1.6+.08*Math.sin(clock*.28),-3.15);
+   body.rotation.set(time*.055*speed,time*.086*speed+currentVariant*.3,.085*Math.sin(clock*.15));
+   const expansion=scale*(.94+.07*Math.sin(clock*.35)+.055*accent);
+   body.scale.set(expansion,expansion*(currentVariant%2?1.16:.96),expansion);
+   poly.material.opacity=heroWeight*intensity*(.36+.10*slowPulse);
+   veil.material.opacity=heroWeight*(.30+.16*slowPulse+.06*accent);
+   veil.rotation.y=-time*.064*speed;
    blobs.forEach((blob,j)=>{
-    blob.material.opacity=visible*.52*(j===0?1:.85);
-    blob.position.y=(j===0?-.71:-1.25)+.11*Math.sin(t*(.25+.14*motion)+j);
-    blob.scale.x=1.05+.28*variation+.16*bass;
+    blob.material.opacity=heroWeight*.43*(j===0?1:.84);
+    blob.position.y=(j===0?-.71:-1.25)+.12*Math.sin(clock*(.25+.13*motion)+j);
+    blob.scale.x=1.03+.22*variation+.045*Math.cos(clock*.41+j);
    });
   }
  }
