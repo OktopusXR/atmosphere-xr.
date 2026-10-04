@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ATMOSPHERE — TECHNO POESIS | XR Blocks prototype</title>
+<script type="importmap">
+{"imports":{
+"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/",
+"xrblocks":"https://cdn.jsdelivr.net/gh/google/xrblocks@build/xrblocks.js",
+"xrblocks/addons/":"https://cdn.jsdelivr.net/gh/google/xrblocks@build/addons/"
+}}
+</script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#000;color:#f1f1f1;font-family:Arial,Helvetica,sans-serif}
+#intro{z-index:100;position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000e;text-align:center;padding:25px}
+.kicker{font-size:11px;letter-spacing:.36em;color:#bbb}.title{font-size:clamp(37px,8vw,94px);letter-spacing:.16em;font-weight:200;margin:18px 0 28px}
+#en{font-size:clamp(18px,3vw,27px);line-height:1.4;max-width:800px;min-height:40px}
+#es{color:#bbb;margin-top:10px;font-size:clamp(12px,2vw,18px);min-height:24px}
+#credit{font-size:12px;color:#bbb;margin:28px 0 18px;line-height:1.9}a{color:#ddd}
+button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;letter-spacing:.12em;cursor:pointer;margin:7px}
+#status{position:fixed;left:14px;bottom:16px;z-index:80;color:#bcbcbc;font-size:11px;letter-spacing:.08em;pointer-events:none}
+#modebar{position:fixed;right:12px;top:12px;z-index:85;display:flex;gap:5px}
+#modebar button{font-size:10px;padding:8px 10px}
+#voice{width:min(500px,85vw);height:40px;margin-top:14px;display:none}
+#development{display:none;position:fixed;left:10px;top:10px;z-index:80;font:11px monospace;color:#aaa;white-space:pre-line}
+</style>
+</head><body>
+<div id="intro">
+ <div class="kicker">TECHNO POESIS</div><div class="title">ATMOSPHERE</div>
+ <div id="en"></div><div id="es"></div><canvas width="640" height="64" id="voice"></canvas>
+ <div id="credit">Ricardo P. Tapia Fernández · Oktopus Art Studio<br>Art, nature and technology · <a href="https://www.instagram.com/oktopus.art/" target="_blank" rel="noopener">@oktopus.art ↗</a></div>
+ <div><button id="start">START</button><button id="skip" hidden>SKIP INTRO</button><button id="enter" hidden>ENTER EXPERIENCE</button></div>
+</div>
+<div id="modebar"><button id="vr">VR</button><button id="mr">MIXED REALITY</button></div>
+<div id="status">XR Blocks · desktop preview / XR entry through native XR control</div>
+<div id="development"></div>
+<script type="module" src="./main.js"></script>
+</body></html>
