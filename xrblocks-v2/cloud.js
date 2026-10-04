@@ -26,9 +26,9 @@ void main(){
  float mask=smoothstep(.22,.68-uDensity*.1,fog)*step(uDensity*.45,aSeed);
  vec4 view=modelViewMatrix*vec4(p,1.);
  gl_Position=projectionMatrix*view;
- gl_PointSize=min(3.0,max(1.75,aSize*(.9+uHigh*.18)*uScale*13.0/max(1.,-view.z)));
+ gl_PointSize=min(3.0,max(1.85,aSize*(.95+uHigh*.15)*uScale*13.0/max(1.,-view.z)));
  float gaze=dot(normalize(-p.xz),normalize(vec2(sin(uFocus),-cos(uFocus))));
- vSeed=mask;vLight=(.43+.52*abs(n)+.12*uHigh)*(.87+.13*gaze);
+ vSeed=mask;vLight=(.67+.37*abs(n)+.1*uHigh)*(.95+.05*gaze);
 }`;
 const frag=`
 uniform float uAlpha;varying float vLight;varying float vSeed;
@@ -99,7 +99,7 @@ export function makeClouds(root){
     u.uSpeed.value=params.speed;
     u.uMotion.value=params.motion;
     // A residual cloud is always visible, including pauses and ending.
-    u.uAlpha.value=Math.max(i===0?.36:.13,weights[i]*params.intensity*.76*(.9+.1*breath));
+    u.uAlpha.value=Math.max(i===0?.47:.19,weights[i]*params.intensity*.85*(.91+.09*breath));
     u.uDensity.value=Math.max(0,1-params.density);
     u.uFocus.value=t*.013+i*1.57;
     points.rotation.y=t*(.0012+.001*params.speed)*(i%2?-1:1);
