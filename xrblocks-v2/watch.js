@@ -166,6 +166,17 @@ export function createWatch(scene,controls,onMode){
   }else watch.visible=false;
   const handPresent=updateHandVisual(frame,space,right);
   updateLaser(frame,space,right,handPresent);
+  // Right controller: targetRaySpace + live trigger works regardless of
+  // controller array ordering and supports sliding while held.
+  if(watch.visible&&right?.targetRaySpace&&right.gamepad?.buttons?.[0]?.pressed){
+   const pose=frame.getPose(right.targetRaySpace,space);
+   if(pose){
+    const p=pose.transform.position,o=pose.transform.orientation;
+    const dir=new THREE.Vector3(0,0,-1).applyQuaternion(
+     new THREE.Quaternion(o.x,o.y,o.z,o.w));
+    hitRay(new THREE.Vector3(p.x,p.y,p.z),dir);
+   }
+  }
   if(!watch.visible||!right?.hand){lastPinch=false;return}
   const thumb=frame.getJointPose(right.hand.get('thumb-tip'),space);
   const index=frame.getJointPose(right.hand.get('index-finger-tip'),space);
