@@ -55,8 +55,9 @@ async function startMusic(){
   audioSource=audioContext.createMediaElementSource(music);
   audioSource.connect(analyser);analyser.connect(audioContext.destination);
  }
- await audioContext.resume();
- await music.play();
+ // Preserve the same direct input gesture for both audio-context unlock and play.
+ const unlock=audioContext.resume(),playback=music.play();
+ await Promise.all([unlock,playback]);
  started=true;$('intro').style.display='none';paintIntro();
  $('status').textContent='ATMOSPHERE — score follows music.currentTime';
 }
