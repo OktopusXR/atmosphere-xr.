@@ -9,7 +9,7 @@ import * as xb from 'xrblocks';
 const $ = id => document.getElementById(id);
 const music = new Audio('../atmosphereADM_binaural.mp3');
 music.preload='auto';
-const narration = new Audio('../atmosphere-intro.ogg');
+const narration = new Audio('../atmosphere-intro-female.mp3');
 narration.preload='auto';
 const phrases=[
  ['Invisible networks connect all forms of life.','Redes invisibles conectan todas las formas de vida.'],
@@ -43,12 +43,12 @@ function beginIntro(){
  if(introStarted)return;
  introStarted=true;$('start').hidden=true;$('skip').hidden=false;$('voice').style.display='block';
  caption(0);
- const duration=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
- for(const [i,at] of [[1,.32],[2,.66]])timers.push(setTimeout(()=>{if(!introFinished)caption(i)},duration*at*1000));
+ const duration=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:11.598367;
+ for(const [i,ms] of [[1,3650],[2,9000]])timers.push(setTimeout(()=>{if(!introFinished)caption(i)},ms));
  timers.push(setTimeout(finishIntro,Math.max(10,duration+1.1)*1000));
  narration.onended=finishIntro;
  narration.play().catch(()=>{
-   $('status').textContent='Voice playback unavailable; using speech synthesis';
+   $('status').textContent='Female narrator file not yet available; subtitles remain visible';
    /* Require recorded female voice; subtitles remain if the file fails. */
  });
 }
