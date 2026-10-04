@@ -16,7 +16,7 @@ canvas{display:block}button{color:#e6f3ff;background:#14243fbc;border:1px solid 
 #controls{display:none;position:fixed;z-index:11;left:12px;bottom:66px;width:min(286px,calc(100% - 24px));padding:15px;background:#061024d9;border:1px solid #3c5874;border-radius:10px;backdrop-filter:blur(10px)}
 #controls label{display:block;margin-top:14px;font-size:11px;color:#aac4dd}#controls input{width:100%;accent-color:#7aaddd}
 #controls p{font-size:11px;color:#97aec8;line-height:1.5}#controls .links{margin-top:12px;font-size:11px;display:flex;gap:14px}
-#xrButton{position:fixed;bottom:14px;right:14px;z-index:13}#skip{background:transparent;font-size:10px;border:0}
+#xrButton{position:fixed;bottom:14px;right:14px;z-index:45;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:90vw}#skip{background:transparent;font-size:10px;border:0}
 </style></head><body>
 <div id="intro">
  <div id="kicker">TECHNO POESIS</div><div id="title">ATMOSPHERE</div>
@@ -56,7 +56,7 @@ function finishIntro(){
  if(introDone)return;
  introDone=true;voiceLive=false;narration.pause();voiceCanvas.style.display='none';
  if('speechSynthesis' in window)speechSynthesis.cancel();
- introText.textContent='';introSub.textContent='';
+ introText.textContent='';introSub.textContent='';if(renderer.xr.isPresenting)paintXRIntro();
  $('introAuthor').style.display='block';$('startIntro').style.display='none';
  $('skip').style.display='none';$('enter').style.display='block';
 }
@@ -71,7 +71,7 @@ $('startIntro').onclick=()=>{
  if(introStarted)return;
  introStarted=true;voiceLive=true;
  $('startIntro').style.display='none';$('skip').style.display='block';
- voiceCanvas.style.display='block';caption(0);
+ voiceCanvas.style.display='block';caption(0);if(renderer.xr.isPresenting)paintXRIntro();
  // HTML media, rather than browser speech synthesis, works in Quest Browser.
  const attempt=narration.play();
  attempt.catch(()=>{playSpeechFallback()});
@@ -172,29 +172,33 @@ function analyze(dt){
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x010101);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
 camera.position.set(0,1.6,0);scene.add(camera);
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);
 renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
 const root=new THREE.Group();scene.add(root);
 // Bakkslide-inspired grayscale wireframe deformation, not a separate random particle effect.
-const FIELD_GRID=24,fieldGeo=new THREE.PlaneGeometry(4.6,3.6,FIELD_GRID,FIELD_GRID);
+const FIELD_GRID=42,fieldGeo=new THREE.SphereGeometry(3.2,FIELD_GRID,28);
 const fieldBase=Float32Array.from(fieldGeo.attributes.position.array);
 const fieldMat=new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.15,depthWrite:false,side:THREE.DoubleSide});
 const wireField=new THREE.Mesh(fieldGeo,fieldMat);
-wireField.position.set(0,1.6,-3.9);wireField.rotation.set(-.15,.3,.12);
+wireField.position.set(0,1.6,0);wireField.rotation.set(0,0,0);
 root.add(wireField);
 let tactileEnergy=0,tactileSpread=0,tactileX=0,tactileY=0;
 function deformWireField(t,pressure,texture){
  const a=fieldGeo.attributes.position.array;
- const tension=.08+.65*pressure+.28*texture+.6*tactileEnergy;
+ const tension=.11+.6*pressure+.44*texture+.65*tactileEnergy;
+ // True immersive 3D wire membrane, not a plane facing the viewer.
  for(let i=0;i<a.length;i+=3){
-  const x=fieldBase[i],y=fieldBase[i+1],radius=Math.hypot(x,y);
-  a[i]=x+.12*Math.sin(y*2+t*.13)*texture;
-  a[i+1]=y+tactileY*.12*Math.exp(-radius);
-  a[i+2]=Math.sin(radius*4.5-t*.54)*tension*.42*Math.exp(-radius*.35)+tactileX*.25;
+  const bx=fieldBase[i],by=fieldBase[i+1],bz=fieldBase[i+2];
+  const norm=Math.hypot(bx,by,bz)||1;
+  const phi=Math.atan2(bz,bx),elevation=Math.asin(by/norm);
+  const harmonic=Math.sin(phi*7+t*.28)*Math.cos(elevation*5-t*.18);
+  const localGesture=Math.exp(-Math.pow(phi-tactileX*2,2)*.65);
+  const radius=norm+harmonic*tension*.52+localGesture*tactileEnergy*.35;
+  a[i]=bx/norm*radius;a[i+1]=by/norm*radius;a[i+2]=bz/norm*radius;
  }
  fieldGeo.attributes.position.needsUpdate=true;
- fieldMat.opacity=Math.min(.42,.07+.29*texture+.19*tactileEnergy);
+ fieldMat.opacity=Math.min(.45,.09+.25*texture+.17*tactileEnergy);
 }
 const GOLD=Math.PI*(3-Math.sqrt(5));
 const P=680,particleArray=new Float32Array(P*3),particleDirections=[];
@@ -289,10 +293,47 @@ $('enter').onclick=async()=>{
   const pending=initSound();
   const play=music.play();
   await Promise.all([pending,play]);
-  entered=true;narration.pause();$('intro').style.display='none';openControlPanel();
+  entered=true;narration.pause();$('intro').style.display='none';xrIntro.visible=false;hud.visible=renderer.xr.isPresenting;openControlPanel();if(renderer.xr.isPresenting)button.style.display='none';
   status.textContent='Sonic ecology · live FFT';
  }catch(err){introSub.textContent='Unable to start sound: '+err.message}
 };
+// World-space intro: available immediately after entering VR or AR, before the music.
+const xrIntroCanvas=document.createElement('canvas');xrIntroCanvas.width=1024;xrIntroCanvas.height=640;
+const xi=xrIntroCanvas.getContext('2d'),xrIntroTex=new THREE.CanvasTexture(xrIntroCanvas);
+const xrIntro=new THREE.Mesh(new THREE.PlaneGeometry(1.65,1.03),new THREE.MeshBasicMaterial({map:xrIntroTex,transparent:true,depthTest:false,depthWrite:false}));
+xrIntro.renderOrder=150;xrIntro.visible=false;scene.add(xrIntro);
+let xrMode='vr',xrHandLatch={left:false,right:false};
+function paintXRIntro(){
+ xi.clearRect(0,0,1024,640);
+ xi.fillStyle=xrMode==='ar'?'rgba(0,0,0,.64)':'rgba(0,0,0,.82)';
+ xi.fillRect(0,0,1024,640);
+ xi.strokeStyle='#9c9c9c';xi.lineWidth=2;xi.strokeRect(4,4,1016,632);
+ xi.fillStyle='#f2f2f2';xi.textAlign='center';
+ xi.font='28px Arial';xi.fillText('TECHNO POESIS',512,110);
+ xi.font='64px Arial';xi.fillText('ATMOSPHERE',512,215);
+ xi.font='30px Arial';
+ xi.fillText(introDone?'ENTER EXPERIENCE':introStarted?'LISTENING...':'START NARRATION',512,360);
+ xi.fillStyle='#c5c5c5';xi.font='22px Arial';
+ xi.fillText(introDone?'Right trigger / pinch to enter':introStarted?'Right trigger / pinch to skip':'Right trigger / pinch to start',512,420);
+ xi.font='18px Arial';xi.fillText(xrMode==='ar'?'MIXED REALITY':'IMMERSIVE VR',512,552);
+ xrIntroTex.needsUpdate=true;
+}
+function triggerXRIntro(){
+ if(entered)return;
+ // Direct invocation from WebXR input-select event; user gesture is required for audio.
+ if(!introStarted)$('startIntro').click();
+ else if(!introDone)$('skip').click();
+ else $('enter').click();
+ paintXRIntro();
+}
+function updateXRIntroPose(){
+ const cam=renderer.xr.getCamera(),position=new THREE.Vector3(),quaternion=new THREE.Quaternion();
+ cam.getWorldPosition(position);cam.getWorldQuaternion(quaternion);
+ xrIntro.position.copy(position).add(new THREE.Vector3(0,0,-1.9).applyQuaternion(quaternion));
+ xrIntro.quaternion.copy(quaternion);
+ xrIntro.visible=!entered;
+}
+
 // VR HUD follows viewpoint, offset to the left, always visible and never front-center.
 const panelCanvas=document.createElement('canvas');panelCanvas.width=640;panelCanvas.height=384;
 const panelCtx=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);
@@ -315,8 +356,9 @@ paintPanel();
 const ctrl0=renderer.xr.getController(0),ctrl1=renderer.xr.getController(1);scene.add(ctrl0,ctrl1);
 for(const ctrl of [ctrl0,ctrl1]){
  ctrl.addEventListener('selectstart',(event)=>{
-  if(!renderer.xr.isPresenting||event.data?.handedness!=='left')return;
-  selected=(selected+1)%3;paintPanel();
+  if(!renderer.xr.isPresenting)return;
+  if(!entered){triggerXRIntro();return}
+  if(event.data?.handedness==='left'){selected=(selected+1)%3;paintPanel()}
  });
 }
 // Native WebXR hand tracking: actual tracked joint positions, simple monochrome skeleton.
@@ -373,7 +415,7 @@ function updateHands(frame,dt){
   if(pinch){
    tactileEnergy=Math.min(1.2,tactileEnergy+dt*2);
    tactileX+=(tip.x-tactileX)*.16;tactileY+=(tip.y-1.5-tactileY)*.16;
-   if(!hand.pinching&&src.handedness==='left'){selected=(selected+1)%3;paintPanel()}
+   if(!hand.pinching){if(!entered&&src.handedness==='right')triggerXRIntro();else if(entered&&src.handedness==='left'){selected=(selected+1)%3;paintPanel()}}
   }
   hand.pinching=pinch;
   if(src.handedness==='right'&&hand.points[24].visible){
@@ -401,23 +443,47 @@ function readQuest(dt){
  const xrCam=renderer.xr.getCamera(),pos=new THREE.Vector3(),quat=new THREE.Quaternion();
  xrCam.getWorldPosition(pos);xrCam.getWorldQuaternion(quat);
  hud.position.copy(pos).add(new THREE.Vector3(-.84,-.22,-1.2).applyQuaternion(quat));
- hud.quaternion.copy(quat);hud.visible=true;
+ hud.quaternion.copy(quat);hud.visible=entered;
+ if(!entered)updateXRIntroPose();
 }
 async function setupVR(){
  if(!navigator.xr||!window.isSecureContext)return;
- try{
-  if(!await navigator.xr.isSessionSupported('immersive-vr'))return;
-  const b=document.createElement('button');b.textContent='ENTER VR';$('xrButton').appendChild(b);
-  b.onclick=async()=>{
+ async function offerMode(mode,label){
+  let supported=false;
+  try{supported=await navigator.xr.isSessionSupported(mode)}catch(err){}
+  if(!supported)return;
+  const button=document.createElement('button');button.textContent=label;$('xrButton').appendChild(button);
+  button.onclick=async()=>{
    if(renderer.xr.isPresenting){await renderer.xr.getSession().end();return}
    try{
-    const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','hand-tracking']});
-    await renderer.xr.setSession(session);b.textContent='EXIT VR';
-   }catch(err){status.textContent=err.message}
+    xrMode=mode==='immersive-ar'?'ar':'vr';
+    // AR requires alpha compositing; never paint an opaque black background.
+    scene.background=xrMode==='ar'?null:new THREE.Color(0x010101);
+    renderer.setClearColor(0x000000,xrMode==='ar'?0:1);
+    const options={optionalFeatures:['local-floor','hand-tracking']};
+    const session=await navigator.xr.requestSession(mode,options);
+    await renderer.xr.setSession(session);
+    paintXRIntro();xrIntro.visible=!entered;hud.visible=entered;
+    button.textContent=xrMode==='ar'?'EXIT AR':'EXIT VR';
+   }catch(err){
+    scene.background=new THREE.Color(0x010101);
+    renderer.setClearColor(0x000000,1);
+    status.textContent='XR entry failed: '+err.message;
+   }
   };
-  renderer.xr.addEventListener('sessionstart',()=>{hud.visible=true;$('controls').style.display='none';button.style.display='none'});
-  renderer.xr.addEventListener('sessionend',()=>{hud.visible=false;b.textContent='ENTER VR';if(entered)openControlPanel()});
- }catch(e){/* Standard 3D desktop view remains available. */}
+  renderer.xr.addEventListener('sessionend',()=>{button.textContent=label});
+ }
+ await offerMode('immersive-vr','ENTER VR');
+ await offerMode('immersive-ar','ENTER AR / MR');
+ renderer.xr.addEventListener('sessionstart',()=>{
+  $('controls').style.display='none';button.style.display='none';
+  hud.visible=entered;xrIntro.visible=!entered;paintXRIntro();
+ });
+ renderer.xr.addEventListener('sessionend',()=>{
+  hud.visible=false;xrIntro.visible=false;
+  scene.background=new THREE.Color(0x010101);renderer.setClearColor(0x000000,1);
+  if(entered)openControlPanel();
+ });
 }
 setupVR();
 let voiceClock=0;
@@ -433,7 +499,8 @@ renderer.setAnimationLoop((timestamp,frame)=>{
    vc.fillStyle='rgba(143,194,238,.6)';vc.fillRect(x-2,44-h,4,h*2);
   }
  }
- if(entered){analyze(dt);animationT+=dt;updateHands(frame,dt);evolve(dt);readQuest(dt)}
+ if(renderer.xr.isPresenting){updateHands(frame,dt);readQuest(dt)}
+ if(entered){analyze(dt);animationT+=dt;evolve(dt)}
  renderer.render(scene,camera);
 });
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
