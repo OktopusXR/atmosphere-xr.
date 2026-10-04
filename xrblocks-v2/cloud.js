@@ -26,7 +26,7 @@ void main(){
  float mask=smoothstep(.22,.68-uDensity*.1,fog)*step(uDensity*.45,aSeed);
  vec4 view=modelViewMatrix*vec4(p,1.);
  gl_Position=projectionMatrix*view;
- gl_PointSize=min(2.0,max(.85,aSize*(.65+uHigh*.12)*uScale*5.0/max(1.,-view.z)));
+ gl_PointSize=min(3.0,max(1.75,aSize*(.9+uHigh*.18)*uScale*13.0/max(1.,-view.z)));
  float gaze=dot(normalize(-p.xz),normalize(vec2(sin(uFocus),-cos(uFocus))));
  vSeed=mask;vLight=(.13+.32*abs(n)+.28*uImpact+.16*uHigh)*(.73+.27*gaze);
 }`;
@@ -36,16 +36,16 @@ void main(){
  vec2 p=gl_PointCoord-.5;float d=length(p);
  float disk=1.-smoothstep(.1,.49,d);
  float core=exp(-d*d*32.);
- if(d>.43)discard;
- float brightness=core*vLight*uAlpha*vSeed;
+ if(d>.48)discard;
+ float brightness=(.46+core*.54)*vLight*uAlpha*vSeed;
  gl_FragColor=vec4(vec3(1.),brightness);
 }`;
 export function makeClouds(root){
  const presets=[
-  {count:1800,radius:4.7,spread:2.8,sector:0},
-  {count:1600,radius:3.6,spread:2.0,sector:1},
-  {count:1200,radius:6.3,spread:3.0,sector:2},
-  {count:950,radius:5.5,spread:3.2,sector:3}
+  {count:2700,radius:3.5,spread:1.6,sector:0},
+  {count:2550,radius:3.1,spread:1.5,sector:1},
+  {count:1900,radius:4.8,spread:1.8,sector:2},
+  {count:1550,radius:4.2,spread:1.8,sector:3}
  ];
  const clouds=presets.map((preset,k)=>{
   const n=preset.count,p=new Float32Array(n*3),seeds=new Float32Array(n),sizes=new Float32Array(n);
@@ -99,7 +99,7 @@ export function makeClouds(root){
     u.uSpeed.value=params.speed;
     u.uMotion.value=params.motion;
     // A residual cloud is always visible, including pauses and ending.
-    u.uAlpha.value=Math.max(i===0?.085:.018,weights[i]*params.intensity*.38*(.8+.2*breath));
+    u.uAlpha.value=Math.max(i===0?.22:.075,weights[i]*params.intensity*.62*(.9+.1*breath));
     u.uDensity.value=Math.max(0,1-params.density);
     u.uFocus.value=t*.013+i*1.57;
     points.rotation.y=t*(.0012+.001*params.speed)*(i%2?-1:1);
