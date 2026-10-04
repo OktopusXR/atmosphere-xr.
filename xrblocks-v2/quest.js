@@ -108,7 +108,7 @@ async function startMusic(){
  entered=true;completed=false;$('intro').style.display='none';introBoard.visible=false;
  $('status').textContent='ATMOSPHERE · MUSIC MASTER CLOCK';
 }
-$('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='AUDIO: '+e.message);
+// ENTER EXPERIENCE enters immersive VR and starts the sound together.
 music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;entered=false;introBoard.visible=false};
 function spectrum(f1,f2){
  const hi=Math.min(fft.length,Math.ceil(f2/(context.sampleRate/2)*fft.length));
@@ -255,27 +255,68 @@ function handInput(frame){
   pinched=touching;
  }
 }
-async function enterXR(mode){
- if(!navigator.xr){$('status').textContent='WebXR unavailable in this browser';return}
- if(renderer.xr.isPresenting){await renderer.xr.getSession().end();return}
+
+async function enterXR(mode='VR'){
+ if(!navigator.xr){$('status').textContent='WebXR unavailable';return false}
+ if(renderer.xr.isPresenting) return true;
  try{
-  const vr=mode==='VR';selectedMode=mode;drawIntro();
+  selectedMode=mode;drawIntro();
+  const vr=mode==='VR';
   scene.background=vr?new THREE.Color(0):null;renderer.setClearColor(0,vr?1:0);
-  const xrMode=vr?'immersive-vr':'immersive-ar';
-  const session=await navigator.xr.requestSession(xrMode,{optionalFeatures:['local-floor','hand-tracking']});
+  const session=await navigator.xr.requestSession(vr?'immersive-vr':'immersive-ar',
+    {optionalFeatures:['local-floor','hand-tracking']});
   await renderer.xr.setSession(session);
-  $('status').textContent='XR SESSION ACTIVE · '+mode;
- }catch(e){$('status').textContent='XR SESSION ERROR: '+e.message}
+  $('status').textContent='ATMOSPHERE '+mode+' · PLAYING';
+  return true;
+ }catch(e){
+  $('status').textContent='XR ENTRY FAILED: '+e.message;
+  return false;
+ }
 }
-$('vr').onclick=()=>{if(!renderer.xr.isPresenting){selectedMode='VR';btn.textContent='ENTER VR'}drawIntro()};
-$('mr').onclick=()=>{if(!renderer.xr.isPresenting){selectedMode='MR';btn.textContent='ENTER MR'}drawIntro()};
-const btn=document.createElement('button');btn.textContent='ENTER '+vrMode;
-$('xrButton').appendChild(btn);
-btn.onclick=()=>enterXR(selectedMode);
-renderer.xr.addEventListener('sessionstart',()=>{btn.textContent='EXIT XR'});
-renderer.xr.addEventListener('sessionend',()=>{btn.textContent='ENTER '+selectedMode;
+function enterExperience(){
+ // Both requests begin *inside* the same user activation; audio begins
+ // without relying on another click after the XR session is established.
+ if(!introFinished)finishIntro();
+ const xr=renderer.xr.isPresenting?Promise.resolve(true):enterXR('VR');
+ const audio=startMusic().catch(e=>$('status').textContent='AUDIO: '+e.message);
+ Promise.allSettled([xr,audio]).then(([result])=>{
+  if(result.status==='fulfilled'&&result.value===false)
+   $('status').textContent='VR not supported. Audio started; use Quest Browser WebXR.';
+ });
+}
+$('enter').onclick=enterExperience;
+let pendingMR=false;
+function showModeFallback(){
+ // WebXR sometimes requires a fresh gesture when changing session types.
+ // This 2D button appears only if seamless switching was rejected.
+ const overlay=$('xrButton');
+ overlay.style.display='block';
+ overlay.innerHTML='<button id="retryMR">CONTINUE IN MIXED REALITY</button>';
+ $('retryMR').onclick=()=>{overlay.style.display='none';enterXR('MR')};
+}
+async function switchToMixedReality(){
+ if(pendingMR)return;
+ pendingMR=true;
+ try{
+  if(!renderer.xr.isPresenting){await enterXR('MR');return}
+  await renderer.xr.getSession().end();
+  const ok=await enterXR('MR');
+  if(!ok)showModeFallback();
+ }catch(e){
+  $('status').textContent='MR SWITCH: '+e.message;
+  showModeFallback();
+ }finally{pendingMR=false}
+}
+renderer.xr.addEventListener('sessionstart',()=>{
+ $('xrButton').style.display='none';
+ wristPanel.visible=false;
+});
+renderer.xr.addEventListener('sessionend',()=>{
+ wristPanel.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
 });
+$('modebar').style.display='none';
+$('xrButton').style.display='none';
 const clock=new THREE.Clock(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),offset=new THREE.Vector3(0,0,-1.7);
 renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
@@ -295,5 +336,5 @@ window.addEventListener('resize',()=>{
  renderer.setSize(innerWidth,innerHeight);
 });
 drawIntro();
-$('development').textContent='QUEST ENGINE READY · select VR or MIXED REALITY';
+$('development').textContent='POINT CLOUD ENGINE READY';
 window.atmosAppReady=true;
