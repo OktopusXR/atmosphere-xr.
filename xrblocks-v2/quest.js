@@ -127,7 +127,7 @@ function updateScore(){
 
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
 scene.add(controller1,controller2);
-const watch=createWatch(scene,params,()=>switchToMixedReality());
+const watch=createWatch(scene,params,()=>changeMode());
 let lastAdvance=0;
 function advance(){
  if(entered)return;
@@ -195,27 +195,35 @@ function enterExperience(){
  });
 }
 $('enter').onclick=enterExperience;
-let pendingMR=false;
-function showModeFallback(){
- // WebXR sometimes requires a fresh gesture when changing session types.
- // This 2D button appears only if seamless switching was rejected.
+let changingMode=false,requestedMode=null;
+function offerContinue(mode){
  const overlay=$('xrButton');
  overlay.style.display='block';
- overlay.innerHTML='<button id="retryMR">CONTINUE IN MIXED REALITY</button>';
- $('retryMR').onclick=()=>{overlay.style.display='none';enterXR('MR')};
+ overlay.innerHTML='';
+ const action=document.createElement('button');
+ action.textContent='CONTINUE IN '+(mode==='VR'?'VR':'MIXED REALITY');
+ action.style.cssText='font-size:16px;padding:18px 28px;background:#161616;color:white;border:2px solid #fff';
+ action.onclick=()=>{overlay.style.display='none';enterXR(mode)};
+ overlay.appendChild(action);
+ $('status').textContent='MODE READY · SELECT CONTINUE IN '+mode;
 }
-async function switchToMixedReality(){
- if(pendingMR)return;
- pendingMR=true;
+async function changeMode(){
+ if(changingMode)return;
+ changingMode=true;
+ const destination=selectedMode==='VR'?'MR':'VR';
+ requestedMode=destination;
  try{
-  if(!renderer.xr.isPresenting){await enterXR('MR');return}
-  await renderer.xr.getSession().end();
-  const ok=await enterXR('MR');
-  if(!ok)showModeFallback();
+  if(renderer.xr.isPresenting){
+   // Session changes cannot be guaranteed without another user activation.
+   // Keep the soundtrack and composed timeline running throughout.
+   await renderer.xr.getSession().end();
+  }
+  const ok=await enterXR(destination);
+  if(ok){requestedMode=null;$('xrButton').style.display='none'}
+  else offerContinue(destination);
  }catch(e){
-  $('status').textContent='MR SWITCH: '+e.message;
-  showModeFallback();
- }finally{pendingMR=false}
+  offerContinue(destination);
+ }finally{changingMode=false}
 }
 renderer.xr.addEventListener('sessionstart',()=>{
  $('xrButton').style.display='none';
@@ -224,6 +232,7 @@ renderer.xr.addEventListener('sessionstart',()=>{
 renderer.xr.addEventListener('sessionend',()=>{
  watch.watch.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
+ if(requestedMode){const next=requestedMode;requestedMode=null;offerContinue(next)}
 });
 $('modebar').style.display='none';
 $('xrButton').style.display='none';
