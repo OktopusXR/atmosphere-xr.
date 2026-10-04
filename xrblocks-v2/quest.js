@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import {scoreEnvelope} from './score.js?build=score-v7';
-import {makeClouds} from './cloud.js?build=score-v7';
-import {createWatch} from './watch.js?build=score-v7';
-import {createForeground} from './stage.js?build=score-v7';
+import {makeClouds} from './cloud.js?build=score-v7b';
+import {createWatch} from './watch.js?build=score-v7b';
+import {createForeground} from './stage.js?build=score-v7b';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -115,7 +114,7 @@ music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;en
 function updateScore(){
  const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:soundtrackDuration;
  const t=music.currentTime*soundtrackDuration/duration;
- const env=scoreEnvelope(t);
+ const env=null;
  cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,
   env.bass,env.mid,env.high,env.attack);
  foreground.update(t,env,params);
