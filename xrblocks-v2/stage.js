@@ -186,7 +186,7 @@ function makeChapter(root,kind,index){
     vec3 dir=normalize(vEntry-vEye);
     vec3 p=vEntry+dir*.018;
     bool hit=false;
-    for(int i=0;i<42;i++){
+    for(int i=0;i<32;i++){
      float d=field(p);
      if(d<.018){hit=true;break;}
      p+=dir*clamp(d*.73,.02,.115);
