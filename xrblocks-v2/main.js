@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {scoreEnvelope} from './score.js?build=score-v7';
 import {makeClouds} from './cloud.js?build=score-v6b';
 import {createWatch} from './watch.js?build=score-v6b';
 import {createForeground} from './stage.js?build=score-v6b';
@@ -56,46 +57,12 @@ function beginIntro(){
 $('start').onclick=beginIntro;$('skip').onclick=finishIntro;
 async function startMusic(){
  if(!introFinished)finishIntro();
- if(!audioContext){
-  audioContext=new (window.AudioContext||window.webkitAudioContext)();
-  analyser=audioContext.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.35;
-  freqBins=new Uint8Array(analyser.frequencyBinCount);timeBins=new Float32Array(analyser.fftSize);
-  audioSource=audioContext.createMediaElementSource(music);
-  audioSource.connect(analyser);analyser.connect(audioContext.destination);
- }
- // Preserve the same direct input gesture for both audio-context unlock and play.
- const unlock=audioContext.resume(),playback=music.play();
- await Promise.all([unlock,playback]);
+ await music.play();
  started=true;$('intro').style.display='none';paintIntro();
  $('status').textContent='ATMOSPHERE — score follows music.currentTime';
 }
 $('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='Audio error: '+e.message);
 music.onended=()=>{started=false;$('status').textContent='ATMOSPHERE · END';};
-function spectrumBand(a,b){
- if(!audioContext)return 0;
- const nyq=audioContext.sampleRate/2,n=freqBins.length;
- const from=Math.floor(a/nyq*n),to=Math.max(from+1,Math.ceil(b/nyq*n));
- let value=0;for(let i=from;i<Math.min(to,n);i++)value+=freqBins[i];
- return value/Math.max(1,to-from)/255;
-}
-function soundFrame(dt){
- if(!analyser||music.paused)return;
- analyser.getByteFrequencyData(freqBins);analyser.getFloatTimeDomainData(timeBins);
- let sum=0;for(let i=0;i<timeBins.length;i+=4)sum+=timeBins[i]*timeBins[i];
- const measured=Math.sqrt(sum/(timeBins.length/4));
- rms+=(measured-rms)*.24;
- bass+=(spectrumBand(26,170)-bass)*.24;
- mid+=(spectrumBand(170,2200)-mid)*.25;
- high+=(spectrumBand(2200,12000)-high)*.26;
- // Audio attack detector: sharp jumps in the actual playback amplitude.
- const rise=Math.max(0,measured-prevEnergy);
- prevEnergy=measured;
- transient=Math.max(0,transient-dt*3);
- if(rise>.018&&measured>.028)transient=1;
- pulse+=(bass-pulse)*Math.min(1,dt*26);
- smoothedMid+=(mid-smoothedMid)*Math.min(1,dt*4);
-}
-
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
@@ -151,12 +118,12 @@ class Atmosphere extends xb.Script {
   for(const ctl of xb.core?.input?.controllers||[]){
    if(ctl?.userData?.selected&&ctl?.userData?.handedness!=='left')wrist.controllerSelect(ctl);
   }
-  soundFrame(dt);
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=music.currentTime*402/duration;
+  const env=scoreEnvelope(t);
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
-  cloudEngine.update(t,{...params,intensity:params.intensity*.38},cue,bass,mid,high,transient);
-  foreground.update(t,{bass,mid,high,attack:transient},params);
+  cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,env.bass,env.mid,env.high,env.attack);
+  foreground.update(t,env,params);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectStart(event){
