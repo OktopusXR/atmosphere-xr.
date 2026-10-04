@@ -90,9 +90,9 @@ function startIntro(){
  timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},3650));
  timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},9000));
  narration.onended=finishIntro;
- narration.onerror=speechBackup;
+ narration.onerror=()=>{ $('status').textContent='Missing audio asset: atmosphere-intro-female.mp3 · subtitles only'; };
  const play=narration.play();
- if(play?.catch)play.catch(speechBackup);
+ if(play?.catch)play.catch(()=>{ $('status').textContent='Female narration audio file not published yet · subtitles only'; });
  timers.push(setTimeout(()=>{if(!introFinished)finishIntro()},Math.max(12,dur+3)*1000));
 }
 $('start').onclick=()=>{enterXR('VR');startIntro()};$('skip').onclick=finishIntro;
