@@ -143,7 +143,7 @@ class Atmosphere extends xb.Script {
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=music.currentTime*402/duration;
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
-  cloudEngine.update(t,params,cue,low,mid,high,Math.min(1,onset+flux));
+  cloudEngine.update(t,params,cue,bass,mid,high,transient);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectEnd(){
