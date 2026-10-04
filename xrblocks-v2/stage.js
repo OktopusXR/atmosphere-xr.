@@ -140,7 +140,8 @@ export function createForeground(root){
   if(next)contributions.push({scene:next,w:outWeight});
   const typeWeight=type=>contributions.filter(v=>v.scene.type===type).reduce((a,v)=>a+v.w,0);
   const winner=contributions.reduce((a,b)=>b.w>a.w?b:a);
-  const currentVariant=winner.scene.variant;
+  const weightSum=Math.max(.0001,contributions.reduce((sum,c)=>sum+c.w,0));
+  const currentVariant=contributions.reduce((sum,c)=>sum+c.scene.variant*c.w,0)/weightSum;
   const portalsWeight=typeWeight('PORTAL'),cloudWeight=typeWeight('CLOUD'),heroWeight=typeWeight('HERO');
   active=winner.scene.title;
   if(index!==previous){previous=index;drawTitle(current.title,index)}
@@ -160,17 +161,17 @@ export function createForeground(root){
   center.visible=cloudWeight>.001;
   if(center.visible){
    cloudMat.opacity=cloudWeight*intensity*(.32+.18*slowPulse+.13*accent);
-   center.rotation.set(.13*Math.sin(clock*.19),time*.095*(currentVariant%2?-1:1),.065*Math.sin(clock*.27));
+   center.rotation.set(.13*Math.sin(clock*.19),time*.095,.065*Math.sin(clock*.27));
    center.position.set(.32*Math.sin(clock*.2+currentVariant),1.6+.17*Math.cos(clock*.2),-3.15);
    const expansion=scale*(.9+.14*Math.sin(clock*.42)+.08*accent*vScale);
-   cloud.scale.set(expansion,expansion*(currentVariant%2?1.22:.94),expansion);
+   cloud.scale.set(expansion,expansion*(1.07+.14*Math.sin(currentVariant*1.13)),expansion);
   }
   body.visible=heroWeight>.001;
   if(body.visible){
    body.position.set(.29*Math.sin(clock*.18+currentVariant),1.6+.08*Math.sin(clock*.28),-3.15);
    body.rotation.set(time*.055*speed,time*.086*speed+currentVariant*.3,.085*Math.sin(clock*.15));
    const expansion=scale*(.94+.07*Math.sin(clock*.35)+.055*accent);
-   body.scale.set(expansion,expansion*(currentVariant%2?1.16:.96),expansion);
+   body.scale.set(expansion,expansion*(1.05+.1*Math.sin(currentVariant*1.2)),expansion);
    poly.material.opacity=heroWeight*intensity*(.36+.10*slowPulse);
    veil.material.opacity=heroWeight*(.30+.16*slowPulse+.06*accent);
    veil.rotation.y=-time*.064*speed;
