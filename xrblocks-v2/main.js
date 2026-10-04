@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js?build=pointcloud-v4';
+import {makeClouds} from './cloud.js?build=score-v5';
+import {createForeground} from './stage.js?build=score-v5';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
@@ -100,6 +101,7 @@ function findCue(t){
 }
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
+const foreground=createForeground(root);
 let canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;
 const cx=canvas.getContext('2d'),introTexture=new THREE.CanvasTexture(canvas);
 let introPlane;
@@ -146,7 +148,8 @@ class Atmosphere extends xb.Script {
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=music.currentTime*402/duration;
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
-  cloudEngine.update(t,params,cue,bass,mid,high,transient);
+  cloudEngine.update(t,{...params,intensity:params.intensity*.36},cue,bass,mid,high,transient);
+  foreground.update(t,{bass,mid,high,attack:transient});
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectEnd(){
