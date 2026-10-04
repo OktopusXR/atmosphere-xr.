@@ -51,7 +51,7 @@ for(let i=0;i<fieldCount;i++){
 }
 const fieldGeo=new THREE.BufferGeometry();
 fieldGeo.setAttribute('position',new THREE.BufferAttribute(fieldPositions,3));
-const fieldMat=new THREE.PointsMaterial({color:0xffffff,size:.032,transparent:true,opacity:.19,depthWrite:false});
+const fieldMat=new THREE.PointsMaterial({color:0xffffff,size:.042,transparent:true,opacity:.27,depthWrite:false});
 const constantField=new THREE.Points(fieldGeo,fieldMat);
 constantField.frustumCulled=false;root.add(constantField);
 // 360° open halo bands, with azimuths beyond the viewer's field of view.
@@ -211,9 +211,9 @@ function updateScore(dt){
  const since=Math.max(0,t-event.t),burst=Math.exp(-since*2.4);
  const modulation=Math.min(1,bass*2+attack*.5);
  // Permanent low-level spatial presence. No complete blackouts at cue boundaries.
- fieldMat.opacity=.19+.035*Math.sin(t*.28)+.07*Math.min(1,rms*4);
+ fieldMat.opacity=.26+.04*Math.sin(t*.28)+.08*Math.min(1,rms*4);
  constantField.rotation.y=t*.0016;
- const haloWeight=Math.max(cue===0?.18:cue===6?.18:.075,weight(cue,1,phase));
+ const haloWeight=Math.max(cue===0?.28:cue===6?.28:.125,weight(cue,1,phase));
  const membraneWeight=weight(cue,2,phase);
  const nodeWeight=weight(cue,3,phase);
  const cutWeight=weight(cue,4,phase);
