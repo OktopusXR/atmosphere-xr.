@@ -84,12 +84,11 @@ function startIntro(){
  if(introStarted)return;
  introStarted=true;$('start').hidden=true;$('skip').hidden=false;
  $('voice').style.display='none';setCaption(0);
- // Clean, centered, dry narrator. Never duplicate audio through WebAudio,
- // never amplify the low-bitrate original or auto-trigger TTS by threshold.
+ // Master: natural female recording supplied by the artist, unprocessed and centered.
  narration.volume=1;narration.playbackRate=1;
  const dur=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:11.563537;
- timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},dur*.32*1000));
- timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},dur*.66*1000));
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},3650));
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},9000));
  narration.onended=finishIntro;
  narration.onerror=speechBackup;
  const play=narration.play();
