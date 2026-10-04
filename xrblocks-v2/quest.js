@@ -135,14 +135,16 @@ async function startMusic(){
 }
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
 function showEnd(){
- entered=false;completed=true;introBoard.visible=false;
+ entered=false;completed=true;root.visible=false;introBoard.visible=false;
  endBoard.visible=renderer.xr.isPresenting;
  endOverlay.style.display=renderer.xr.isPresenting?'none':'flex';
  $('status').textContent='THE END';
 }
 async function restartExperience(){
  if(!completed)return;
- completed=false;endBoard.visible=false;endOverlay.style.display='none';
+ completed=false;root.visible=true;endBoard.visible=false;endOverlay.style.display='none';
+ Object.assign(params,{intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1});
+ watch.paint();
  music.pause();music.currentTime=0;lastCue=-1;visualStartedAt=performance.now();
  entered=true;introBoard.visible=false;
  $('status').textContent='ATMOSPHERE · RESTARTED';
