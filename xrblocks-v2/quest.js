@@ -11,7 +11,7 @@ const lines=[
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
 let selectedMode=vrMode,introStarted=false,introFinished=false,entered=false,completed=false,timers=[],captionIndex=0;
-let context,source,analyser,fft,td,bass=0,mid=0,high=0,rms=0,attack=0,previousRms=0,lastCue=-1;
+let context,source,analyser,fft,td,bass=0,mid=0,high=0,rms=0,attack=0,previousRms=0,lastCue=-1,prevRawBass=0,prevRawMid=0;
 const soundtrackDuration=402;
 const cues=[
  {sec:0,name:'SUBTERRANEAN'},
@@ -134,11 +134,15 @@ function analyze(dt){
  analyser.getByteFrequencyData(fft);analyser.getFloatTimeDomainData(td);
  let sum=0;for(let i=0;i<td.length;i+=4)sum+=td[i]*td[i];
  const r=Math.sqrt(sum/(td.length/4));
- rms+=(r-rms)*.25;bass+=(spectrum(25,170)-bass)*.2;
- mid+=(spectrum(170,2000)-mid)*.2;high+=(spectrum(2000,12000)-high)*.2;
- attack=Math.max(0,attack-dt*2.8);
- if(r-previousRms>.018&&r>.028)attack=1;
- previousRms=r;
+ const lowNow=spectrum(25,170),midNow=spectrum(170,2000),highNow=spectrum(2000,12000);
+ rms+=(r-rms)*.25;
+ // Fast rise with restrained decay exposes actual low-end rhythmic articulation.
+ bass+=(lowNow-bass)*(lowNow>bass?.43:.12);
+ mid+=(midNow-mid)*.24;high+=(highNow-high)*.26;
+ const lowRise=lowNow-prevRawBass,midRise=midNow-prevRawMid;
+ attack=Math.max(0,attack-dt*3.7);
+ if((r-previousRms>.008&&r>.019)||(lowRise>.032&&lowNow>.09)||(midRise>.045&&midNow>.1))attack=1;
+ prevRawBass=lowNow;prevRawMid=midNow;previousRms=r;
 }
 
 // Musical score is tied to music.currentTime; cue times still require fine annotation.
