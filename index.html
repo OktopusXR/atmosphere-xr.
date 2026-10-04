@@ -50,7 +50,16 @@ const narrative=[
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
 let introStarted=false,introDone=false,voiceLive=false,narrationFallback=false;
-const INTRO_TIMINGS=[0,4000,8300],INTRO_TOTAL=13300;let introTimers=[];
+let introTimers=[],introDuration=12.6;
+function introSchedule(){
+ clearIntroTimers();
+ // Use real asset duration when available; retain readable subtitle minimum.
+ const duration=Number.isFinite(narration.duration)&&narration.duration>5?narration.duration:12.6;
+ introDuration=Math.max(duration,10.2);
+ const steps=[introDuration*.32,introDuration*.66];
+ steps.forEach((sec,i)=>introTimers.push(setTimeout(()=>{if(!introDone)caption(i+1)},sec*1000)));
+ introTimers.push(setTimeout(finishIntro,(introDuration+1.1)*1000));
+}
 function clearIntroTimers(){introTimers.forEach(clearTimeout);introTimers=[]}
 const introText=$('introEn'),introSub=$('introEs'),voiceCanvas=$('voiceWave'),vc=voiceCanvas.getContext('2d');
 let captionIndex=0;
@@ -78,11 +87,11 @@ $('startIntro').onclick=()=>{
  // HTML media, rather than browser speech synthesis, works in Quest Browser.
  const attempt=narration.play();
  if(attempt?.catch)attempt.catch(()=>{if(!narrationFallback)playSpeechFallback()});
- INTRO_TIMINGS.slice(1).forEach((ms,i)=>introTimers.push(setTimeout(()=>{if(!introDone)caption(i+1)},ms)));
- introTimers.push(setTimeout(finishIntro,INTRO_TOTAL));
+ introSchedule();
 };
 narration.onended=()=>{voiceLive=false};
-narration.onerror=()=>{if(introStarted&&!introDone&&!narrationFallback)playSpeechFallback()};
+narration.onloadedmetadata=()=>{if(introStarted&&!introDone&&!narrationFallback)introSchedule()};
+narration.onerror=()=>{if(introStarted&&!introDone&&!narrationFallback){playSpeechFallback();introSchedule()}};
 $('skip').onclick=finishIntro;
 let voiceTime=0;
 function drawNarration(dt){
@@ -515,7 +524,7 @@ for(const ctrl of [ctrl0,ctrl1]){
  ctrl.addEventListener('selectstart',(event)=>{
   if(!renderer.xr.isPresenting)return;
   if(!entered){triggerXRIntro();return}
-  if(event.data?.handedness==='left'){selected=(selected+1)%3;paintPanel()}
+  if(event.data?.handedness==='left'){selected=(selected+1)%3;questHUDIdle=0;paintPanel()}
  });
 }
 // Native WebXR hand tracking: actual tracked joint positions, simple monochrome skeleton.
@@ -634,6 +643,7 @@ function updateHands(frame,dt){
   const tip=hand.positions[9],thumb=hand.positions[4];
   const pinch=tip.distanceTo(thumb)<.03;
   if(pinch){
+   questHUDIdle=0;
    tactileEnergy=Math.min(1.2,tactileEnergy+dt*2);
    tactileX+=(tip.x-tactileX)*.16;tactileY+=(tip.y-1.5-tactileY)*.16;
    if(!hand.pinching){
@@ -652,14 +662,16 @@ function updateHands(frame,dt){
  }
 }
 
-let inputCooldown=0;
+let inputCooldown=0,questHUDIdle=0;
 function readQuest(dt){
  if(!renderer.xr.isPresenting)return;
  inputCooldown=Math.max(0,inputCooldown-dt);
+ questHUDIdle+=dt;
  const session=renderer.xr.getSession();if(!session)return;
  for(const src of session.inputSources){
   if(!src.gamepad||src.hand)continue;
   const a=src.gamepad.axes,x=a.length>=4?a[2]:a[0]||0,y=a.length>=4?a[3]:a[1]||0;
+  if(Math.abs(x)>.28||Math.abs(y)>.28||src.gamepad.buttons?.[0]?.pressed)questHUDIdle=0;
   if(src.handedness==='right'&&Math.abs(x)>.4&&inputCooldown===0){eq[selected]=THREE.MathUtils.clamp(eq[selected]+Math.sign(x),-12,12);setEQ();inputCooldown=.13}
   if(src.handedness==='left'&&Math.abs(y)>.4){$('sensitivity').value=THREE.MathUtils.clamp(+$('sensitivity').value-y*dt*.5,.3,2.8)}
   if(src.handedness==='right'&&Math.abs(y)>.4){tactileSpread=THREE.MathUtils.clamp(tactileSpread-y*dt*.5,0,1)}
@@ -669,7 +681,7 @@ function readQuest(dt){
  const xrCam=renderer.xr.getCamera(),pos=new THREE.Vector3(),quat=new THREE.Quaternion();
  xrCam.getWorldPosition(pos);xrCam.getWorldQuaternion(quat);
  hud.position.copy(pos).add(new THREE.Vector3(-.84,-.22,-1.2).applyQuaternion(quat));
- hud.quaternion.copy(quat);hud.visible=entered;
+ hud.quaternion.copy(quat);hud.visible=entered&&questHUDIdle<9;
  if(!entered)updateXRIntroPose();
 }
 async function setupVR(){
@@ -703,7 +715,7 @@ async function setupVR(){
  await offerMode('immersive-ar','ENTER AR / MR');
  renderer.xr.addEventListener('sessionstart',()=>{
   $('controls').style.display='none';button.style.display='none';
-  hud.visible=entered;xrIntro.visible=!entered;paintXRIntro();
+  questHUDIdle=0;hud.visible=entered;xrIntro.visible=!entered;paintXRIntro();
  });
  renderer.xr.addEventListener('sessionend',()=>{
   hud.visible=false;xrIntro.visible=false;
