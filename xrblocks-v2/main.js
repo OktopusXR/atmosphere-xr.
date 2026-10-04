@@ -70,7 +70,8 @@ const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
 const wrist=createWatch(root,params,()=>{
  const xr=xb.core?.transition;
- if(mode==='VR'){mode='MR';xr?.toAR?.();}else{mode='VR';xr?.toVR?.({color:0x000000});}
+ if(mode==='VR'){mode='MR';wrist.setMode('MR');xr?.toAR?.();}
+ else{mode='VR';wrist.setMode('VR');xr?.toVR?.({color:0x000000});}
 });
 let canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;
 const cx=canvas.getContext('2d'),introTexture=new THREE.CanvasTexture(canvas);
