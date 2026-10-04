@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js?build=pointcloud-v4';
+import {makeClouds} from './cloud.js?build=score-v5';
+import {createForeground} from './stage.js?build=score-v5';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -34,6 +35,7 @@ $('intro').style.zIndex='100';
 const root=new THREE.Group();scene.add(root);
 
 const cloudEngine=makeClouds(root);
+const foreground=createForeground(root);
 const board=document.createElement('canvas');board.width=1024;board.height=600;
 const ctx=board.getContext('2d'),boardTex=new THREE.CanvasTexture(board);
 const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(1.68,.985),
@@ -70,51 +72,40 @@ function finishIntro(){
  $('en').textContent='';$('es').textContent='';$('start').hidden=true;$('skip').hidden=true;
  $('enter').hidden=false;$('voice').style.display='none';drawIntro();
 }
-let speechFallback=null,voiceContext=null,voiceMeter=null,voiceSamples=null,voicePeak=0,voiceStartedAt=0,voiceFallbackTriggered=false;
-function voiceFallback(){
- if(voiceFallbackTriggered&&speechFallback)return;
- voiceFallbackTriggered=true;
- clearTimers();
+let speechFallback=null;
+let introVoiceStartedAt=0, introVoiceTimer=0;
+function speechBackup(){
+ if(introFinished||speechFallback)return;
+ narration.pause();clearTimers();
  if(!('speechSynthesis' in window)){
-  $('status').textContent='Narration unavailable: subtitles active';
-  timers.push(setTimeout(finishIntro,12000));return;
+  $('status').textContent='Narrator audio unavailable · subtitles';
+  timers.push(setTimeout(finishIntro,10000));return;
  }
+ const utterance=new SpeechSynthesisUtterance(lines.map(x=>x[0]).join(' ... '));
+ utterance.lang='en-US';utterance.rate=.93;utterance.pitch=1;utterance.volume=1;
+ utterance.onend=()=>finishIntro();
+ speechFallback=utterance;
  speechSynthesis.cancel();
- const u=new SpeechSynthesisUtterance(lines.map(v=>v[0]).join(' ... '));
- u.lang='en-US';u.rate=.88;u.pitch=.9;
- u.onend=()=>{if(!introFinished)finishIntro()};
- speechFallback=u;
- timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},4400));
- timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},9000));
- timers.push(setTimeout(finishIntro,22000));
- speechSynthesis.speak(u);
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},3800));
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},7700));
+ timers.push(setTimeout(finishIntro,18000));
+ speechSynthesis.speak(utterance);
 }
 function startIntro(){
  if(introStarted)return;
- // A native WebAudio route boosts compatibility and exposes the REAL narrator waveform.
- try{
-  if(!voiceContext){
-   voiceContext=new (window.AudioContext||window.webkitAudioContext)();
-   voiceMeter=voiceContext.createAnalyser();voiceMeter.fftSize=512;
-   voiceSamples=new Float32Array(512);
-   const media=voiceContext.createMediaElementSource(narration),gain=voiceContext.createGain();
-   gain.gain.value=1.7;
-   media.connect(voiceMeter);voiceMeter.connect(gain);gain.connect(voiceContext.destination);
-  }
-  voiceContext.resume();
- }catch(err){$('status').textContent='NARRATION AUDIO ROUTE: '+err.message}
- voiceStartedAt=performance.now();voicePeak=0;voiceFallbackTriggered=false;
  introStarted=true;$('start').hidden=true;$('skip').hidden=false;
- $('voice').style.display='block';setCaption(0);
- const duration=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
- // The repository's real Ogg Opus voice is 7.51s, NOT 12.6s.
- const times=[.32,.66];
- times.forEach((fraction,j)=>timers.push(setTimeout(()=>{if(!introFinished)setCaption(j+1)},duration*fraction*1000)));
- narration.onended=()=>{if(!introFinished)finishIntro()};
- narration.onerror=()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))};
- const playback=narration.play();
- if(playback?.catch)playback.catch(()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))});
- timers.push(setTimeout(finishIntro,Math.max(12,duration+3)*1000));
+ $('voice').style.display='none';setCaption(0);
+ // Clean, centered, dry narrator. Never duplicate audio through WebAudio,
+ // never amplify the low-bitrate original or auto-trigger TTS by threshold.
+ narration.volume=1;narration.playbackRate=1;
+ const dur=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},dur*.32*1000));
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},dur*.66*1000));
+ narration.onended=finishIntro;
+ narration.onerror=speechBackup;
+ const play=narration.play();
+ if(play?.catch)play.catch(speechBackup);
+ timers.push(setTimeout(()=>{if(!introFinished&&!speechFallback)finishIntro()},Math.max(12,dur+3)*1000));
 }
 $('start').onclick=()=>{enterXR('VR');startIntro()};$('skip').onclick=finishIntro;
 async function startMusic(){
@@ -163,8 +154,9 @@ function updateScore(dt){
  let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
  let last=0;for(const o of onsets)if(o<=t)last=o;else break;
  const accent=Math.max(attack,Math.exp(-(t-last)*3.4)*.85);
- cloudEngine.update(t,params,cue,bass,mid,high,accent);
- if(cue!==lastCue){lastCue=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
+ cloudEngine.update(t,{...params,intensity:params.intensity*.36},cue,bass,mid,high,accent);
+ foreground.update(t,{bass,mid,high,attack:accent});
+ if(cue!==lastCue){lastCue=cue;$('status').textContent=foreground.active+' · '+Math.floor(t)+'s'}
 }
 
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
@@ -345,33 +337,10 @@ renderer.xr.addEventListener('sessionend',()=>{
 });
 $('modebar').style.display='none';
 $('xrButton').style.display='none';
-function drawVoiceMeter(){
- if(!introStarted||introFinished)return;
- const cv=$('voice'),c=cv.getContext('2d');
- c.clearRect(0,0,640,64);
- if(voiceMeter&&voiceSamples){
-  voiceMeter.getFloatTimeDomainData(voiceSamples);
-  let sum=0;for(const v of voiceSamples)sum+=v*v;
-  const actual=Math.sqrt(sum/voiceSamples.length);
-  voicePeak=Math.max(voicePeak,actual);
-  c.lineWidth=1.4;c.strokeStyle='rgba(240,240,240,.85)';c.beginPath();
-  for(let i=0;i<256;i++){
-   const x=i/255*640,y=32+voiceSamples[i*2]*54;
-   if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
-  }
-  c.stroke();
-  if(!voiceFallbackTriggered&&voicePeak<.002&&
-    performance.now()-voiceStartedAt>2400){
-   voiceFallbackTriggered=true;narration.pause();voiceFallback();
-   $('status').textContent='Narration voice fallback active';
-  }
- }
-}
 const clock=new THREE.Clock(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),offset=new THREE.Vector3(0,0,-1.7);
 renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
- drawVoiceMeter();
  introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
@@ -387,5 +356,5 @@ window.addEventListener('resize',()=>{
  renderer.setSize(innerWidth,innerHeight);
 });
 drawIntro();
-$('development').textContent='POINT CLOUD ENGINE READY';
+$('development').textContent='SCORE V5 READY';
 window.atmosAppReady=true;
