@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js';
+import {makeClouds} from './cloud.js?build=pointcloud-v4';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
