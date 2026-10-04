@@ -55,13 +55,15 @@ function beginIntro(){
  });
 }
 $('start').onclick=beginIntro;$('skip').onclick=finishIntro;
+let visualStartedAt=0;
 async function startMusic(){
  if(!introFinished)finishIntro();
- await music.play();
+ visualStartedAt=performance.now();
  started=true;$('intro').style.display='none';paintIntro();
+ await music.play();
  $('status').textContent='ATMOSPHERE — score follows music.currentTime';
 }
-$('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='Audio error: '+e.message);
+$('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='Audio pending; visual animation active · '+e.message);
 music.onended=()=>{started=false;$('status').textContent='ATMOSPHERE · END';};
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
@@ -81,13 +83,13 @@ function paintIntro(){
  cx.font='19px Arial';cx.fillStyle='#bbb';cx.fillText('TECHNO POESIS',512,80);
  if(introStarted&&!introFinished){
   const l=phrases.find(p=>p[0]===$('en').textContent)||phrases[0];
-  cx.fillStyle='#fff';cx.font='25px Arial';cx.fillText(l[0],512,226);
-  cx.fillStyle='#bbb';cx.font='18px Arial';cx.fillText(l[1],512,268);
+  cx.fillStyle='#fff';cx.font='bold 27px Arial';cx.fillText(l[0],512,226);
+  cx.fillStyle='#bbb';cx.font='bold 20px Arial';cx.fillText(l[1],512,268);
  }else{
   cx.fillStyle='#fff';cx.font='38px Arial';cx.fillText('A T M O S P H E R E',512,239);
  }
- cx.font='17px Arial';cx.fillStyle='#bbb';cx.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,348);
- cx.font='15px Arial';cx.fillText('@oktopus.art',512,379);
+ cx.font='bold 20px Arial';cx.fillStyle='#bbb';cx.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,348);
+ cx.font='bold 18px Arial';cx.fillText('@oktopus.art',512,379);
  cx.fillStyle='#eee';cx.font='20px Arial';
  cx.fillText(introFinished?'PINCH TO BEGIN':introStarted?'LISTEN':'ENTER VR',512,453);
  introTexture.needsUpdate=true;
@@ -119,7 +121,7 @@ class Atmosphere extends xb.Script {
    if(ctl?.userData?.selected&&ctl?.userData?.handedness!=='left')wrist.controllerSelect(ctl);
   }
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
-  const t=music.currentTime*402/duration;
+  const t=(music.currentTime>0||!music.paused)?music.currentTime*402/duration:Math.min(402,Math.max(0,(performance.now()-visualStartedAt)/1000));
   const env=scoreEnvelope(t);
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
   cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,env.bass,env.mid,env.high,env.attack);
