@@ -87,7 +87,14 @@ function makeChapter(root,kind,index){
    }add(line(g,pts));
   }
  }else if(kind==='fold'){
-  const geo=new THREE.TorusKnotGeometry(.76,.3,120,7,2,5);
+  const geo=new THREE.SphereGeometry(1.08,28,18);
+  const v=geo.attributes.position;
+  for(let k=0;k<v.count;k++){
+   const x=v.getX(k),y=v.getY(k),z=v.getZ(k);
+   const fold=.72+.27*Math.sin(y*3.8+x*2.1)+.16*Math.cos(z*4.2);
+   v.setXYZ(k,x*(1+.2*Math.sin(z*3.1))*fold,y*1.18,z*.7*fold);
+  }
+  geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({
    color:0xf4f4f4,transparent:true,opacity:0,depthWrite:false,flatShading:true,
    side:THREE.DoubleSide
