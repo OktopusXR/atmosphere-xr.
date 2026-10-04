@@ -42,7 +42,12 @@ export function createForeground(root){
  const cloudGeo=new THREE.BufferGeometry();
  cloudGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
  cloudGeo.setAttribute('color',new THREE.BufferAttribute(color,3));
- const cloudMat=new THREE.PointsMaterial({vertexColors:true,color:0xffffff,size:.032,transparent:true,opacity:0,depthWrite:false});
+ const dot=document.createElement('canvas');dot.width=32;dot.height=32;
+ const g=dot.getContext('2d'),grad=g.createRadialGradient(16,16,0,16,16,14);
+ grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.25,'rgba(255,255,255,.8)');grad.addColorStop(1,'rgba(255,255,255,0)');
+ g.fillStyle=grad;g.fillRect(0,0,32,32);
+ const dotTex=new THREE.CanvasTexture(dot);
+ const cloudMat=new THREE.PointsMaterial({vertexColors:true,color:0xffffff,size:.009,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false});
  const cloud=new THREE.Points(cloudGeo,cloudMat);cloud.frustumCulled=false;center.add(cloud);
  // Sculptural polygonal body from reference: faceted translucent solid, soft blobs,
  // and a single particulate veil, not a wireframe/fractal tree.
@@ -78,7 +83,7 @@ export function createForeground(root){
  }
  const vg=new THREE.BufferGeometry();
  vg.setAttribute('position',new THREE.BufferAttribute(vp,3));
- const veil=new THREE.Points(vg,new THREE.PointsMaterial({color:0xffffff,size:.024,transparent:true,opacity:0,depthWrite:false}));
+ const veil=new THREE.Points(vg,new THREE.PointsMaterial({color:0xffffff,size:.008,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false}));
  body.add(veil);
  const light=new THREE.DirectionalLight(0xffffff,1.65);light.position.set(-3,5,4);root.add(light);
  const ambient=new THREE.AmbientLight(0xffffff,.35);root.add(ambient);
