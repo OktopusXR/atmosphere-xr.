@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import {createCountdown} from './countdown.js?build=score-v14';
-import {scoreEnvelope} from './score.js?build=score-v14';
-import {makeClouds} from './cloud.js?build=score-v14';
-import {createWatch} from './watch.js?build=score-v14';
-import {createForeground} from './stage.js?build=score-v14';
+import {createCountdown} from './countdown.js?build=score-v15';
+import {scoreEnvelope} from './score.js?build=score-v15';
+import {makeClouds} from './cloud.js?build=score-v15';
+import {createWatch} from './watch.js?build=score-v15';
+import {createForeground} from './stage.js?build=score-v15';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
