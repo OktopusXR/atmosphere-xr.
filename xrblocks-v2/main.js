@@ -134,7 +134,7 @@ class Atmosphere extends xb.Script {
   if(event?.intersection?.point)wrist.hitPosition(event.intersection.point);
  }
  onSelectEnd(){
-  if(started)return;
+  if(started){wrist.releaseSelection();return;}
   if(!introStarted)beginIntro();else if(!introFinished)finishIntro();
   else startMusic().catch(err=>$('status').textContent=err.message);
  }
