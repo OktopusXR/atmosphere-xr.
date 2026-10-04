@@ -8,14 +8,14 @@ const scenes=[
  {end:57,type:'CLOUD',variant:0,title:'FORMATION'},
  {end:89,type:'HERO',variant:0,title:'ANATOMY OF LIGHT'},
  {end:114,type:'CLOUD',variant:1,title:'DISPERSION'},
- {end:143,type:'PORTAL',variant:1,title:'TRANSMISSION'},
+ {end:143,type:'HERO',variant:1,title:'TRANSMISSION'},
  {end:172,type:'HERO',variant:1,title:'FIELDS'},
  {end:199,type:'CLOUD',variant:2,title:'DIFFUSION'},
  {end:226,type:'HERO',variant:2,title:'ENTANGLEMENT'},
- {end:258,type:'PORTAL',variant:2,title:'ORBIT'},
+ {end:258,type:'CLOUD',variant:2,title:'ORBIT'},
  {end:287,type:'CLOUD',variant:3,title:'PRESENCE'},
  {end:314,type:'HERO',variant:3,title:'MORPHOGENESIS'},
- {end:348,type:'PORTAL',variant:3,title:'SYMMETRY'},
+ {end:348,type:'HERO',variant:3,title:'SYMMETRY'},
  {end:374,type:'HERO',variant:4,title:'AFTERIMAGE'},
  {end:402,type:'CLOUD',variant:4,title:'DISSOLUTION'}
 ];
@@ -23,12 +23,12 @@ export function createForeground(root){
  const portals=new THREE.Group();root.add(portals);
  const rings=[];
  // Reduced from 33 torus meshes to 15, fewer triangles per ring.
- for(let k=0;k<3;k++){
+ for(let k=0;k<1;k++){
   const sector=new THREE.Group();sector.rotation.y=-k*TAU/3;portals.add(sector);
-  for(let i=0;i<5;i++){
-   const mesh=new THREE.Mesh(new THREE.TorusGeometry(.52+i*.11,.011,3,48),
+  for(let i=0;i<11;i++){
+   const mesh=new THREE.Mesh(new THREE.TorusGeometry(.68-i*.024,.009,4,56),
     new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
-   mesh.position.set(0,1.6,-2.5-i*.51);sector.add(mesh);rings.push({mesh,sector,k,i});
+   mesh.position.set(0,1.6,-1.9-i*.42);sector.add(mesh);rings.push({mesh,sector,k,i});
   }
  }
  const center=new THREE.Group();center.position.set(0,1.6,-3.3);root.add(center);
@@ -47,7 +47,7 @@ export function createForeground(root){
  grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.25,'rgba(255,255,255,.8)');grad.addColorStop(1,'rgba(255,255,255,0)');
  g.fillStyle=grad;g.fillRect(0,0,32,32);
  const dotTex=new THREE.CanvasTexture(dot);
- const cloudMat=new THREE.PointsMaterial({vertexColors:true,color:0xffffff,size:.009,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false});
+ const cloudMat=new THREE.PointsMaterial({vertexColors:true,color:0xffffff,size:.017,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false});
  const cloud=new THREE.Points(cloudGeo,cloudMat);cloud.frustumCulled=false;center.add(cloud);
  // Sculptural polygonal body from reference: faceted translucent solid, soft blobs,
  // and a single particulate veil, not a wireframe/fractal tree.
@@ -83,7 +83,7 @@ export function createForeground(root){
  }
  const vg=new THREE.BufferGeometry();
  vg.setAttribute('position',new THREE.BufferAttribute(vp,3));
- const veil=new THREE.Points(vg,new THREE.PointsMaterial({color:0xffffff,size:.008,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false}));
+ const veil=new THREE.Points(vg,new THREE.PointsMaterial({color:0xffffff,size:.015,map:dotTex,alphaTest:.17,transparent:true,opacity:0,depthWrite:false}));
  body.add(veil);
  const light=new THREE.DirectionalLight(0xffffff,1.65);light.position.set(-3,5,4);root.add(light);
  const ambient=new THREE.AmbientLight(0xffffff,.35);root.add(ambient);
@@ -92,14 +92,14 @@ export function createForeground(root){
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);
  const label=new THREE.Mesh(new THREE.PlaneGeometry(1.95,.65),
   new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));
- label.position.set(-1.32,1.13,-2.55);label.renderOrder=5;root.add(label);
+ label.position.set(-.66,1.66,-2.5);label.renderOrder=55;root.add(label);
  let previous=-1,active='RESONANCE';
  function drawTitle(title,actIndex){
   ctx.clearRect(0,0,768,256);ctx.textAlign='left';
-  ctx.fillStyle='#eee';ctx.font='19px Arial';ctx.fillText('ATMOSPHERE / TECHNO POESIS',20,29);
+  ctx.fillStyle='#ffffff';ctx.font='bold 30px Arial';ctx.fillText('ATMOSPHERE / TECHNO POESIS',20,29);
   ctx.font='bold 67px Arial';ctx.fillStyle='#ffffff';
   ctx.fillText(title,20,121,740);
-  ctx.font='18px Arial';ctx.fillStyle='#aaaaaa';
+  ctx.font='bold 29px Arial';ctx.fillStyle='#eeeeee';
   ctx.fillText(String(actIndex+1).padStart(2,'0')+' / 14',22,173);
   tex.needsUpdate=true;
  }
@@ -150,17 +150,17 @@ export function createForeground(root){
   const portalsWeight=typeWeight('PORTAL'),cloudWeight=typeWeight('CLOUD'),heroWeight=typeWeight('HERO');
   active=winner.scene.title;
   if(index!==previous){previous=index;drawTitle(current.title,index)}
-  label.material.opacity=.34*currentWeight;
-  label.position.x=-1.25+.09*Math.sin(clock*.13);
+  label.material.opacity=.80*currentWeight;
+  label.position.x=-.68+.04*Math.sin(clock*.13);
   label.position.z=-2.55;
   rings.forEach(({mesh,sector,k,i})=>{
    mesh.visible=portalsWeight>.001;
    if(!mesh.visible)return;
    sector.rotation.y=-k*TAU/3+currentVariant*.17+
      Math.sin(clock*.13+k*.09)*.08;
-   mesh.position.z=-2.35-i*(.47+.025*currentVariant);
-   mesh.scale.setScalar(scale*(.97+.07*slowPulse+.045*accent*vScale));
-   mesh.material.opacity=portalsWeight*intensity*(.23+.13*slowPulse+.12*accent)*(k===0?1:.72);
+   mesh.position.z=-1.95-i*.40-.085*Math.sin(clock*.14);
+   mesh.scale.setScalar(scale*(.98+.085*slowPulse+.07*accent*vScale));
+   mesh.material.opacity=portalsWeight*intensity*(.42+.19*slowPulse+.16*accent);
    mesh.rotation.z=.055*Math.sin(clock*.18+i*.3);
   });
   center.visible=cloudWeight>.001;
