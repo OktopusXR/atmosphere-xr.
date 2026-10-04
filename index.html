@@ -197,61 +197,74 @@ const facetMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleS
 const facetShell=new THREE.Mesh(facetGeo,facetMat);
 facetShell.position.y=1.6;facetShell.frustumCulled=false;root.add(facetShell);
 const faceSeeds=Array.from({length:facePositions.count/3},(_,i)=>(Math.sin(i*12.9898)*43758.5453)%1);
+let focusAngle=-.75,focusTarget=-.75,focusHeight=0,focusCooldown=0;
+function steerAttention(dt){
+ focusCooldown=Math.max(0,focusCooldown-dt);
+ if(onset>.68&&focusCooldown===0){focusTarget+=.42+Math.min(.64,flux*8+mid*.7);focusCooldown=1.8}
+ focusAngle+=(focusTarget-focusAngle)*Math.min(1,dt*.15);
+ focusHeight+=(THREE.MathUtils.clamp((mid-high)*.9,-.65,.65)-focusHeight)*Math.min(1,dt*.3);
+}
+function attentionFor(x,y,z){
+ const a=Math.atan2(z,x),delta=Math.atan2(Math.sin(a-focusAngle),Math.cos(a-focusAngle));
+ return Math.exp(-Math.pow(delta/.57,2)*2-Math.pow((y-focusHeight)/2,2));
+}
 function illuminateFaces(t,level){
  const v=facetGeo.attributes.color.array;
  for(let f=0;f<faceSeeds.length;f++){
-  const seed=Math.abs(faceSeeds[f]);
-  const wave=Math.max(0,Math.sin(f*.039-t*(.35+mid*2.2)+seed*6));
-  const bright=Math.min(1,.018+level*(Math.pow(wave,9)*(.45+.9*impact)+.2*high));
-  for(let k=0;k<3;k++){let p=(f*3+k)*3;v[p]=bright;v[p+1]=bright;v[p+2]=bright;}
+  const k=f*9,x=(facePositions.array[k]+facePositions.array[k+3]+facePositions.array[k+6])/3;
+  const y=(facePositions.array[k+1]+facePositions.array[k+4]+facePositions.array[k+7])/3;
+  const z=(facePositions.array[k+2]+facePositions.array[k+5]+facePositions.array[k+8])/3;
+  const focus=attentionFor(x,y,z);
+  const transient=Math.max(0,Math.sin(f*.077-t*(.18+mid)));
+  const bright=Math.min(.65,level*focus*(.1+.7*Math.pow(transient,8)+.17*impact));
+  for(let k2=0;k2<3;k2++){const p=k+k2*3;v[p]=bright;v[p+1]=bright;v[p+2]=bright}
  }
  facetGeo.attributes.color.needsUpdate=true;
 }
 // Meteor showers: controlled streaks in a volume surrounding the viewer.
-const METEORS=130,meteorGeo=new THREE.BufferGeometry();
+const METEORS=44,meteorGeo=new THREE.BufferGeometry();
 const meteorPositions=new Float32Array(METEORS*6);
 meteorGeo.setAttribute('position',new THREE.BufferAttribute(meteorPositions,3).setUsage(THREE.DynamicDrawUsage));
 const meteorMat=new THREE.LineBasicMaterial({color:0xf8f8f8,transparent:true,opacity:0,depthWrite:false});
 const meteorField=new THREE.LineSegments(meteorGeo,meteorMat);meteorField.frustumCulled=false;root.add(meteorField);
 function updateMeteors(t,energy,visibility){
+ const cx=Math.cos(focusAngle)*3.1,cz=Math.sin(focusAngle)*3.1;
  for(let i=0;i<METEORS;i++){
-  const seed=i*2.3999632,drift=t*(.3+energy*.65)+i*.736;
-  const y=1.6+4.5-((drift%1.0)*10);
-  const r=1.9+(i%13)*.32,angle=seed;
-  const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
-  const p=i*6;
+  const seed=i*2.3999632,cycle=(t*(.09+energy*.11)+i*.177)%1;
+  const y=1.6+3.6-cycle*7.5,spread=.13+(i%11)*.065;
+  const x=cx+Math.cos(seed)*spread,z=cz+Math.sin(seed)*spread,p=i*6,len=.07+.13*energy;
   meteorPositions[p]=x;meteorPositions[p+1]=y;meteorPositions[p+2]=z;
-  meteorPositions[p+3]=x+.18;meteorPositions[p+4]=y+.2+energy*.7;meteorPositions[p+5]=z+.1;
+  meteorPositions[p+3]=x+.013;meteorPositions[p+4]=y+len;meteorPositions[p+5]=z+.009;
  }
  meteorGeo.attributes.position.needsUpdate=true;
- meteorMat.opacity=visibility*(.14+.48*energy+.25*impact);
+ meteorMat.opacity=visibility*(.035+.18*energy+.08*impact);
 }
 // Black-hole / tunnel: nested rings, with no automatic artificial camera motion.
 const tunnel=new THREE.Group(),tunnelRings=[];
-for(let i=0;i<18;i++){
+for(let i=0;i<12;i++){
  const m=new THREE.Mesh(new THREE.TorusGeometry(1,.006,3,64),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
  tunnel.add(m);tunnelRings.push(m);
 }
 tunnel.position.set(0,1.6,-1.2);root.add(tunnel);
 function updateTunnel(t,energy,visibility){
  for(let i=0;i<tunnelRings.length;i++){
-  const p=(i/18+t*(.035+.035*energy))%1;
+  const p=(i/12+t*(.025+.018*energy))%1;
   const ring=tunnelRings[i];ring.position.z=-(.45+p*13);
   ring.scale.setScalar(.28+p*3.1);
   ring.rotation.z=t*.09+i*.33;
-  ring.material.opacity=visibility*(.08+.45*energy)*Math.sin(Math.PI*p);
+  ring.material.opacity=visibility*(.04+.22*energy)*Math.sin(Math.PI*p);
  }
 }
 // Blob particles: volumetric clusters, not continuous small floating dots.
-const BLOB_N=176,blobGeo=new THREE.IcosahedronGeometry(.09,1);
+const BLOB_N=96,blobGeo=new THREE.IcosahedronGeometry(.09,1);
 const blobMat=new THREE.MeshBasicMaterial({color:0xeeeeee,transparent:true,opacity:0,depthWrite:false});
 const blobCloud=new THREE.InstancedMesh(blobGeo,blobMat,BLOB_N);
 blobCloud.frustumCulled=false;root.add(blobCloud);
 const blobObject=new THREE.Object3D();
 function updateBlobs(t,energy,visibility){
  for(let i=0;i<BLOB_N;i++){
-  const group=i%4,seed=i*2.39996,radial=.22+(i%23)*.053;
-  const center=group*1.5708+t*(.07+energy*.1);
+  const group=i%2,seed=i*2.39996,radial=.12+(i%23)*.04;
+  const center=focusAngle+(group-.5)*.24+t*.013;
   const r=2.5+Math.sin(group+t*.14)*.5;
   blobObject.position.set(Math.cos(center)*r+Math.cos(seed)*radial,
     1.6+Math.sin(center*1.3)*1.6+Math.sin(seed*.7)*radial,
@@ -261,7 +274,7 @@ function updateBlobs(t,energy,visibility){
   blobObject.updateMatrix();blobCloud.setMatrixAt(i,blobObject.matrix);
  }
  blobCloud.instanceMatrix.needsUpdate=true;
- blobMat.opacity=visibility*(.13+.43*energy);
+ blobMat.opacity=visibility*(.05+.23*energy);
 }
 
 let tactileEnergy=0,tactileSpread=0,tactileX=0,tactileY=0;
@@ -308,7 +321,7 @@ function driveShock(dt){
  for(const shock of shocks){
   shock.age+=dt;
   shock.mesh.scale.setScalar(.4+shock.age*1.85);
-  shock.mesh.material.opacity=shock.age<2.7&&[1,2,3,4,6].includes(act)?Math.pow(Math.max(0,1-shock.age/2.7),2)*(.12+.42*impact):0;
+  shock.mesh.material.opacity=shock.age<2.7&&act===2?Math.pow(Math.max(0,1-shock.age/2.7),2)*(.04+.13*impact):0;
  }
 }
 
@@ -326,6 +339,7 @@ const T=7,tetra=new THREE.InstancedMesh(tetraGeo,tetraMat,T),dummy=new THREE.Obj
 let animationT=0;
 function evolve(dt){
  updateDramaturgy(dt);
+ steerAttention(dt);
  const gain=+$('sensitivity').value;
  const lo=low*gain,mi=mid*gain,hi=high*gain;
  const pressure=THREE.MathUtils.clamp(energyMemory*2.4,0,1.2);
@@ -333,25 +347,26 @@ function evolve(dt){
  const appear=smooth01(actTime/.16);
  const leave=1-smooth01((actTime-.85)/.15);
  const envelope=appear*leave;
- const shellActive=[.22,.33,1,.84,1,.21,.96,.11][act];
- const strandActive=[.04,.62,.18,1,.16,.08,.78,.06][act];
- const dustActive=[.08,.22,.07,.19,.55,.7,.44,.11][act];
+ const shellActive=[0,0,1,0,0,0,.72,0][act];
+ const strandActive=[0,.7,0,0,0,0,0,0][act];
+ const dustActive=[.018,.018,.018,.018,.025,.075,.018,.008][act];
  const breathing=1+.18*pressure+.12*lo+.25*tactileSpread;
  const fold=.09+weave*.56+tactileEnergy*.3;
  deformWireField(animationT,pressure,weave);
- fieldMat.opacity*=shellActive*(.3+.7*envelope);
+ fieldMat.opacity*=shellActive*(.12+.62*envelope)*.72;
  wireField.rotation.y=animationT*(act===4?.24:act===2||act===6?.11:.045)+mi*.22;
  wireField.rotation.x=Math.sin(animationT*.22)*.19+lo*.12;
  wireField.rotation.z=animationT*(act===4?.08:.024)+Math.sin(animationT*.12)*.08;
  // The sphere's expansion remains the central motif across multiple acts.
- const luminous=[.06,.14,.72,.85,1,.12,.76,.04][act]*(.25+.75*envelope);
+ const luminous=[0,0,.7,0,0,0,.88,0][act]*envelope;
  facetShell.rotation.copy(wireField.rotation);
  facetShell.scale.setScalar(1+pressure*.11+impact*.05);
- facetMat.opacity=.32*luminous;
+ facetMat.opacity=.21*luminous;
  illuminateFaces(animationT,luminous);
- updateMeteors(animationT,pressure,[0,0,.08,.15,.95,.42,.18,0][act]*envelope);
- updateTunnel(animationT,pressure,[0,.14,.15,.87,.72,.12,.2,0][act]*envelope);
- updateBlobs(animationT,pressure,[0,.1,.08,.35,.45,1,.5,.1][act]*envelope);
+ updateMeteors(animationT,pressure,[0,0,0,0,.78,0,0,0][act]*envelope);
+ tunnel.position.set(Math.cos(focusAngle)*.8,1.6+focusHeight,Math.sin(focusAngle)*.8-1.4);
+ updateTunnel(animationT,pressure,[0,0,0,.7,0,0,0,0][act]*envelope);
+ updateBlobs(animationT,pressure,[0,0,0,0,0,.72,0,0][act]*envelope);
  tactileEnergy*=Math.exp(-dt*1.4);tactileSpread*=Math.exp(-dt*.2);
  driveShock(dt);
  for(let i=0;i<P;i++){
@@ -364,7 +379,7 @@ function evolve(dt){
   particleArray[i*3+2]=d.z*radial-d.x*sweep*.16;
  }
  pg.attributes.position.needsUpdate=true;
- particleMaterial.opacity=(.014+.35*dustActive*(.35+.65*weave)+.13*impact)*(.28+.72*envelope);
+ particleMaterial.opacity=(.002+.14*dustActive*(.35+.65*weave)+.006*impact)*(.18+.82*envelope);
  particleMaterial.size=.012+.02*hi;
  filaments.forEach((mesh,i)=>{
   const v=mesh.geometry.attributes.position.array;
@@ -387,7 +402,7 @@ function evolve(dt){
    }
   }
   mesh.geometry.attributes.position.needsUpdate=true;
-  mesh.material.opacity=Math.min(.8,strandActive*(.04+.56*weave+.13*impact)*(.27+.73*envelope));
+  mesh.material.opacity=Math.min(.36,strandActive*(.04+.28*weave+.06*impact)*envelope);
  });
  for(let i=0;i<T;i++){
   const y=1-2*(i+.5)/T,a=i*GOLD,c=Math.sqrt(1-y*y),r=3.4+impact*.8;
@@ -396,7 +411,7 @@ function evolve(dt){
   dummy.scale.setScalar(.08+.9*impact);dummy.updateMatrix();tetra.setMatrixAt(i,dummy.matrix);
  }
  tetra.instanceMatrix.needsUpdate=true;
- tetraMat.opacity=act===4?Math.min(.65,impact*.5):0;
+ tetraMat.opacity=0;
 }
 function openControlPanel(){ $('controls').style.display='none';button.style.display='block';button.textContent='CONTROLS'}
 $('enter').onclick=async()=>{
