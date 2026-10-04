@@ -1,140 +1,155 @@
 import * as THREE from 'three';
-// Three-event immersive study. Foreground only; background point cloud remains 360°.
+// ATMOSPHERE V6 - GPU-conscious score. One dominant family at a time.
+// 402s composed itinerary, never a 48/90-second looping scene.
 const TAU=Math.PI*2;
-const mat=()=>new THREE.MeshBasicMaterial({
- color:0xffffff,transparent:true,opacity:0,depthWrite:false,
- blending:THREE.AdditiveBlending,side:THREE.DoubleSide
-});
-function smooth(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
-function envelope(t,start,end){
- return smooth((t-start)/1.5)*(1-smooth((t-(end-2))/2));
-}
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const scenes=[
+ {end:26,type:'PORTAL',variant:0,title:'RESONANCE'},
+ {end:57,type:'CLOUD',variant:0,title:'FORMATION'},
+ {end:89,type:'HERO',variant:0,title:'ANATOMY OF LIGHT'},
+ {end:114,type:'CLOUD',variant:1,title:'DISPERSION'},
+ {end:143,type:'PORTAL',variant:1,title:'TRANSMISSION'},
+ {end:172,type:'HERO',variant:1,title:'FIELDS'},
+ {end:199,type:'CLOUD',variant:2,title:'DIFFUSION'},
+ {end:226,type:'HERO',variant:2,title:'ENTANGLEMENT'},
+ {end:258,type:'PORTAL',variant:2,title:'ORBIT'},
+ {end:287,type:'CLOUD',variant:3,title:'PRESENCE'},
+ {end:314,type:'HERO',variant:3,title:'MORPHOGENESIS'},
+ {end:348,type:'PORTAL',variant:3,title:'SYMMETRY'},
+ {end:374,type:'HERO',variant:4,title:'AFTERIMAGE'},
+ {end:402,type:'CLOUD',variant:4,title:'DISSOLUTION'}
+];
 export function createForeground(root){
- // A / THREE SYMMETRIC PORTALS: 0°, +120°, -120° around the listener.
- const portals=[];
+ const portals=new THREE.Group();root.add(portals);
+ const rings=[];
+ // Reduced from 33 torus meshes to 15, fewer triangles per ring.
  for(let k=0;k<3;k++){
-  const az=k*TAU/3,group=new THREE.Group();
-  group.rotation.y=-az;root.add(group);
-  const rings=[];
-  for(let i=0;i<11;i++){
-   const radius=.47+i*.062;
-   const mesh=new THREE.Mesh(new THREE.TorusGeometry(radius,.008,4,112),mat());
-   mesh.position.set(0,1.6,-2.35-i*.27);
-   group.add(mesh);rings.push(mesh);
+  const sector=new THREE.Group();sector.rotation.y=-k*TAU/3;portals.add(sector);
+  for(let i=0;i<5;i++){
+   const mesh=new THREE.Mesh(new THREE.TorusGeometry(.52+i*.11,.011,3,48),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
+   mesh.position.set(0,1.6,-2.5-i*.51);sector.add(mesh);rings.push({mesh,sector,k,i});
   }
-  portals.push({group,rings,az});
  }
- // B / FRONT HIGH DENSITY POINT CLOUD: evolving GPU 3D coherent noise.
- const n=12000,positions=new Float32Array(n*3),seeds=new Float32Array(n);
+ const center=new THREE.Group();center.position.set(0,1.6,-3.3);root.add(center);
+ // Dense point sculpture, bounded count, static buffers, inexpensive analytic turbulence.
+ const n=3600,pos=new Float32Array(n*3),color=new Float32Array(n*3);
  for(let i=0;i<n;i++){
-  const a=i*2.39996323,z=1-2*(i+.5)/n,rad=Math.sqrt(1-z*z);
-  const radius=1.1+.3*Math.sin(i*3.13);
-  positions[3*i]=Math.cos(a)*rad*radius;
-  positions[3*i+1]=Math.sin(a)*rad*radius;
-  positions[3*i+2]=z*radius*.88;
-  seeds[i]=i/n;
+  const a=i*2.39996323,z=1-2*(i+.5)/n,r=Math.sqrt(1-z*z)*(1+.21*Math.sin(i*4.17));
+  pos[i*3]=Math.cos(a)*r;pos[i*3+1]=Math.sin(a)*r;pos[i*3+2]=z*r*.9;
+  const lum=.55+.45*Math.abs(Math.sin(i*2.9));color[i*3]=color[i*3+1]=color[i*3+2]=lum;
  }
- const noiseVert=`
- uniform float uTime,uBass,uMid,uHigh,uAttack,uDilation;
- attribute float aSeed;varying float vLight;
- float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
- float noise3(vec3 p){
-  vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
-  return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
-  mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z)*2.-1.;
+ const cloudGeo=new THREE.BufferGeometry();
+ cloudGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+ cloudGeo.setAttribute('color',new THREE.BufferAttribute(color,3));
+ const cloudMat=new THREE.PointsMaterial({vertexColors:true,color:0xffffff,size:.032,transparent:true,opacity:0,depthWrite:false});
+ const cloud=new THREE.Points(cloudGeo,cloudMat);cloud.frustumCulled=false;center.add(cloud);
+ // Sculptural polygonal body from reference: faceted translucent solid, soft blobs,
+ // and a single particulate veil, not a wireframe/fractal tree.
+ const body=new THREE.Group();body.position.set(0,1.6,-3.15);root.add(body);
+ const polyGeo=new THREE.IcosahedronGeometry(1.02,1);
+ const a=polyGeo.attributes.position;
+ for(let i=0;i<a.count;i++){
+  const x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+  const distortion=1+.12*Math.sin(x*6+y*3+z*4);
+  a.setXYZ(i,x*1.12*distortion,y*.98*distortion,z*.84*distortion);
  }
- void main(){
-  vec3 p=position;
-  float n=noise3(p*1.55+vec3(uTime*.13,uTime*.17,.4));
-  float n2=noise3(p*.92+vec3(0.,-uTime*.11,uTime*.09));
-  p+=normalize(p+vec3(.001))*(n*(.42+uMid*1.3)+uBass*.83+uAttack*.32);
-  p.xyz+=vec3(n2,n,n2-n)*(.16+uMid*.3);
-  p*=uDilation;
-  vec4 v=modelViewMatrix*vec4(p,1.);
-  gl_Position=projectionMatrix*v;
-  gl_PointSize=min(8.,max(1.2,(.75+uHigh*1.4+uAttack*.5)*22./max(1.,-v.z)));
-  vLight=.28+.42*abs(n)+uAttack*.3;
- }`;
- const noiseFrag=`
- uniform float uOpacity;varying float vLight;
- void main(){
-  float r=length(gl_PointCoord-.5);
-  float a=(1.-smoothstep(.18,.49,r))*.84+exp(-r*r*48.)*.16;
-  gl_FragColor=vec4(vec3(1.),a*vLight*uOpacity);
- }`;
- const ng=new THREE.BufferGeometry();
- ng.setAttribute('position',new THREE.BufferAttribute(positions,3));
- ng.setAttribute('aSeed',new THREE.BufferAttribute(seeds,1));
- const nu={uTime:{value:0},uBass:{value:0},uMid:{value:0},uHigh:{value:0},
-  uAttack:{value:0},uDilation:{value:1},uOpacity:{value:0}};
- const cloud=new THREE.Points(ng,new THREE.ShaderMaterial({
-  uniforms:nu,vertexShader:noiseVert,fragmentShader:noiseFrag,
-  blending:THREE.AdditiveBlending,transparent:true,depthWrite:false
+ a.needsUpdate=true;polyGeo.computeVertexNormals();
+ const poly=new THREE.Mesh(polyGeo,new THREE.MeshPhongMaterial({
+  color:0xf1f1f1,specular:0xffffff,shininess:27,flatShading:true,
+  transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide
  }));
- cloud.frustumCulled=false;cloud.position.set(0,1.6,-3.3);root.add(cloud);
- // C / THREE-DIMENSIONAL RECURSIVE VECTOR FRACTAL.
- const vertices=[];
- function branch(a,dir,length,depth,seed){
-  const b=a.clone().addScaledVector(dir,length);
-  vertices.push(a.x,a.y,a.z,b.x,b.y,b.z);
-  if(depth===0)return;
-  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
-  for(let i=0;i<3;i++){
-   const az=i*TAU/3+depth*.29+seed*.17;
-   const tilt=.39+.17*Math.sin(seed+i*3.8);
-   const next=new THREE.Vector3(Math.cos(az)*Math.sin(tilt),Math.cos(tilt),
-    Math.sin(az)*Math.sin(tilt)).applyQuaternion(q).normalize();
-   branch(b,next,length*.68,depth-1,seed+i*1.51);
+ body.add(poly);
+ const pale=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false});
+ const blobs=[];
+ for(let i=0;i<2;i++){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.36,12,9),pale.clone());
+  m.scale.set(1.15+i*.15,.76,1.23+i*.18);
+  m.position.set(i===0?.77:1.38,i===0?-.71:-1.25,i===0?.22:.36);
+  body.add(m);blobs.push(m);
+ }
+ const vn=1450,vp=new Float32Array(vn*3);
+ for(let i=0;i<vn;i++){
+  const v=(i+.5)/vn,z=1-2*v,theta=i*2.39996323;
+  const r=Math.sqrt(1-z*z)*(1.27+.45*Math.sin(i*.319));
+  vp[i*3]=Math.cos(theta)*r;
+  vp[i*3+1]=Math.sin(theta)*r;
+  vp[i*3+2]=z*r;
+ }
+ const vg=new THREE.BufferGeometry();
+ vg.setAttribute('position',new THREE.BufferAttribute(vp,3));
+ const veil=new THREE.Points(vg,new THREE.PointsMaterial({color:0xffffff,size:.024,transparent:true,opacity:0,depthWrite:false}));
+ body.add(veil);
+ const light=new THREE.DirectionalLight(0xffffff,1.65);light.position.set(-3,5,4);root.add(light);
+ const ambient=new THREE.AmbientLight(0xffffff,.35);root.add(ambient);
+ // Editorial floating typography, based on reference hierarchy but adapted to artwork.
+ const canvas=document.createElement('canvas');canvas.width=768;canvas.height=256;
+ const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);
+ const label=new THREE.Mesh(new THREE.PlaneGeometry(1.95,.65),
+  new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));
+ label.position.set(-1.32,.46,-2.55);label.renderOrder=5;root.add(label);
+ let previous=-1,active='RESONANCE';
+ function drawTitle(title,actIndex){
+  ctx.clearRect(0,0,768,256);ctx.textAlign='left';
+  ctx.fillStyle='#eee';ctx.font='19px Arial';ctx.fillText('ATMOSPHERE / TECHNO POESIS',20,29);
+  ctx.font='bold 67px Arial';ctx.fillStyle='#ffffff';
+  ctx.fillText(title,20,121,740);
+  ctx.font='18px Arial';ctx.fillStyle='#aaaaaa';
+  ctx.fillText(String(actIndex+1).padStart(2,'0')+' / 14',22,173);
+  tex.needsUpdate=true;
+ }
+ function update(t,audio,controls={}){
+  const dt=Number.isFinite(t)?Math.max(0,Math.min(401.999,t)):0;
+  let index=scenes.findIndex(v=>dt<v.end);
+  if(index<0)index=scenes.length-1;
+  const current=scenes[index],start=index?scenes[index-1].end:0;
+  const progress=(dt-start)/(current.end-start);
+  const visible=smooth(progress/.095)*(1-smooth((progress-.91)/.09));
+  const bass=audio.bass||0,mid=audio.mid||0,high=audio.high||0,attack=audio.attack||0;
+  const intensity=controls.intensity??1,variation=controls.variation??.55;
+  const scale=controls.scale??1,motion=controls.motion??1,speed=controls.speed??1;
+  active=current.title;
+  if(index!==previous){previous=index;drawTitle(current.title,index)}
+  const hero=current.type==='HERO',portal=current.type==='PORTAL',dense=current.type==='CLOUD';
+  label.material.opacity=Math.min(.62,visible*.38);
+  label.position.x=(current.variant%2?-.9:-1.32);
+  label.position.z=-2.4-.1*current.variant;
+  rings.forEach(({mesh,sector,k,i})=>{
+   mesh.visible=portal;
+   if(!portal)return;
+   sector.rotation.y=-k*TAU/3+current.variant*.22+
+    .10*Math.sin(t*.11*speed+current.variant);
+   mesh.position.z=-2.3-i*(.47+.045*current.variant);
+   mesh.scale.setScalar(scale*(1+.09*bass+.13*attack+.04*Math.sin(t*.65+i*.9)));
+   mesh.material.opacity=visible*intensity*(.23+.45*attack+.26*bass)*(k===0?1:.7);
+  });
+  center.visible=dense;
+  if(dense){
+   cloudMat.opacity=visible*intensity*(.35+.33*attack+.28*bass);
+   center.rotation.set(.18*Math.sin(t*.17),t*(.12+.1*speed)*(current.variant%2?1:-1),0);
+   center.position.set(Math.sin(current.variant*1.37)*.48,1.6+(current.variant%2)*.25,
+     -2.85-current.variant*.32+.2*bass);
+   const expansion=scale*(.9+.28*bass+.19*attack+.12*Math.sin(t*.34));
+   cloud.scale.set(expansion,expansion*(current.variant%2?1.4:.9),expansion);
+   // Finite analytic warp, using transform rather than per-point CPU loops.
   }
- }
- branch(new THREE.Vector3(0,-1.4,0),new THREE.Vector3(0,1,0),.56,5,.7);
- const geometry=new THREE.BufferGeometry();
- geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
- const fractal=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({
-  color:0xffffff,transparent:true,opacity:0,depthWrite:false,
-  blending:THREE.AdditiveBlending
- }));
- fractal.frustumCulled=false;fractal.position.set(0,1.6,-3.3);root.add(fractal);
- const score=[{start:0,end:16,type:'PORTALS'},
-  {start:16,end:32,type:'NOISE SCULPTURE'},
-  {start:32,end:48,type:'VECTOR FRACTAL'}];
- let active='PORTALS';
- return {
-  get active(){return active},score,
-  update(t,audio){
-   const local=t%48,phase=local<16?0:local<32?1:2;
-   const act=score[phase],w=envelope(local,act.start,act.end);
-   const pulse=Math.min(1,audio.attack*.85+audio.bass*1.3);
-   active=act.type;
-   const ringAlpha=phase===0?w:0;
-   portals.forEach((portal,k)=>{
-    portal.group.rotation.y=-portal.az+.07*Math.sin(t*.32);
-    portal.rings.forEach((ring,j)=>{
-     const beat=.5+.5*Math.cos(j*.7-t*(.8+audio.bass*1.6));
-     ring.material.opacity=ringAlpha*(.14+.24*beat+.52*pulse)*(k===0?1:.77);
-     ring.scale.setScalar(1+.12*audio.bass+audio.attack*.14+
-       .055*Math.sin(t*.48-j*.65));
-     ring.position.z=-2.12-j*.31+.16*Math.sin(t*.41-j*.45);
-     ring.rotation.z=.09*Math.sin(t*.21+j*.3);
-     ring.visible=ringAlpha>.003;
-    });
+  body.visible=hero;
+  if(hero){
+   body.position.set(Math.sin(current.variant*.83)*.44,1.6,-3.05-current.variant*.2+.3*attack);
+   body.rotation.set(t*.08*speed,t*.11*speed+current.variant*.47,.09*Math.sin(t*.2));
+   const expansion=scale*(.86+.13*bass+.09*attack);
+   body.scale.set(expansion,expansion*(current.variant%2?1.22:.94),expansion);
+   poly.material.opacity=visible*intensity*(.25+.16*high+.13*bass);
+   veil.material.opacity=visible*(.28+.45*attack+.1*high);
+   veil.rotation.y=-t*.09*speed;
+   blobs.forEach((blob,j)=>{
+    blob.material.opacity=visible*.52*(j===0?1:.85);
+    blob.position.y=(j===0?-.71:-1.25)+.11*Math.sin(t*(.25+.14*motion)+j);
+    blob.scale.x=1.05+.28*variation+.16*bass;
    });
-   const cloudAlpha=phase===1?w:0;
-   nu.uTime.value=t;nu.uBass.value=audio.bass;nu.uMid.value=audio.mid;
-   nu.uHigh.value=audio.high;nu.uAttack.value=audio.attack;
-   nu.uOpacity.value=cloudAlpha*1.5;
-   nu.uDilation.value=1+audio.bass*.7+audio.attack*.18+
-     .13*Math.sin(t*.57);
-   cloud.rotation.y=t*.22+audio.mid*.7;
-   cloud.rotation.x=.23*Math.sin(t*.17);
-   cloud.position.z=-3.25+audio.bass*.4+.24*Math.sin(t*.2);
-   cloud.visible=cloudAlpha>.003;
-   const fAlpha=phase===2?w:0;
-   fractal.visible=fAlpha>.003;
-   fractal.material.opacity=fAlpha*(.32+.4*pulse+.16*audio.high);
-   fractal.rotation.set(t*.13,t*.3,t*.08);
-   fractal.scale.setScalar(.82+audio.bass*.52+.08*Math.sin(t*.33));
-   fractal.position.z=-3.25+.45*Math.sin(t*.2)+audio.attack*.4;
   }
- };
+ }
+ return {update,get active(){return active},scenes};
 }
+// Preserve existing import name for both XR runtimes.
+export const createStage=createForeground;
