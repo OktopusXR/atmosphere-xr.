@@ -140,29 +140,120 @@ function updateScore(dt){
  cloudEngine.update(t,params,cue,bass,mid,high,accent);
  if(cue!==lastCue){lastCue=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
 }
+
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
 scene.add(controller1,controller2);
+const wristCanvas=document.createElement('canvas');wristCanvas.width=1024;wristCanvas.height=650;
+const wc=wristCanvas.getContext('2d'),wristTexture=new THREE.CanvasTexture(wristCanvas);
+const wristMat=new THREE.MeshBasicMaterial({map:wristTexture,transparent:true,depthWrite:false,depthTest:false,side:THREE.DoubleSide});
+const wristPanel=new THREE.Mesh(new THREE.PlaneGeometry(.56,.355),wristMat);
+wristPanel.visible=false;wristPanel.renderOrder=130;scene.add(wristPanel);
+const controlRows=[
+ {key:'intensity',min:.25,max:2,title:'BRIGHTNESS'},
+ {key:'density',min:.22,max:1,title:'DENSITY'},
+ {key:'scale',min:.4,max:2.4,title:'SCALE'},
+ {key:'motion',min:.08,max:2,title:'MOVEMENT'},
+ {key:'speed',min:.05,max:2,title:'SPEED'}
+];
+function paintWrist(){
+ wc.clearRect(0,0,1024,650);
+ // Matte floating typographic panel on hand only, not micelial decoration.
+ wc.fillStyle='rgba(4,4,4,.77)';wc.fillRect(0,0,1024,650);
+ wc.strokeStyle='rgba(230,230,230,.28)';wc.strokeRect(15,15,994,620);
+ wc.fillStyle='#fff';wc.textAlign='left';wc.font='32px Arial';wc.fillText('ATMOSPHERE / PARAMETERS',54,75);
+ controlRows.forEach((r,i)=>{
+  const y=141+i*86,f=(params[r.key]-r.min)/(r.max-r.min);
+  wc.font='24px Arial';wc.fillStyle='#ddd';wc.fillText(r.title,54,y);
+  wc.fillStyle='#444';wc.fillRect(420,y-18,450,5);
+  wc.fillStyle='#eee';wc.fillRect(420,y-18,450*Math.max(0,Math.min(1,f)),5);
+  wc.beginPath();wc.arc(420+450*f,y-16,13,0,Math.PI*2);wc.fill();
+ });
+ wc.fillStyle='#ddd';wc.font='27px Arial';
+ wc.fillText('SWITCH TO MIXED REALITY',54,615);
+ wristTexture.needsUpdate=true;
+}
+paintWrist();
+function applyWrist(point){
+ if(!wristPanel.visible)return false;
+ wristPanel.updateMatrixWorld(true);
+ const p=wristPanel.worldToLocal(point.clone());
+ if(Math.abs(p.z)>.17||Math.abs(p.x)>.28||Math.abs(p.y)>.1775)return false;
+ const x=(p.x/.56+.5)*1024,y=(.5-p.y/.355)*650;
+ if(y>555){
+  switchToMixedReality();
+  return true;
+ }
+ const i=Math.round((y-141)/86);
+ if(i<0||i>=controlRows.length||Math.abs(y-(141+i*86))>34)return false;
+ const c=controlRows[i],fraction=Math.max(0,Math.min(1,(x-420)/450));
+ params[c.key]=c.min+(c.max-c.min)*fraction;
+ paintWrist();return true;
+}
+const raycaster=new THREE.Raycaster(),hitDir=new THREE.Vector3();
+function selectWristController(controller){
+ if(!wristPanel.visible)return false;
+ controller.getWorldDirection(hitDir);hitDir.negate();
+ raycaster.set(controller.getWorldPosition(new THREE.Vector3()),hitDir);
+ const intersect=raycaster.intersectObject(wristPanel,false)[0];
+ return intersect?applyWrist(intersect.point):false;
+}
 function advance(){
  if(entered)return;
  if(!introStarted)startIntro();else if(!introFinished)finishIntro();
- else startMusic().catch(e=>$('status').textContent=e.message);
+ else enterExperience();
 }
-for(const ctl of [controller1,controller2])ctl.addEventListener('selectstart',advance);
+for(const ctl of [controller1,controller2])ctl.addEventListener('selectstart',()=>{
+ if(entered){selectWristController(ctl);return}
+ advance();
+});
 let pinched=false;
+let handPoint=new THREE.Vector3(),handOrientation=new THREE.Quaternion(),menuInputHeld=false;
+const LOOK=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
 function handInput(frame){
- if(!renderer.xr.isPresenting||!frame||entered)return;
+ if(!renderer.xr.isPresenting||!frame)return;
  const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
  if(!space)return;
- let touching=false;
+ let touching=false,rightTip=null,leftWrist=null;
  for(const src of session.inputSources){
   if(!src.hand)continue;
-  const a=frame.getJointPose(src.hand.get('thumb-tip'),space);
-  const b=frame.getJointPose(src.hand.get('index-finger-tip'),space);
-  if(!a||!b)continue;
-  const p=a.transform.position,q=b.transform.position;
-  if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.025)touching=true;
+  const wrist=frame.getJointPose(src.hand.get('wrist'),space);
+  const thumb=frame.getJointPose(src.hand.get('thumb-tip'),space);
+  const finger=frame.getJointPose(src.hand.get('index-finger-tip'),space);
+  if(!thumb||!finger)continue;
+  const p=thumb.transform.position,q=finger.transform.position;
+  const pinch=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032;
+  if(src.handedness==='left'&&wrist)leftWrist=wrist;
+  if(src.handedness==='right'){rightTip=new THREE.Vector3(q.x,q.y,q.z);touching=pinch}
+  if(!entered&&pinch)touching=true;
  }
- if(touching&&!pinched)advance();pinched=touching;
+ if(entered){
+  if(leftWrist){
+   const p=leftWrist.transform.position;
+   wristPanel.position.set(p.x+.09,p.y+.18,p.z-.08);
+   const cam=renderer.xr.getCamera();
+   cam.getWorldPosition(LOOK);
+   wristPanel.lookAt(LOOK);
+   wristPanel.visible=true;
+  }else{
+   // Controller-only or hands hidden: a small wrist-like panel beside left controller.
+   const left=session.inputSources.find(src=>src.handedness==='left');
+   if(left&&left.gripSpace){
+    const pose=frame.getPose(left.gripSpace,space);
+    if(pose){
+     const p=pose.transform.position;
+     wristPanel.position.set(p.x+.05,p.y+.16,p.z-.06);
+     wristPanel.lookAt(renderer.xr.getCamera().getWorldPosition(LOOK));
+     wristPanel.visible=true;
+    }
+   }
+  }
+  if(touching&&!menuInputHeld&&rightTip)applyWrist(rightTip);
+  menuInputHeld=touching;
+ }else{
+  wristPanel.visible=false;
+  if(touching&&!pinched)advance();
+  pinched=touching;
+ }
 }
 async function enterXR(mode){
  if(!navigator.xr){$('status').textContent='WebXR unavailable in this browser';return}
