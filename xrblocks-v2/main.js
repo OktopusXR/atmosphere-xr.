@@ -49,7 +49,7 @@ function beginIntro(){
  narration.onended=finishIntro;
  narration.play().catch(()=>{
    $('status').textContent='Voice playback unavailable; using speech synthesis';
-   if('speechSynthesis' in window){const v=new SpeechSynthesisUtterance(phrases.map(p=>p[0]).join(' ... '));v.lang='en-US';speechSynthesis.speak(v)}
+   /* Require recorded female voice; subtitles remain if the file fails. */
  });
 }
 $('start').onclick=beginIntro;$('skip').onclick=finishIntro;
