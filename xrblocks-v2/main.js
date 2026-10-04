@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createCountdown} from './countdown.js?build=score-v12';
 import {scoreEnvelope} from './score.js?build=score-v11';
 import {makeClouds} from './cloud.js?build=score-v11';
 import {createWatch} from './watch.js?build=score-v11';
@@ -68,6 +69,7 @@ music.onended=()=>{started=false;$('status').textContent='ATMOSPHERE · END';};
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
+const countdown=createCountdown(root,402);
 const wrist=createWatch(root,params,()=>{
  const xr=xb.core?.transition;
  if(mode==='VR'){mode='MR';wrist.setMode('MR');xr?.toAR?.();}
@@ -116,13 +118,14 @@ class Atmosphere extends xb.Script {
   }
   const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
   if(renderer?.xr){wrist.update(frame||renderer.xr.getFrame?.(),renderer,started)}
-  if(!started)return;
+  if(!started){countdown.update(null,0,false);return;}
   // XR Blocks supplies selected controller rays, including trigger drag.
   for(const ctl of xb.core?.input?.controllers||[]){
    if(ctl?.userData?.selected&&ctl?.userData?.handedness!=='left')wrist.controllerSelect(ctl);
   }
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=(music.currentTime>0||!music.paused)?music.currentTime*402/duration:Math.min(402,Math.max(0,(performance.now()-visualStartedAt)/1000));
+  countdown.update(xb.core?.camera,t,started);
   const env=scoreEnvelope(t);
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
   cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,env.bass,env.mid,env.high,env.attack);
