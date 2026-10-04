@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createCountdown} from './countdown.js?build=score-v12';
 import {scoreEnvelope} from './score.js?build=score-v11';
 import {makeClouds} from './cloud.js?build=score-v11';
 import {createWatch} from './watch.js?build=score-v11';
@@ -38,6 +39,7 @@ const root=new THREE.Group();scene.add(root);
 
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
+const countdown=createCountdown(scene,soundtrackDuration);
 const board=document.createElement('canvas');board.width=1024;board.height=600;
 const ctx=board.getContext('2d'),boardTex=new THREE.CanvasTexture(board);
 const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(1.68,.985),
@@ -123,6 +125,7 @@ function updateScore(){
  foreground.update(t,env,params);
  const marker=Math.floor(t/2);
  if(marker!==lastCue){lastCue=marker;$('status').textContent=foreground.active+' · '+Math.floor(t)+'s'}
+ return t;
 }
 
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
@@ -256,7 +259,8 @@ renderer.setAnimationLoop((t,frame)=>{
   introBoard.position.copy(pos).add(offset.clone().applyQuaternion(quat));
   introBoard.quaternion.copy(quat);
  }
- if(entered)updateScore(dt);
+ const elapsed=entered?updateScore():0;
+ countdown.update(renderer.xr.isPresenting?renderer.xr.getCamera():camera,elapsed,entered&&!completed);
  renderer.render(scene,camera);
 });
 window.addEventListener('resize',()=>{
