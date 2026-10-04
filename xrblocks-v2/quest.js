@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
 const music=new Audio('../atmosphereADM_binaural.mp3');music.preload='auto';
-const narration=new Audio('../atmosphere-intro.ogg');narration.preload='auto';
+const narration=new Audio('../atmosphere-intro-female.mp3');narration.preload='auto';
 const lines=[
  ['Invisible networks connect all forms of life.','Redes invisibles conectan todas las formas de vida.'],
  ['From body to Earth. From Earth to cosmos.','Del cuerpo a la Tierra. De la Tierra al cosmos.'],
@@ -87,7 +87,7 @@ function startIntro(){
  // Clean, centered, dry narrator. Never duplicate audio through WebAudio,
  // never amplify the low-bitrate original or auto-trigger TTS by threshold.
  narration.volume=1;narration.playbackRate=1;
- const dur=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
+ const dur=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:11.563537;
  timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},dur*.32*1000));
  timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},dur*.66*1000));
  narration.onended=finishIntro;
