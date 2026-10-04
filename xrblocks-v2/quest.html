@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ATMOSPHERE — TECHNO POESIS | Quest compatibility runtime</title>
+<title>ATMOSPHERE — TECHNO POESIS | Spatial score V5</title>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
 <style>
@@ -20,7 +20,7 @@ button:active{background:#eee;color:#111}
 #voice{width:min(430px,80vw);height:32px;display:none;opacity:.4;margin-top:8px}
 #modebar{display:none}#status{position:fixed;bottom:11px;left:14px;font-size:10px;color:#b6b6b6;z-index:95}
 #xrButton{z-index:155;position:fixed;right:10px;bottom:12px}
-#development{position:fixed;top:9px;left:12px;font:10px monospace;color:#aaa;z-index:82;pointer-events:none;opacity:.75}
+#development{display:none;position:fixed;top:9px;left:12px;font:10px monospace;color:#aaa;z-index:82;pointer-events:none;opacity:.75}
 [hidden]{display:none!important}
 </style>
 </head><body>
@@ -35,19 +35,24 @@ button:active{background:#eee;color:#111}
 <div id="xrButton"></div><div id="development">INITIALIZING...</div>
 <script>
 (function(){
- let errors=[];
- let d=document.getElementById('development');
+ const debug=new URLSearchParams(location.search).get('debug')==='1';
+ const panel=document.getElementById('development');
+ const messages=[];
+ if(debug)panel.style.display='block';
  window.atmosDiagnostic=function(msg){
   const value=String(msg||'Unknown error');
-  errors.push(value);if(errors.length>5)errors.shift();
-  d.textContent=errors.join('\n');
-  const s=document.getElementById('status');if(s)s.textContent=value;
+  messages.push(value);if(messages.length>5)messages.shift();
+  console.error('[ATMOSPHERE XR]',value);
+  if(debug)panel.textContent=messages.join('\n');
+  // Keep real errors accessible without overlaying the artwork.
+  const status=document.getElementById('status');
+  if(status)status.textContent=debug?value:'Technical warning · use ?debug=1';
  };
- window.addEventListener('error',e=>atmosDiagnostic('JS ERROR: '+(e.message||e.error?.message||'script could not load')));
- window.addEventListener('unhandledrejection',e=>atmosDiagnostic('ASYNC ERROR: '+(e.reason?.message||e.reason)));
- setTimeout(()=>{if(!window.atmosAppReady)atmosDiagnostic('XR Blocks did not initialize. Check network, CDN and supported browser.')},10000);
+ window.addEventListener('error',e=>window.atmosDiagnostic('JS: '+(e.message||e.error?.message||'load failed')));
+ window.addEventListener('unhandledrejection',e=>window.atmosDiagnostic('ASYNC: '+(e.reason?.message||e.reason)));
+ setTimeout(()=>{if(!window.atmosAppReady)window.atmosDiagnostic('Experience not initialized')},10000);
 })();
 </script>
 
-<script type="module" src="./quest.js?build=pointcloud-v4"></script>
+<script type="module" src="./quest.js?build=score-v5"></script>
 </body></html>
