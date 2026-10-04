@@ -187,6 +187,83 @@ const fieldMat=new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transp
 const wireField=new THREE.Mesh(fieldGeo,fieldMat);
 wireField.position.set(0,1.6,0);wireField.rotation.set(0,0,0);
 root.add(wireField);
+
+// Faceted luminous shell: per-face light states, linked to transients and spectral energy.
+const facetGeo=new THREE.IcosahedronGeometry(3.17,3).toNonIndexed();
+const facePositions=facetGeo.attributes.position;
+const faceColors=new Float32Array(facePositions.count*3);
+facetGeo.setAttribute('color',new THREE.BufferAttribute(faceColors,3).setUsage(THREE.DynamicDrawUsage));
+const facetMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.18,depthWrite:false});
+const facetShell=new THREE.Mesh(facetGeo,facetMat);
+facetShell.position.y=1.6;facetShell.frustumCulled=false;root.add(facetShell);
+const faceSeeds=Array.from({length:facePositions.count/3},(_,i)=>(Math.sin(i*12.9898)*43758.5453)%1);
+function illuminateFaces(t,level){
+ const v=facetGeo.attributes.color.array;
+ for(let f=0;f<faceSeeds.length;f++){
+  const seed=Math.abs(faceSeeds[f]);
+  const wave=Math.max(0,Math.sin(f*.039-t*(.35+mid*2.2)+seed*6));
+  const bright=Math.min(1,.018+level*(Math.pow(wave,9)*(.45+.9*impact)+.2*high));
+  for(let k=0;k<3;k++){let p=(f*3+k)*3;v[p]=bright;v[p+1]=bright;v[p+2]=bright;}
+ }
+ facetGeo.attributes.color.needsUpdate=true;
+}
+// Meteor showers: controlled streaks in a volume surrounding the viewer.
+const METEORS=130,meteorGeo=new THREE.BufferGeometry();
+const meteorPositions=new Float32Array(METEORS*6);
+meteorGeo.setAttribute('position',new THREE.BufferAttribute(meteorPositions,3).setUsage(THREE.DynamicDrawUsage));
+const meteorMat=new THREE.LineBasicMaterial({color:0xf8f8f8,transparent:true,opacity:0,depthWrite:false});
+const meteorField=new THREE.LineSegments(meteorGeo,meteorMat);meteorField.frustumCulled=false;root.add(meteorField);
+function updateMeteors(t,energy,visibility){
+ for(let i=0;i<METEORS;i++){
+  const seed=i*2.3999632,drift=t*(.3+energy*.65)+i*.736;
+  const y=1.6+4.5-((drift%1.0)*10);
+  const r=1.9+(i%13)*.32,angle=seed;
+  const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
+  const p=i*6;
+  meteorPositions[p]=x;meteorPositions[p+1]=y;meteorPositions[p+2]=z;
+  meteorPositions[p+3]=x+.18;meteorPositions[p+4]=y+.2+energy*.7;meteorPositions[p+5]=z+.1;
+ }
+ meteorGeo.attributes.position.needsUpdate=true;
+ meteorMat.opacity=visibility*(.14+.48*energy+.25*impact);
+}
+// Black-hole / tunnel: nested rings, with no automatic artificial camera motion.
+const tunnel=new THREE.Group(),tunnelRings=[];
+for(let i=0;i<18;i++){
+ const m=new THREE.Mesh(new THREE.TorusGeometry(1,.006,3,64),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
+ tunnel.add(m);tunnelRings.push(m);
+}
+tunnel.position.set(0,1.6,-1.2);root.add(tunnel);
+function updateTunnel(t,energy,visibility){
+ for(let i=0;i<tunnelRings.length;i++){
+  const p=(i/18+t*(.035+.035*energy))%1;
+  const ring=tunnelRings[i];ring.position.z=-(.45+p*13);
+  ring.scale.setScalar(.28+p*3.1);
+  ring.rotation.z=t*.09+i*.33;
+  ring.material.opacity=visibility*(.08+.45*energy)*Math.sin(Math.PI*p);
+ }
+}
+// Blob particles: volumetric clusters, not continuous small floating dots.
+const BLOB_N=176,blobGeo=new THREE.IcosahedronGeometry(.09,1);
+const blobMat=new THREE.MeshBasicMaterial({color:0xeeeeee,transparent:true,opacity:0,depthWrite:false});
+const blobCloud=new THREE.InstancedMesh(blobGeo,blobMat,BLOB_N);
+blobCloud.frustumCulled=false;root.add(blobCloud);
+const blobObject=new THREE.Object3D();
+function updateBlobs(t,energy,visibility){
+ for(let i=0;i<BLOB_N;i++){
+  const group=i%4,seed=i*2.39996,radial=.22+(i%23)*.053;
+  const center=group*1.5708+t*(.07+energy*.1);
+  const r=2.5+Math.sin(group+t*.14)*.5;
+  blobObject.position.set(Math.cos(center)*r+Math.cos(seed)*radial,
+    1.6+Math.sin(center*1.3)*1.6+Math.sin(seed*.7)*radial,
+    Math.sin(center)*r+Math.sin(seed)*radial);
+  const scale=(.1+.9*Math.max(.05,energy)+.5*impact)*(.25+(i%7)/7);
+  blobObject.scale.setScalar(scale);blobObject.rotation.set(t*.1,seed,0);
+  blobObject.updateMatrix();blobCloud.setMatrixAt(i,blobObject.matrix);
+ }
+ blobCloud.instanceMatrix.needsUpdate=true;
+ blobMat.opacity=visibility*(.13+.43*energy);
+}
+
 let tactileEnergy=0,tactileSpread=0,tactileX=0,tactileY=0;
 function deformWireField(t,pressure,texture){
  const a=fieldGeo.attributes.position.array;
@@ -256,15 +333,25 @@ function evolve(dt){
  const appear=smooth01(actTime/.16);
  const leave=1-smooth01((actTime-.85)/.15);
  const envelope=appear*leave;
- const shellActive=[.05,.1,1,.72,.95,.08,.84,.06][act];
+ const shellActive=[.22,.33,1,.84,1,.21,.96,.11][act];
  const strandActive=[.04,.62,.18,1,.16,.08,.78,.06][act];
- const dustActive=[.04,.12,.07,.16,.6,1,.43,.15][act];
+ const dustActive=[.08,.22,.07,.19,.55,.7,.44,.11][act];
  const breathing=1+.18*pressure+.12*lo+.25*tactileSpread;
  const fold=.09+weave*.56+tactileEnergy*.3;
  deformWireField(animationT,pressure,weave);
  fieldMat.opacity*=shellActive*(.3+.7*envelope);
- wireField.rotation.y=animationT*(act===4?.1:.013);
- wireField.rotation.z=Math.sin(animationT*.12)*.06;
+ wireField.rotation.y=animationT*(act===4?.24:act===2||act===6?.11:.045)+mi*.22;
+ wireField.rotation.x=Math.sin(animationT*.22)*.19+lo*.12;
+ wireField.rotation.z=animationT*(act===4?.08:.024)+Math.sin(animationT*.12)*.08;
+ // The sphere's expansion remains the central motif across multiple acts.
+ const luminous=[.06,.14,.72,.85,1,.12,.76,.04][act]*(.25+.75*envelope);
+ facetShell.rotation.copy(wireField.rotation);
+ facetShell.scale.setScalar(1+pressure*.11+impact*.05);
+ facetMat.opacity=.32*luminous;
+ illuminateFaces(animationT,luminous);
+ updateMeteors(animationT,pressure,[0,0,.08,.15,.95,.42,.18,0][act]*envelope);
+ updateTunnel(animationT,pressure,[0,.14,.15,.87,.72,.12,.2,0][act]*envelope);
+ updateBlobs(animationT,pressure,[0,.1,.08,.35,.45,1,.5,.1][act]*envelope);
  tactileEnergy*=Math.exp(-dt*1.4);tactileSpread*=Math.exp(-dt*.2);
  driveShock(dt);
  for(let i=0;i<P;i++){
