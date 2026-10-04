@@ -16,7 +16,7 @@
 #intro{z-index:100;position:fixed;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;background:#000e;text-align:left;padding:clamp(24px,7vw,95px)}
 .kicker{font-size:11px;letter-spacing:.36em;color:#bbb}.title{font-size:clamp(42px,10vw,108px);letter-spacing:.01em;font-weight:750;margin:18px 0 28px}
 #en{font-size:clamp(18px,3vw,27px);line-height:1.4;max-width:800px;min-height:40px}
-#es{color:#bbb;margin-top:10px;font-size:clamp(12px,2vw,18px);min-height:24px}
+#es{font-weight:600;color:#eee;margin-top:10px;font-size:clamp(12px,2vw,18px);min-height:24px}
 #credit{font-size:12px;color:#bbb;margin:28px 0 18px;line-height:1.9}a{color:#ddd}
 button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;letter-spacing:.12em;cursor:pointer;margin:7px}
 #status{position:fixed;left:14px;bottom:16px;z-index:80;color:#bcbcbc;font-size:11px;letter-spacing:.08em;pointer-events:none}
@@ -55,9 +55,9 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
  const isQuest=/OculusBrowser|Quest|Oculus|MetaQuest/i.test(navigator.userAgent);
  if(isQuest){
   const p=new URLSearchParams(location.search);
-  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr')+'&build=score-v7b');
+  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr')+'&build=score-v8');
  }
 })();
 </script>
-<script type="module" src="./main.js?build=score-v7b"></script>
+<script type="module" src="./main.js?build=score-v8"></script>
 </body></html>
