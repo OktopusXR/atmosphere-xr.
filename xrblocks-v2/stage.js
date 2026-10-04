@@ -87,7 +87,7 @@ export function createForeground(root){
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);
  const label=new THREE.Mesh(new THREE.PlaneGeometry(1.95,.65),
   new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));
- label.position.set(-1.32,.46,-2.55);label.renderOrder=5;root.add(label);
+ label.position.set(-1.32,1.13,-2.55);label.renderOrder=5;root.add(label);
  let previous=-1,active='RESONANCE';
  function drawTitle(title,actIndex){
   ctx.clearRect(0,0,768,256);ctx.textAlign='left';
