@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js?build=score-v5';
-import {createForeground} from './stage.js?build=score-v5';
+import {makeClouds} from './cloud.js?build=score-v6';
+import {createWatch} from './watch.js?build=score-v6';
+import {createForeground} from './stage.js?build=score-v6';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
@@ -30,7 +31,7 @@ const cues=[
  {sec:353,name:'RESPIRATION'},
  {sec:402,name:'END'}
 ];
-const params={intensity:.95,density:.82,scale:1,speed:.6,motion:.8};
+const params={intensity:1,density:.67,scale:1,speed:.6,motion:.8,variation:.55};
 function caption(i){$('en').textContent=phrases[i][0];$('es').textContent=phrases[i][1];paintIntro();}
 function finishIntro(){
  if(introFinished)return;
@@ -102,6 +103,10 @@ function findCue(t){
 const root=new THREE.Group();
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
+const wrist=createWatch(root,params,()=>{
+ const xr=xb.core?.transition;
+ if(mode==='VR'){mode='MR';xr?.toAR?.();}else{mode='VR';xr?.toVR?.({color:0x000000});}
+});
 let canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;
 const cx=canvas.getContext('2d'),introTexture=new THREE.CanvasTexture(canvas);
 let introPlane;
@@ -143,13 +148,15 @@ class Atmosphere extends xb.Script {
    introPlane.position.copy(p).add(new THREE.Vector3(0,0,-1.4).applyQuaternion(q));
    introPlane.quaternion.copy(q);
   }
+  const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
+  if(renderer?.xr){wrist.update(renderer.xr.getFrame?.(),renderer,started)}
   if(!started)return;
   soundFrame(dt);
   const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:402;
   const t=music.currentTime*402/duration;
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
-  cloudEngine.update(t,{...params,intensity:params.intensity*.36},cue,bass,mid,high,transient);
-  foreground.update(t,{bass,mid,high,attack:transient});
+  cloudEngine.update(t,{...params,intensity:params.intensity*.38},cue,bass,mid,high,transient);
+  foreground.update(t,{bass,mid,high,attack:transient},params);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectEnd(){
@@ -167,6 +174,12 @@ options.simulator.defaultMode=xb.SimulatorMode.CONTROLLER;
 options.xrButton.showEnterSimulatorButton=true;
 xb.add(new Atmosphere());
 xb.init(options).then(()=>{
+ const xrRenderer=xb.core?.renderer||xb.core?.engine?.renderer;
+ if(xrRenderer?.xr)for(let i=0;i<2;i++){
+  xrRenderer.xr.getController(i)?.addEventListener('selectstart',e=>{
+   if(started&&e?.data?.handedness!=='left')wrist.controllerSelect(xrRenderer.xr.getController(i));
+  });
+ }
  const xrTransition=xb.core.transition;
  if(mode==='VR')xrTransition?.toVR({color:0x000000});else xrTransition?.toAR();
  $('status').textContent='Mode: '+(mode==='VR'?'virtual reality':'mixed reality')+' · select ENTER XR';
