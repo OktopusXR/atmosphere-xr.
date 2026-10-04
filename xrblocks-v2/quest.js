@@ -27,7 +27,7 @@ const cues=[
  {sec:353,name:'RESPIRATION'},
  {sec:402,name:'END'}
 ];
-const params={intensity:1.32,density:.79,scale:1,speed:.6,motion:.8,variation:.55};
+const params={intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1};
 const scene=new THREE.Scene();scene.background=new THREE.Color(0);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
 camera.position.set(0,1.6,0);
@@ -42,16 +42,36 @@ const foreground=createForeground(root);
 const countdown=createCountdown(scene,soundtrackDuration);
 const board=document.createElement('canvas');board.width=1024;board.height=600;
 const ctx=board.getContext('2d'),boardTex=new THREE.CanvasTexture(board);
-const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(1.68,.985),
+const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.35),
  new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false,depthTest:false}));
+
 introBoard.renderOrder=100;scene.add(introBoard);
+// In-headset ending: a real legible end panel plus a clearly marked replay target.
+const endCanvas=document.createElement('canvas');endCanvas.width=1024;endCanvas.height=576;
+const endCtx=endCanvas.getContext('2d'),endTexture=new THREE.CanvasTexture(endCanvas);
+endCtx.clearRect(0,0,1024,576);
+endCtx.textAlign='center';endCtx.fillStyle='#ffffff';
+endCtx.font='bold 112px Arial';endCtx.fillText('THE END',512,224);
+endCtx.strokeStyle='#dddddd';endCtx.lineWidth=2;endCtx.strokeRect(174,334,676,104);
+endCtx.font='bold 42px Arial';endCtx.fillText('COMENZAR NUEVAMENTE',512,400);
+endTexture.needsUpdate=true;
+const endBoard=new THREE.Mesh(new THREE.PlaneGeometry(2.25,1.265),
+ new THREE.MeshBasicMaterial({map:endTexture,transparent:true,depthWrite:false,depthTest:false}));
+endBoard.renderOrder=210;endBoard.visible=false;scene.add(endBoard);
+const endOverlay=document.createElement('div');
+endOverlay.style.cssText='display:none;position:fixed;inset:0;z-index:180;background:#000e;color:white;align-items:center;justify-content:center;flex-direction:column;gap:36px;font-family:Arial';
+endOverlay.innerHTML='<div style="font-size:clamp(48px,10vw,100px);font-weight:700">THE END</div>';
+const replayButton=document.createElement('button');replayButton.textContent='COMENZAR NUEVAMENTE';
+replayButton.style.cssText='font:bold 21px Arial;padding:22px 34px;color:#fff;border:2px solid #fff;background:#111';
+endOverlay.appendChild(replayButton);document.body.appendChild(endOverlay);
+
 function drawIntro(){
  // Editorial layout inspired by the user's NODE Institute reference.
  ctx.clearRect(0,0,1024,600);
  ctx.textAlign='left';
- ctx.fillStyle='#c3c3c3';ctx.font='bold 25px Arial';
+ ctx.fillStyle='#eee';ctx.font='bold 31px Arial';
  ctx.fillText('TECHNO POESIS',67,76);
- ctx.fillStyle='#e5e5e5';ctx.font='bold 22px Arial';
+ ctx.fillStyle='#eee';ctx.font='bold 27px Arial';
  ctx.fillText('AN IMMERSIVE XR EXPERIENCE',67,110);
  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;
  ctx.beginPath();ctx.arc(754,280,207,0,Math.PI*2);ctx.stroke();
@@ -64,7 +84,7 @@ function drawIntro(){
   ctx.fillStyle='#f1f1f1';ctx.font='27px Arial';
   ctx.fillText('INVISIBLE NETWORKS   /   RESONANCE',67,261);
  }
- ctx.fillStyle='#fff';ctx.font='bold 91px Arial';
+ ctx.fillStyle='#fff';ctx.font='bold 108px Arial';
  ctx.fillText('ATMOSPHERE',62,438,940);
  ctx.fillStyle='#ddd';ctx.font='20px Arial';
  ctx.fillText('Ricardo P. Tapia Fernández  /  Oktopus Art Studio',68,500);
@@ -114,7 +134,22 @@ async function startMusic(){
  $('status').textContent='ATMOSPHERE · MUSIC MASTER CLOCK';
 }
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
-music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;entered=false;introBoard.visible=false};
+function showEnd(){
+ entered=false;completed=true;introBoard.visible=false;
+ endBoard.visible=renderer.xr.isPresenting;
+ endOverlay.style.display=renderer.xr.isPresenting?'none':'flex';
+ $('status').textContent='THE END';
+}
+async function restartExperience(){
+ if(!completed)return;
+ completed=false;endBoard.visible=false;endOverlay.style.display='none';
+ music.pause();music.currentTime=0;lastCue=-1;visualStartedAt=performance.now();
+ entered=true;introBoard.visible=false;
+ $('status').textContent='ATMOSPHERE · RESTARTED';
+ try{await music.play()}catch(e){$('status').textContent='Audio pending · '+e.message}
+}
+replayButton.onclick=restartExperience;
+music.onended=showEnd;
 // Playback time alone drives a precomposed, continuously interpolated score.
 function updateScore(){
  const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:soundtrackDuration;
@@ -142,6 +177,7 @@ function advance(){
 for(const ctl of [controller1,controller2]){
  ctl.userData.watchSelecting=false;
  ctl.addEventListener('selectstart',event=>{
+ if(completed){restartExperience();return;}
  if(entered){
   const handed=event?.data?.handedness||event?.inputSource?.handedness;
   if(handed==='right'||(!handed&&ctl===controller2)){
@@ -167,7 +203,7 @@ function handInput(frame){
   const p=a.transform.position,q=b.transform.position;
   if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032)touching=true;
  }
- if(touching&&!pinched)advance();pinched=touching;
+ if(touching&&!pinched){if(completed)restartExperience();else advance()}pinched=touching;
 }
 
 async function enterXR(mode='VR'){
@@ -253,11 +289,19 @@ renderer.setAnimationLoop((t,frame)=>{
   if(ctl.userData.watchSelecting)watch.controllerSelect(ctl);
  }
  introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
+ endBoard.visible=renderer.xr.isPresenting&&completed;
+ endOverlay.style.display=completed&&!renderer.xr.isPresenting?'flex':'none';
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
   cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
   introBoard.position.copy(pos).add(offset.clone().applyQuaternion(quat));
   introBoard.quaternion.copy(quat);
+ }
+ if(completed&&renderer.xr.isPresenting){
+  const cam=renderer.xr.getCamera();
+  cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
+  endBoard.position.copy(pos).add(new THREE.Vector3(0,0,-1.8).applyQuaternion(quat));
+  endBoard.quaternion.copy(quat);
  }
  const elapsed=entered?updateScore():0;
  countdown.update(renderer.xr.isPresenting?renderer.xr.getCamera():camera,elapsed,entered&&!completed);
