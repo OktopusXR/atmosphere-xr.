@@ -72,12 +72,21 @@ function finishIntro(){
 }
 let speechFallback=null,voiceContext=null,voiceMeter=null,voiceSamples=null,voicePeak=0,voiceStartedAt=0,voiceFallbackTriggered=false;
 function voiceFallback(){
- // Browser voice is a fallback, never a second simultaneous narrator.
- if(!('speechSynthesis' in window)){$('status').textContent='Narration audio not available';return}
+ if(voiceFallbackTriggered&&speechFallback)return;
+ voiceFallbackTriggered=true;
+ clearTimers();
+ if(!('speechSynthesis' in window)){
+  $('status').textContent='Narration unavailable: subtitles active';
+  timers.push(setTimeout(finishIntro,12000));return;
+ }
  speechSynthesis.cancel();
  const u=new SpeechSynthesisUtterance(lines.map(v=>v[0]).join(' ... '));
  u.lang='en-US';u.rate=.88;u.pitch=.9;
+ u.onend=()=>{if(!introFinished)finishIntro()};
  speechFallback=u;
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(1)},4400));
+ timers.push(setTimeout(()=>{if(!introFinished)setCaption(2)},9000));
+ timers.push(setTimeout(finishIntro,22000));
  speechSynthesis.speak(u);
 }
 function startIntro(){
