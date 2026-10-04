@@ -204,7 +204,11 @@ function offerContinue(mode){
  const action=document.createElement('button');
  action.textContent='CONTINUE IN '+(mode==='VR'?'VR':'MIXED REALITY');
  action.style.cssText='font-size:16px;padding:18px 28px;background:#161616;color:white;border:2px solid #fff';
- action.onclick=()=>{overlay.style.display='none';enterXR(mode)};
+ action.onclick=async()=>{
+  const ok=await enterXR(mode);
+  if(ok){requestedMode=null;overlay.style.display='none'}
+  else overlay.style.display='block';
+ };
  overlay.appendChild(action);
  $('status').textContent='MODE READY · SELECT CONTINUE IN '+mode;
 }
@@ -214,18 +218,18 @@ async function changeMode(){
  const destination=selectedMode==='VR'?'MR':'VR';
  requestedMode=destination;
  try{
+  // Browser requires a fresh activation for a new immersive session.
+  // Predictable two-step switch: exit the current session once and offer
+  // ONE unambiguous Continue action. The master soundtrack keeps running.
   if(renderer.xr.isPresenting){
-   // Session changes cannot be guaranteed without another user activation.
-   // Keep the soundtrack and composed timeline running throughout.
    await renderer.xr.getSession().end();
   }
-  const ok=await enterXR(destination);
-  if(ok){requestedMode=null;$('xrButton').style.display='none'}
-  else offerContinue(destination);
+  offerContinue(destination);
  }catch(e){
   offerContinue(destination);
  }finally{changingMode=false}
 }
+
 renderer.xr.addEventListener('sessionstart',()=>{
  $('xrButton').style.display='none';
  watch.watch.visible=false;
