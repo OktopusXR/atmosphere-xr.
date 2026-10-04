@@ -40,38 +40,59 @@ const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(1.68,.985),
  new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false,depthTest:false}));
 introBoard.renderOrder=100;scene.add(introBoard);
 function drawIntro(){
+ // Type floats directly in the world. No rectangular background or opaque card.
  ctx.clearRect(0,0,1024,600);
- ctx.fillStyle=selectedMode==='MR'?'rgba(0,0,0,.78)':'rgba(0,0,0,.96)';
- ctx.fillRect(0,0,1024,600);ctx.textAlign='center';ctx.fillStyle='#fff';
- ctx.font='23px Arial';ctx.fillText('TECHNO POESIS',512,72);
- ctx.font='61px Arial';ctx.fillText('ATMOSPHERE',512,164);
- if(introStarted&&!introFinished){
-  ctx.font='27px Arial';ctx.fillText(lines[captionIndex][0],512,276);
-  ctx.fillStyle='#bbb';ctx.font='22px Arial';ctx.fillText(lines[captionIndex][1],512,320);
+ const soft=(text,y,font,color='#eeeeee')=>{
+  ctx.fillStyle=color;ctx.font=font;ctx.textAlign='center';ctx.fillText(text,512,y);
+ };
+ ctx.save();
+ ctx.strokeStyle='rgba(240,240,240,.24)';ctx.lineWidth=1;
+ ctx.beginPath();ctx.ellipse(512,289,215,215,0,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='rgba(240,240,240,.075)';
+ ctx.beginPath();ctx.ellipse(512,289,224,224,0,0,Math.PI*2);ctx.stroke();
+ if(!introStarted){
+  soft('TECHNO POESIS',144,'22px Arial','#cccccc');
+  soft('A T M O S P H E R E',254,'44px Arial');
  }else if(!introFinished){
-  ctx.font='24px Arial';ctx.fillText('Invisible networks connect all forms of life.',512,285);
- }
- ctx.fillStyle='#ccc';ctx.font='21px Arial';ctx.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,403);
- ctx.font='18px Arial';ctx.fillText('@oktopus.art',512,437);
- ctx.fillStyle='#fff';ctx.font='27px Arial';
- ctx.fillText(introFinished?'PINCH / TRIGGER · ENTER EXPERIENCE':introStarted?'PINCH / TRIGGER · SKIP':'PINCH / TRIGGER · START',512,527);
- boardTex.needsUpdate=true;
+  const parts=lines[captionIndex];
+  soft(parts[0],259,'26px Arial');
+  soft(parts[1],313,'19px Arial','#bbbbbb');
+ }else soft('A T M O S P H E R E',273,'39px Arial');
+ soft('Ricardo P. Tapia Fernández',411,'19px Arial','#d9d9d9');
+ soft('OKTOPUS ART STUDIO   /   @oktopus.art',445,'14px Arial','#aaaaaa');
+ soft(introFinished?'PINCH TO BEGIN':introStarted?'LISTEN':'START',524,'19px Arial','#dedede');
+ ctx.restore();boardTex.needsUpdate=true;
 }
 function setCaption(i){captionIndex=i;$('en').textContent=lines[i][0];$('es').textContent=lines[i][1];drawIntro()}
 function clearTimers(){timers.forEach(clearTimeout);timers=[]}
 function finishIntro(){
- if(introFinished)return;introFinished=true;clearTimers();narration.pause();
+ if(introFinished)return;introFinished=true;clearTimers();narration.pause();if(speechFallback&&'speechSynthesis' in window)speechSynthesis.cancel();
  $('en').textContent='';$('es').textContent='';$('start').hidden=true;$('skip').hidden=true;
  $('enter').hidden=false;$('voice').style.display='none';drawIntro();
 }
+let speechFallback=null;
+function voiceFallback(){
+ // Browser voice is a fallback, never a second simultaneous narrator.
+ if(!('speechSynthesis' in window)){$('status').textContent='Narration audio not available';return}
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(lines.map(v=>v[0]).join(' ... '));
+ u.lang='en-US';u.rate=.88;u.pitch=.9;
+ speechFallback=u;
+ speechSynthesis.speak(u);
+}
 function startIntro(){
- if(introStarted)return;introStarted=true;
- $('start').hidden=true;$('skip').hidden=false;$('voice').style.display='block';setCaption(0);
- const d=Number.isFinite(narration.duration)&&narration.duration>6?narration.duration:12.6;
- for(const [idx,fraction] of [[1,.32],[2,.66]])
-  timers.push(setTimeout(()=>{if(!introFinished)setCaption(idx)},d*fraction*1000));
- timers.push(setTimeout(finishIntro,Math.max(10.2,d+1.1)*1000));
- narration.play().catch(e=>{$('status').textContent='Narration unavailable: '+e.message});
+ if(introStarted)return;
+ introStarted=true;$('start').hidden=true;$('skip').hidden=false;
+ $('voice').style.display='block';setCaption(0);
+ const duration=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
+ // The repository's real Ogg Opus voice is 7.51s, NOT 12.6s.
+ const times=[.32,.66];
+ times.forEach((fraction,j)=>timers.push(setTimeout(()=>{if(!introFinished)setCaption(j+1)},duration*fraction*1000)));
+ narration.onended=()=>{if(!introFinished)finishIntro()};
+ narration.onerror=()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))};
+ const playback=narration.play();
+ if(playback?.catch)playback.catch(()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))});
+ timers.push(setTimeout(finishIntro,Math.max(10,duration+1.5)*1000));
 }
 $('start').onclick=startIntro;$('skip').onclick=finishIntro;
 async function startMusic(){
