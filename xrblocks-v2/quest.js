@@ -163,14 +163,20 @@ function advance(){
  if(!introStarted)startIntro();else if(!introFinished)finishIntro();
  else enterExperience();
 }
-for(const ctl of [controller1,controller2])ctl.addEventListener('selectstart',event=>{
+for(const ctl of [controller1,controller2]){
+ ctl.userData.watchSelecting=false;
+ ctl.addEventListener('selectstart',event=>{
  if(entered){
   const handed=event?.data?.handedness||event?.inputSource?.handedness;
-  if(handed==='right'||(!handed&&ctl===controller2))watch.controllerSelect(ctl);
+  if(handed==='right'||(!handed&&ctl===controller2)){
+   ctl.userData.watchSelecting=true;watch.controllerSelect(ctl);
+  }
   return;
  }
  advance();
-});
+ });
+ ctl.addEventListener('selectend',()=>{ctl.userData.watchSelecting=false});
+}
 let pinched=false;
 function handInput(frame){
  if(!renderer.xr.isPresenting||!frame||entered)return;
@@ -254,6 +260,9 @@ renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
  watch.update(frame,renderer,entered);
+ if(entered)for(const ctl of [controller1,controller2]){
+  if(ctl.userData.watchSelecting)watch.controllerSelect(ctl);
+ }
  introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
