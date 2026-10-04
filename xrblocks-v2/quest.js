@@ -70,7 +70,7 @@ function finishIntro(){
  $('en').textContent='';$('es').textContent='';$('start').hidden=true;$('skip').hidden=true;
  $('enter').hidden=false;$('voice').style.display='none';drawIntro();
 }
-let speechFallback=null;
+let speechFallback=null,voiceContext=null,voiceMeter=null,voiceSamples=null,voicePeak=0,voiceStartedAt=0,voiceFallbackTriggered=false;
 function voiceFallback(){
  // Browser voice is a fallback, never a second simultaneous narrator.
  if(!('speechSynthesis' in window)){$('status').textContent='Narration audio not available';return}
@@ -82,6 +82,19 @@ function voiceFallback(){
 }
 function startIntro(){
  if(introStarted)return;
+ // A native WebAudio route boosts compatibility and exposes the REAL narrator waveform.
+ try{
+  if(!voiceContext){
+   voiceContext=new (window.AudioContext||window.webkitAudioContext)();
+   voiceMeter=voiceContext.createAnalyser();voiceMeter.fftSize=512;
+   voiceSamples=new Float32Array(512);
+   const media=voiceContext.createMediaElementSource(narration),gain=voiceContext.createGain();
+   gain.gain.value=1.7;
+   media.connect(voiceMeter);voiceMeter.connect(gain);gain.connect(voiceContext.destination);
+  }
+  voiceContext.resume();
+ }catch(err){$('status').textContent='NARRATION AUDIO ROUTE: '+err.message}
+ voiceStartedAt=performance.now();voicePeak=0;voiceFallbackTriggered=false;
  introStarted=true;$('start').hidden=true;$('skip').hidden=false;
  $('voice').style.display='block';setCaption(0);
  const duration=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
@@ -92,7 +105,7 @@ function startIntro(){
  narration.onerror=()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))};
  const playback=narration.play();
  if(playback?.catch)playback.catch(()=>{voiceFallback();if(!introFinished)timers.push(setTimeout(finishIntro,12500))});
- timers.push(setTimeout(finishIntro,Math.max(10,duration+1.5)*1000));
+ timers.push(setTimeout(finishIntro,Math.max(12,duration+3)*1000));
 }
 $('start').onclick=startIntro;$('skip').onclick=finishIntro;
 async function startMusic(){
@@ -317,10 +330,33 @@ renderer.xr.addEventListener('sessionend',()=>{
 });
 $('modebar').style.display='none';
 $('xrButton').style.display='none';
+function drawVoiceMeter(){
+ if(!introStarted||introFinished)return;
+ const cv=$('voice'),c=cv.getContext('2d');
+ c.clearRect(0,0,640,64);
+ if(voiceMeter&&voiceSamples){
+  voiceMeter.getFloatTimeDomainData(voiceSamples);
+  let sum=0;for(const v of voiceSamples)sum+=v*v;
+  const actual=Math.sqrt(sum/voiceSamples.length);
+  voicePeak=Math.max(voicePeak,actual);
+  c.lineWidth=1.4;c.strokeStyle='rgba(240,240,240,.85)';c.beginPath();
+  for(let i=0;i<256;i++){
+   const x=i/255*640,y=32+voiceSamples[i*2]*54;
+   if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+  }
+  c.stroke();
+  if(!voiceFallbackTriggered&&voicePeak<.002&&
+    performance.now()-voiceStartedAt>2400){
+   voiceFallbackTriggered=true;narration.pause();voiceFallback();
+   $('status').textContent='Narration voice fallback active';
+  }
+ }
+}
 const clock=new THREE.Clock(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),offset=new THREE.Vector3(0,0,-1.7);
 renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
+ drawVoiceMeter();
  introBoard.visible=!entered&&!completed;
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
