@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // ATMOSPHERE / WATCH V6 - one wearable interface for XR Blocks and Quest.
 // All controller and hand interactions map into the same watch canvas coordinates.
 export function createWatch(scene,controls,onMode){
- const size={w:.255,h:.337};
+ const size={w:.35,h:.46};
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=676;
  const cx=canvas.getContext('2d'),texture=new THREE.CanvasTexture(canvas);
  const watch=new THREE.Mesh(new THREE.PlaneGeometry(size.w,size.h),
@@ -92,14 +92,14 @@ export function createWatch(scene,controls,onMode){
   cx.strokeStyle='rgba(255,255,255,.25)';cx.beginPath();
   cx.arc(256,120,53,-Math.PI*.72,Math.PI*.72);cx.stroke();
   cx.fillStyle='#fff';cx.textAlign='center';
-  cx.font='bold 21px Arial';cx.fillText('ATMOSPHERE',256,34);
+  cx.font='bold 25px Arial';cx.fillText('ATMOSPHERE',256,34);
   cx.font='bold 25px Arial';cx.fillText('XR / CONTROL',256,105);
-  cx.font='bold 19px Arial';cx.fillStyle='#eee';cx.fillText('INTERACTIVE SCORE',256,131);
+  cx.font='bold 22px Arial';cx.fillStyle='#eee';cx.fillText('INTERACTIVE SCORE',256,131);
   cx.strokeStyle='#fff';cx.beginPath();cx.moveTo(53,197);cx.lineTo(459,197);cx.stroke();
   rows.forEach((r,i)=>{
    const y=245+i*55,raw=controls[r.key],v=clamp((raw-r.min)/(r.max-r.min),0,1);
    if(highlight===i){cx.fillStyle='rgba(255,255,255,.18)';cx.fillRect(35,y-26,444,52)}
-   cx.textAlign='left';cx.fillStyle='#ddd';cx.font='bold 22px Arial';cx.fillText(r.label,45,y+5);
+   cx.textAlign='left';cx.fillStyle='#ddd';cx.font='bold 25px Arial';cx.fillText(r.label,45,y+5);
    cx.fillStyle='#40464c';cx.fillRect(215,y-6,225,5);
    cx.fillStyle='#fff';cx.fillRect(215,y-6,225*v,5);
    cx.beginPath();cx.arc(215+225*v,y-3.5,10,0,Math.PI*2);cx.fill();
@@ -114,14 +114,14 @@ export function createWatch(scene,controls,onMode){
   if(!watch.visible)return false;
   watch.updateMatrixWorld(true);
   const p=watch.worldToLocal(world.clone());
-  if(Math.abs(p.z)>.075||Math.abs(p.x)>size.w/2||Math.abs(p.y)>size.h/2)return false;
+  if(Math.abs(p.z)>.11||Math.abs(p.x)>size.w/2||Math.abs(p.y)>size.h/2)return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
   if(y>=585){
    if(performance.now()>modeLock){modeLock=performance.now()+1600;onMode?.()}
    return true;
   }
   const i=Math.round((y-245)/55);
-  if(i<0||i>=rows.length||Math.abs(y-(245+i*55))>25)return false;
+  if(i<0||i>=rows.length||Math.abs(y-(245+i*55))>32)return false;
   const r=rows[i],v=clamp((x-215)/225,0,1);
   const next=r.min+(r.max-r.min)*v;
   if(Math.abs(controls[r.key]-next)>.007||highlight!==i){
@@ -158,7 +158,8 @@ export function createWatch(scene,controls,onMode){
   if(!leftPose&&left?.gripSpace)leftPose=frame.getPose(left.gripSpace,space);
   if(leftPose){
    const p=leftPose.transform.position;
-   watch.position.set(p.x+.055,p.y+.135,p.z-.07);
+   const target=new THREE.Vector3(p.x+.095,p.y+.19,p.z-.055);
+   if(!watch.visible)watch.position.copy(target);else watch.position.lerp(target,.22);
    renderer.xr.getCamera().getWorldPosition(look);watch.lookAt(look);
    watch.visible=true;
   }else watch.visible=false;
