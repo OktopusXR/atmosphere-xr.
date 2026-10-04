@@ -50,5 +50,14 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
  setTimeout(()=>{if(!window.atmosAppReady)atmosDiagnostic('XR Blocks did not initialize. Check network, CDN and supported browser.')},10000);
 })();
 </script>
+<script>
+(function(){
+ const isQuest=/OculusBrowser|Quest|Oculus|MetaQuest/i.test(navigator.userAgent);
+ if(isQuest){
+  const p=new URLSearchParams(location.search);
+  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr'));
+ }
+})();
+</script>
 <script type="module" src="./main.js"></script>
 </body></html>
