@@ -42,7 +42,7 @@ let entered=false,eq=[0,0,0],selected=0,vrPanelShown=true;
 const controlIds=['bass','mid','high'],eqLabels=['bassVal','midVal','highVal'];
 const music=new Audio('./atmosphereADM_binaural.mp3');music.preload='metadata';
 music.crossOrigin='anonymous';
-const narration=new Audio('./atmosphere-intro.mp3');narration.preload='auto';
+const narration=new Audio('./atmosphere-intro.ogg');narration.preload='auto';
 let context,filters,analyser,source,spectrum,timeData,previous,low=0,mid=0,high=0,rms=0,flux=0;
 const narrative=[
  ['Invisible networks connect all forms of life.','Redes invisibles conectan todas las formas de vida.'],
@@ -51,7 +51,8 @@ const narrative=[
 ];
 let introStarted=false,introDone=false,voiceLive=false,narrationFallback=false;
 const introText=$('introEn'),introSub=$('introEs'),voiceCanvas=$('voiceWave'),vc=voiceCanvas.getContext('2d');
-function caption(n){introText.textContent=narrative[n]?.[0]||'';introSub.textContent=narrative[n]?.[1]||''}
+let captionIndex=0;
+function caption(n){captionIndex=n;introText.textContent=narrative[n]?.[0]||'';introSub.textContent=narrative[n]?.[1]||'';if(renderer.xr.isPresenting)paintXRIntro()}
 function finishIntro(){
  if(introDone)return;
  introDone=true;voiceLive=false;narration.pause();voiceCanvas.style.display='none';
@@ -124,29 +125,32 @@ function band(from,to){
 let avgFlux=.01,onset=0,onsetCooldown=0,quiet=0;
 // Deterministic sound dramaturgy. Stages respond to longer-term audio conditions;
 // stage changes are held, not retriggered by every small FFT fluctuation.
-const STAGES=['SUSPENSION','AWAKENING','INTERWEAVE','EXPANSION','DISSOLUTION'];
+const STAGES=['FIELD','TRACES','WIREFRAME','INTERWEAVE','FRACTURE','DRIFT','RETURN','DISSOLUTION'];
 let stage=0,stageHold=0,stageMix=0,energyMemory=0,textureMemory=0,gestureMemory=0;
+let act=0,actTime=0,actBlend=0,impact=0;
+// Music-time dramaturgy: acts give the composition a visual syntax;
+// live spectrum, RMS, novelty and gestures define the movement *inside* each act.
+const ACTS=['FIELD / LATENCY','TRACES / EMERGENCE','WIREFRAME / GROWTH',
+ 'INTERWEAVE / TENSION','FRACTURE / RELEASE','PARTICLE / DRIFT',
+ 'RETURN / RESONANCE','DISSOLUTION'];
+const ACT_CUTS=[0,.09,.21,.34,.48,.61,.75,.88,1];
+function smooth01(v){v=THREE.MathUtils.clamp(v,0,1);return v*v*(3-2*v)}
 function updateDramaturgy(dt){
- const energy=Math.min(1,rms*5.7);
- const texture=Math.min(1,mid*1.5+high*.7);
- energyMemory+=(energy-energyMemory)*Math.min(1,dt*.28);
- textureMemory+=(texture-textureMemory)*Math.min(1,dt*.45);
+ const energy=Math.min(1,rms*6.5);
+ const texture=Math.min(1,mid*1.9+high*.9);
+ energyMemory+=(energy-energyMemory)*Math.min(1,dt*.4);
+ textureMemory+=(texture-textureMemory)*Math.min(1,dt*.6);
  gestureMemory+=(onset-gestureMemory)*Math.min(1,dt*1.6);
- const playing=!music.paused&&!music.ended;
- stageHold+=dt;
- if(!playing)return;
- if(stageHold<8)return;
- // Entry, sustain, and release thresholds produce meaningful stable states.
- let next=stage;
- if(stage===0&&energyMemory>.14)next=1;
- else if(stage===1&&textureMemory>.24)next=2;
- else if(stage===2&&energyMemory>.32&&gestureMemory>.035)next=3;
- else if(stage===3&&(energyMemory<.22||textureMemory<.14))next=4;
- else if(stage===4&&energyMemory>.28&&textureMemory>.22)next=2;
- else if(stage===4&&energyMemory<.10)next=0;
- else if(stage===2&&energyMemory<.12)next=4;
- if(next!==stage){stage=next;stageHold=0}
- stageMix+=(stage-stageMix)*Math.min(1,dt*.32);
+ const total=Number.isFinite(music.duration)&&music.duration>0?music.duration:402;
+ const progress=THREE.MathUtils.clamp(music.currentTime/total,0,.999999);
+ let next=ACT_CUTS.findIndex((cut,i)=>i<ACT_CUTS.length-1&&progress>=cut&&progress<ACT_CUTS[i+1]);
+ next=THREE.MathUtils.clamp(next,0,ACTS.length-1);
+ act=next;actTime=(progress-ACT_CUTS[act])/(ACT_CUTS[act+1]-ACT_CUTS[act]);
+ // Near act boundaries old and new systems overlap gently rather than jump.
+ actBlend=smooth01(actTime/.12);
+ stage=act;stageMix+=(act-stageMix)*Math.min(1,dt*.55);
+ impact+=((onset+flux*1.7)-impact)*Math.min(1,dt*5.4);
+ if(renderer.xr.isPresenting&&hud.visible)paintPanel();
 }
 
 function analyze(dt){
@@ -177,7 +181,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWid
 renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
 const root=new THREE.Group();scene.add(root);
 // Bakkslide-inspired grayscale wireframe deformation, not a separate random particle effect.
-const FIELD_GRID=42,fieldGeo=new THREE.SphereGeometry(3.2,FIELD_GRID,28);
+const FIELD_GRID=46,fieldGeo=new THREE.SphereGeometry(3.25,FIELD_GRID,34);
 const fieldBase=Float32Array.from(fieldGeo.attributes.position.array);
 const fieldMat=new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.15,depthWrite:false,side:THREE.DoubleSide});
 const wireField=new THREE.Mesh(fieldGeo,fieldMat);
@@ -186,22 +190,22 @@ root.add(wireField);
 let tactileEnergy=0,tactileSpread=0,tactileX=0,tactileY=0;
 function deformWireField(t,pressure,texture){
  const a=fieldGeo.attributes.position.array;
- const tension=.11+.6*pressure+.44*texture+.65*tactileEnergy;
+ const tension=.12+.82*pressure+.7*texture+.65*tactileEnergy;
  // True immersive 3D wire membrane, not a plane facing the viewer.
  for(let i=0;i<a.length;i+=3){
   const bx=fieldBase[i],by=fieldBase[i+1],bz=fieldBase[i+2];
   const norm=Math.hypot(bx,by,bz)||1;
   const phi=Math.atan2(bz,bx),elevation=Math.asin(by/norm);
-  const harmonic=Math.sin(phi*7+t*.28)*Math.cos(elevation*5-t*.18);
+  const harmonic=Math.sin(phi*(act===4?14:7)+t*(.26+texture*.8))*Math.cos(elevation*(act===4?12:5)-t*.23);
   const localGesture=Math.exp(-Math.pow(phi-tactileX*2,2)*.65);
-  const radius=norm+harmonic*tension*.52+localGesture*tactileEnergy*.35;
+  const radius=norm+harmonic*tension*(act===4?.96:.58)+localGesture*tactileEnergy*.55;
   a[i]=bx/norm*radius;a[i+1]=by/norm*radius;a[i+2]=bz/norm*radius;
  }
  fieldGeo.attributes.position.needsUpdate=true;
- fieldMat.opacity=Math.min(.45,.09+.25*texture+.17*tactileEnergy);
+ fieldMat.opacity=Math.min(.65,(act===2||act===3||act===4||act===6?.16:.018)+(act===2||act===4?.39:.16)*texture+.12*tactileEnergy);
 }
 const GOLD=Math.PI*(3-Math.sqrt(5));
-const P=680,particleArray=new Float32Array(P*3),particleDirections=[];
+const P=1900,particleArray=new Float32Array(P*3),particleDirections=[];
 for(let i=0;i<P;i++){
  const y=1-2*(i+.5)/P,a=i*GOLD,c=Math.sqrt(1-y*y);
  particleDirections.push(new THREE.Vector3(c*Math.cos(a),y,c*Math.sin(a)));
@@ -209,6 +213,28 @@ for(let i=0;i<P;i++){
 const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(particleArray,3).setUsage(THREE.DynamicDrawUsage));
 const particleMaterial=new THREE.PointsMaterial({color:0xf3f3f3,size:.018,transparent:true,opacity:.4,depthWrite:false});
 const particleMesh=new THREE.Points(pg,particleMaterial);root.add(particleMesh);
+// Expanding spectral shock fronts: pulses are initiated by real transients,
+// then decay as travelling 3D geometry rather than flickering on every FFT frame.
+const shocks=[];
+for(let i=0;i<5;i++){
+ const g=new THREE.TorusGeometry(1,.003,4,128);
+ const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
+ m.position.set(0,1.6,0);root.add(m);shocks.push({mesh:m,age:100});
+}
+let previousShock=0;
+function driveShock(dt){
+ if(onset>.76&&animationT-previousShock>.55){
+  const shock=shocks.reduce((a,b)=>a.age>b.age?a:b);
+  shock.age=0;previousShock=animationT;
+  shock.mesh.rotation.set(.4+textureMemory*.7,animationT*.17,animationT*.11);
+ }
+ for(const shock of shocks){
+  shock.age+=dt;
+  shock.mesh.scale.setScalar(.4+shock.age*1.85);
+  shock.mesh.material.opacity=shock.age<2.7&&[1,2,3,4,6].includes(act)?Math.pow(Math.max(0,1-shock.age/2.7),2)*(.12+.42*impact):0;
+ }
+}
+
 const R=9,SEG=108,SIDES=4,filaments=[];
 for(let i=0;i<R;i++){
  const geo=new THREE.BufferGeometry(),v=new Float32Array((SEG+1)*(SIDES+1)*3),ids=[];
@@ -219,73 +245,72 @@ for(let i=0;i<R;i++){
  mesh.frustumCulled=false;root.add(mesh);filaments.push(mesh);
 }
 const tetraGeo=new THREE.TetrahedronGeometry(.12),tetraMat=new THREE.MeshBasicMaterial({color:0xdedede,transparent:true,opacity:.16,wireframe:true,depthWrite:false});
-const T=3,tetra=new THREE.InstancedMesh(tetraGeo,tetraMat,T),dummy=new THREE.Object3D();root.add(tetra);tetra.frustumCulled=false;
+const T=7,tetra=new THREE.InstancedMesh(tetraGeo,tetraMat,T),dummy=new THREE.Object3D();root.add(tetra);tetra.frustumCulled=false;
 let animationT=0;
 function evolve(dt){
  updateDramaturgy(dt);
  const gain=+$('sensitivity').value;
  const lo=low*gain,mi=mid*gain,hi=high*gain;
- const phase=THREE.MathUtils.clamp(stageMix,0,4);
- // Continuous tension is measured over seconds, not randomized per object.
- const pressure=THREE.MathUtils.clamp(energyMemory*1.8,0,1);
- const weave=THREE.MathUtils.clamp(textureMemory*1.5,0,1);
- const opening=THREE.MathUtils.smoothstep(phase,1.1,2.9);
- const dispersal=THREE.MathUtils.smoothstep(phase,3.2,4);
- const holding=(1-dispersal)*(.12+.88*opening);
- const breath=1+.22*pressure+.12*lo+.25*tactileSpread;
- const fold=.08+.48*weave*holding+.24*tactileEnergy;
+ const pressure=THREE.MathUtils.clamp(energyMemory*2.4,0,1.2);
+ const weave=THREE.MathUtils.clamp(textureMemory*2,0,1.2);
+ const appear=smooth01(actTime/.16);
+ const leave=1-smooth01((actTime-.85)/.15);
+ const envelope=appear*leave;
+ const shellActive=[.05,.1,1,.72,.95,.08,.84,.06][act];
+ const strandActive=[.04,.62,.18,1,.16,.08,.78,.06][act];
+ const dustActive=[.04,.12,.07,.16,.6,1,.43,.15][act];
+ const breathing=1+.18*pressure+.12*lo+.25*tactileSpread;
+ const fold=.09+weave*.56+tactileEnergy*.3;
  deformWireField(animationT,pressure,weave);
- tactileEnergy*=Math.exp(-dt*1.3);tactileSpread*=Math.exp(-dt*.15);
- const ignition=onset*.4;
+ fieldMat.opacity*=shellActive*(.3+.7*envelope);
+ wireField.rotation.y=animationT*(act===4?.1:.013);
+ wireField.rotation.z=Math.sin(animationT*.12)*.06;
+ tactileEnergy*=Math.exp(-dt*1.4);tactileSpread*=Math.exp(-dt*.2);
+ driveShock(dt);
  for(let i=0;i<P;i++){
-  const d=particleDirections[i];
-  // Stable Fibonacci distribution, slight radial motion from actual spectral texture.
-  const radial=(4.4+(i%5)*.28)*(1+.2*pressure);
-  const released=(.1+.18*hi+.42*dispersal+.17*tactileEnergy);
-  particleArray[i*3]=d.x*radial+d.z*released;
+  const d=particleDirections[i],distance=3.8+(i%13)*.2+Math.sin(i*14.7)*.15;
+  // Per-particle phase is stable; the audio governs coherent cloud expansion.
+  const sweep=act===5?(actTime*3.8):0;
+  const radial=distance*(1+.2*pressure)+(.17*impact+.22*tactileEnergy)*Math.sin(i*.05+sweep);
+  particleArray[i*3]=d.x*radial+d.z*sweep*.16;
   particleArray[i*3+1]=1.6+d.y*radial;
-  particleArray[i*3+2]=d.z*radial-d.x*released;
+  particleArray[i*3+2]=d.z*radial-d.x*sweep*.16;
  }
  pg.attributes.position.needsUpdate=true;
- particleMaterial.opacity=.035+.22*holding+.12*ignition;
- particleMaterial.size=.012+.017*hi;
+ particleMaterial.opacity=(.014+.35*dustActive*(.35+.65*weave)+.13*impact)*(.28+.72*envelope);
+ particleMaterial.size=.012+.02*hi;
  filaments.forEach((mesh,i)=>{
   const v=mesh.geometry.attributes.position.array;
   const angle=i*GOLD,ct=Math.cos(angle),st=Math.sin(angle);
-  const radius=(2.25+i%3*.48)*breath;
-  const topology=(i%2===0?1:-1);
+  const radius=(2.65+i%3*.38)*breathing;
+  const topology=i%2===0?1:-1;
   for(let j=0;j<=SEG;j++){
-   const a=j/SEG*Math.PI*2;
-   // Braids cross without independently drifting; midrange changes topology.
-   const deformation=fold*Math.sin(a*3+topology*phase*.7+tactileX*.35);
-   const x=radius*Math.cos(a)+deformation*Math.sin(2*a);
-   const y=radius*.51*Math.sin(a)+deformation*.35*Math.cos(a*2);
-   const z=radius*.34*Math.sin(2*a+i*.3)+deformation*Math.cos(a);
+   const u=j/SEG,a=u*Math.PI*2,layer=Math.sin(a*3+topology*act*.65+animationT*.035);
+   const displacement=fold*layer*strandActive*(.3+envelope);
+   const x=radius*Math.cos(a)+displacement*Math.sin(2*a);
+   const y=radius*.63*Math.sin(a)+displacement*.55*Math.cos(2*a);
+   const z=radius*.66*Math.sin(2*a+i*.3)+displacement*Math.cos(a);
    const X=x*ct-y*st,Y=x*st+y*ct;
    for(let k=0;k<=SIDES;k++){
     const p=(j*(SIDES+1)+k)*3,q=k/SIDES*Math.PI*2;
-    const thickness=.007+.01*pressure+.024*ignition;
+    const thickness=.003+.009*pressure+.018*impact;
     v[p]=X+Math.cos(q)*thickness;
     v[p+1]=1.6+Y+Math.sin(q)*thickness;
-    v[p+2]=z-1.5+Math.sin(q)*thickness;
+    v[p+2]=z+Math.sin(q)*thickness;
    }
   }
   mesh.geometry.attributes.position.needsUpdate=true;
-  // Suppress decorative concurrent layers during suspension and dissolution.
-  mesh.material.opacity=Math.min(.60,(.10+.32*holding)*(1-.75*dispersal)+.12*ignition);
+  mesh.material.opacity=Math.min(.8,strandActive*(.04+.56*weave+.13*impact)*(.27+.73*envelope));
  });
  for(let i=0;i<T;i++){
-  const y=1-2*(i+.5)/T,a=i*GOLD,c=Math.sqrt(1-y*y),r=3.3;
+  const y=1-2*(i+.5)/T,a=i*GOLD,c=Math.sqrt(1-y*y),r=3.4+impact*.8;
   dummy.position.set(r*c*Math.cos(a),1.6+r*y,r*c*Math.sin(a));
-  dummy.rotation.set(0,phase*.12+i,0);
-  dummy.scale.setScalar(.15+.85*ignition);dummy.updateMatrix();tetra.setMatrixAt(i,dummy.matrix);
+  dummy.rotation.set(animationT*.12,animationT*.26+i,0);
+  dummy.scale.setScalar(.08+.9*impact);dummy.updateMatrix();tetra.setMatrixAt(i,dummy.matrix);
  }
  tetra.instanceMatrix.needsUpdate=true;
- tetraMat.opacity=Math.min(.22,ignition*.3);
- // The visual narrative's identity is driven by sustained texture and events.
- if(renderer.xr.isPresenting&&hud.visible&&Math.abs(stageMix-stage)>.05)paintPanel();
+ tetraMat.opacity=act===4?Math.min(.65,impact*.5):0;
 }
-
 function openControlPanel(){ $('controls').style.display='none';button.style.display='block';button.textContent='CONTROLS'}
 $('enter').onclick=async()=>{
  try{
@@ -305,17 +330,27 @@ xrIntro.renderOrder=150;xrIntro.visible=false;scene.add(xrIntro);
 let xrMode='vr',xrHandLatch={left:false,right:false};
 function paintXRIntro(){
  xi.clearRect(0,0,1024,640);
- xi.fillStyle=xrMode==='ar'?'rgba(0,0,0,.64)':'rgba(0,0,0,.82)';
- xi.fillRect(0,0,1024,640);
- xi.strokeStyle='#9c9c9c';xi.lineWidth=2;xi.strokeRect(4,4,1016,632);
- xi.fillStyle='#f2f2f2';xi.textAlign='center';
- xi.font='28px Arial';xi.fillText('TECHNO POESIS',512,110);
- xi.font='64px Arial';xi.fillText('ATMOSPHERE',512,215);
- xi.font='30px Arial';
- xi.fillText(introDone?'ENTER EXPERIENCE':introStarted?'LISTENING...':'START NARRATION',512,360);
- xi.fillStyle='#c5c5c5';xi.font='22px Arial';
- xi.fillText(introDone?'Right trigger / pinch to enter':introStarted?'Right trigger / pinch to skip':'Right trigger / pinch to start',512,420);
- xi.font='18px Arial';xi.fillText(xrMode==='ar'?'MIXED REALITY':'IMMERSIVE VR',512,552);
+ xi.fillStyle=xrMode==='ar'?'rgba(0,0,0,.78)':'rgba(0,0,0,.94)';xi.fillRect(0,0,1024,640);
+ xi.strokeStyle='#aaaaaa';xi.lineWidth=2;xi.strokeRect(4,4,1016,632);
+ xi.fillStyle='#ededed';xi.textAlign='center';
+ xi.font='25px Arial';xi.fillText('TECHNO POESIS',512,82);
+ xi.font='66px Arial';xi.fillText('ATMOSPHERE',512,174);
+ if(introStarted&&!introDone){
+  const line=narrative[captionIndex]||narrative[0];
+  xi.font='29px Arial';xi.fillText(line[0],512,275);
+  xi.fillStyle='#c2c2c2';xi.font='23px Arial';xi.fillText(line[1],512,332);
+ }else if(!introDone){
+  xi.font='28px Arial';xi.fillText('Invisible networks connect all forms of life.',512,283);
+  xi.font='21px Arial';xi.fillText('Redes invisibles conectan todas las formas de vida.',512,332);
+ }else{
+  xi.font='26px Arial';xi.fillText('Ricardo P. Tapia Fernández  ·  Oktopus Art Studio',512,285);
+  xi.font='20px Arial';xi.fillText('Art · Nature · Technology   /   @oktopus.art',512,331);
+ }
+ xi.fillStyle='#f2f2f2';xi.font='28px Arial';
+ xi.fillText(introDone?'ENTER EXPERIENCE':introStarted?'NARRATION · LISTENING':'START NARRATION',512,445);
+ xi.fillStyle='#bdbdbd';xi.font='21px Arial';
+ xi.fillText(introDone?'Pull trigger / pinch to enter':introStarted?'Pull trigger / pinch to skip':'Pull trigger / pinch to start',512,497);
+ xi.font='18px Arial';xi.fillText(xrMode==='ar'?'MIXED REALITY':'IMMERSIVE VR',512,574);
  xrIntroTex.needsUpdate=true;
 }
 function triggerXRIntro(){
