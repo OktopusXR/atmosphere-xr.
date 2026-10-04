@@ -47,14 +47,14 @@ function drawIntro(){
  // Editorial layout inspired by the user's NODE Institute reference.
  ctx.clearRect(0,0,1024,600);
  ctx.textAlign='left';
- ctx.fillStyle='#c3c3c3';ctx.font='23px Arial';
+ ctx.fillStyle='#c3c3c3';ctx.font='bold 25px Arial';
  ctx.fillText('TECHNO POESIS',67,76);
- ctx.fillStyle='#e5e5e5';ctx.font='20px Arial';
+ ctx.fillStyle='#e5e5e5';ctx.font='bold 22px Arial';
  ctx.fillText('AN IMMERSIVE XR EXPERIENCE',67,110);
  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;
  ctx.beginPath();ctx.arc(754,280,207,0,Math.PI*2);ctx.stroke();
  if(introStarted&&!introFinished){
-  ctx.fillStyle='#fff';ctx.font='28px Arial';
+  ctx.fillStyle='#fff';ctx.font='bold 30px Arial';
   ctx.fillText(lines[captionIndex][0],67,255,885);
   ctx.fillStyle='#b6b6b6';ctx.font='23px Arial';
   ctx.fillText(lines[captionIndex][1],67,308,885);
@@ -103,10 +103,12 @@ function startIntro(){
  timers.push(setTimeout(()=>{if(!introFinished)finishIntro()},Math.max(12,dur+3)*1000));
 }
 $('start').onclick=()=>{enterXR('VR');startIntro()};$('skip').onclick=finishIntro;
+let visualStartedAt=0;
 async function startMusic(){
  if(!introFinished)finishIntro();
- await music.play();
+ visualStartedAt=performance.now();
  entered=true;completed=false;$('intro').style.display='none';introBoard.visible=false;
+ await music.play();
  $('status').textContent='ATMOSPHERE · MUSIC MASTER CLOCK';
 }
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
@@ -114,7 +116,7 @@ music.onended=()=>{$('status').textContent='ATMOSPHERE · END';completed=true;en
 // Playback time alone drives a precomposed, continuously interpolated score.
 function updateScore(){
  const duration=Number.isFinite(music.duration)&&music.duration>10?music.duration:soundtrackDuration;
- const t=music.currentTime*soundtrackDuration/duration;
+ const t=(music.currentTime>0||!music.paused)?music.currentTime*soundtrackDuration/duration:Math.min(soundtrackDuration,Math.max(0,(performance.now()-visualStartedAt)/1000));
  const env=scoreEnvelope(t);
  cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,
   env.bass,env.mid,env.high,env.attack);
@@ -186,7 +188,7 @@ function enterExperience(){
  // without relying on another click after the XR session is established.
  if(!introFinished)finishIntro();
  const xr=renderer.xr.isPresenting?Promise.resolve(true):enterXR('VR');
- const audio=startMusic().catch(e=>$('status').textContent='AUDIO: '+e.message);
+ const audio=startMusic().catch(e=>$('status').textContent='Audio pending; visual animation active · '+e.message);
  Promise.allSettled([xr,audio]).then(([result])=>{
   if(result.status==='fulfilled'&&result.value===false)
    $('status').textContent='VR not supported. Audio started; use Quest Browser WebXR.';
