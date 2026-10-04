@@ -319,16 +319,83 @@ for(const ctrl of [ctrl0,ctrl1]){
   selected=(selected+1)%3;paintPanel();
  });
 }
+// Native WebXR hand tracking: actual tracked joint positions, simple monochrome skeleton.
+const jointNames=['wrist','thumb-metacarpal','thumb-phalanx-proximal','thumb-phalanx-distal','thumb-tip',
+'index-finger-metacarpal','index-finger-phalanx-proximal','index-finger-phalanx-intermediate','index-finger-phalanx-distal','index-finger-tip',
+'middle-finger-metacarpal','middle-finger-phalanx-proximal','middle-finger-phalanx-intermediate','middle-finger-phalanx-distal','middle-finger-tip',
+'ring-finger-metacarpal','ring-finger-phalanx-proximal','ring-finger-phalanx-intermediate','ring-finger-phalanx-distal','ring-finger-tip',
+'pinky-finger-metacarpal','pinky-finger-phalanx-proximal','pinky-finger-phalanx-intermediate','pinky-finger-phalanx-distal','pinky-finger-tip'];
+const bonePairs=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[8,9],[0,10],[10,11],[11,12],[12,13],[13,14],[0,15],[15,16],[16,17],[17,18],[18,19],[0,20],[20,21],[21,22],[22,23],[23,24]];
+const handMaterial=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.7,depthWrite:false});
+const handJointGeometry=new THREE.SphereGeometry(.007,6,5);
+const handBoneGeometry=new THREE.CylinderGeometry(.0027,.0027,1,5);
+const axisY=new THREE.Vector3(0,1,0);
+function buildHand(){
+ const group=new THREE.Group(),points=[],bones=[],positions=jointNames.map(()=>new THREE.Vector3());
+ for(let i=0;i<jointNames.length;i++){const m=new THREE.Mesh(handJointGeometry,handMaterial);points.push(m);group.add(m)}
+ for(let i=0;i<bonePairs.length;i++){const m=new THREE.Mesh(handBoneGeometry,handMaterial);bones.push(m);group.add(m)}
+ scene.add(group);group.visible=false;return {group,points,bones,positions,pinching:false};
+}
+const trackedHands={left:buildHand(),right:buildHand()};
+function updateHands(frame,dt){
+ if(!renderer.xr.isPresenting||!frame){trackedHands.left.group.visible=false;trackedHands.right.group.visible=false;return}
+ const space=renderer.xr.getReferenceSpace(),session=renderer.xr.getSession();
+ if(!space||!session)return;
+ const seen={left:false,right:false};
+ for(const src of session.inputSources){
+  if(!src.hand||!trackedHands[src.handedness])continue;
+  const hand=trackedHands[src.handedness];seen[src.handedness]=true;
+  let n=0;
+  for(let i=0;i<jointNames.length;i++){
+   const joint=src.hand.get(jointNames[i]);
+   const pose=joint?frame.getJointPose(joint,space):null;
+   hand.points[i].visible=!!pose;
+   if(!pose)continue;
+   const p=pose.transform.position;
+   hand.positions[i].set(p.x,p.y,p.z);
+   hand.points[i].position.copy(hand.positions[i]);
+   hand.points[i].scale.setScalar(THREE.MathUtils.clamp((pose.radius||.007)/.007,.6,1.6));n++;
+  }
+  hand.group.visible=n>=12;
+  for(let i=0;i<bonePairs.length;i++){
+   const [a,b]=bonePairs[i],bone=hand.bones[i];
+   bone.visible=hand.points[a].visible&&hand.points[b].visible;
+   if(!bone.visible)continue;
+   const first=hand.positions[a],second=hand.positions[b];
+   const direction=second.clone().sub(first),length=direction.length();
+   bone.position.copy(first).add(second).multiplyScalar(.5);
+   bone.quaternion.setFromUnitVectors(axisY,direction.normalize());
+   bone.scale.set(1,length,1);
+  }
+  if(!hand.group.visible||!hand.points[4].visible||!hand.points[9].visible)continue;
+  const tip=hand.positions[9],thumb=hand.positions[4];
+  const pinch=tip.distanceTo(thumb)<.03;
+  if(pinch){
+   tactileEnergy=Math.min(1.2,tactileEnergy+dt*2);
+   tactileX+=(tip.x-tactileX)*.16;tactileY+=(tip.y-1.5-tactileY)*.16;
+   if(!hand.pinching&&src.handedness==='left'){selected=(selected+1)%3;paintPanel()}
+  }
+  hand.pinching=pinch;
+  if(src.handedness==='right'&&hand.points[24].visible){
+   const spread=hand.positions[9].distanceTo(hand.positions[24]);
+   tactileSpread+=(THREE.MathUtils.clamp((spread-.085)*5,0,.8)-tactileSpread)*.15;
+  }
+ }
+ for(const side of ['left','right'])if(!seen[side]){trackedHands[side].group.visible=false;trackedHands[side].pinching=false}
+}
+
 let inputCooldown=0;
 function readQuest(dt){
  if(!renderer.xr.isPresenting)return;
  inputCooldown=Math.max(0,inputCooldown-dt);
  const session=renderer.xr.getSession();if(!session)return;
  for(const src of session.inputSources){
-  if(!src.gamepad)continue;
+  if(!src.gamepad||src.hand)continue;
   const a=src.gamepad.axes,x=a.length>=4?a[2]:a[0]||0,y=a.length>=4?a[3]:a[1]||0;
   if(src.handedness==='right'&&Math.abs(x)>.4&&inputCooldown===0){eq[selected]=THREE.MathUtils.clamp(eq[selected]+Math.sign(x),-12,12);setEQ();inputCooldown=.13}
   if(src.handedness==='left'&&Math.abs(y)>.4){$('sensitivity').value=THREE.MathUtils.clamp(+$('sensitivity').value-y*dt*.5,.3,2.8)}
+  if(src.handedness==='right'&&Math.abs(y)>.4){tactileSpread=THREE.MathUtils.clamp(tactileSpread-y*dt*.5,0,1)}
+  if(src.gamepad.buttons?.[0]?.pressed){tactileEnergy=Math.min(1,tactileEnergy+dt*1.7)}
  }
  // Lateral HUD aligned to the headset, updated every frame.
  const xrCam=renderer.xr.getCamera(),pos=new THREE.Vector3(),quat=new THREE.Quaternion();
