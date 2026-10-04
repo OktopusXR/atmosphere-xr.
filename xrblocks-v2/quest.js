@@ -30,7 +30,7 @@ const scene=new THREE.Scene();scene.background=new THREE.Color(0);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.02,90);
 camera.position.set(0,1.6,0);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
-renderer.xr.enabled=true;renderer.setPixelRatio(Math.min(devicePixelRatio,1.1));renderer.setSize(innerWidth,innerHeight);
+renderer.xr.enabled=true;renderer.setPixelRatio(Math.min(devicePixelRatio,1.0));renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);renderer.domElement.style.position='fixed';renderer.domElement.style.inset=0;renderer.domElement.style.zIndex='0';
 $('intro').style.zIndex='100';
 const root=new THREE.Group();scene.add(root);
@@ -43,28 +43,33 @@ const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(1.68,.985),
  new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false,depthTest:false}));
 introBoard.renderOrder=100;scene.add(introBoard);
 function drawIntro(){
- // Type floats directly in the world. No rectangular background or opaque card.
+ // Editorial layout inspired by the user's NODE Institute reference.
  ctx.clearRect(0,0,1024,600);
- const soft=(text,y,font,color='#eeeeee')=>{
-  ctx.fillStyle=color;ctx.font=font;ctx.textAlign='center';ctx.fillText(text,512,y);
- };
- ctx.save();
- ctx.strokeStyle='rgba(240,240,240,.24)';ctx.lineWidth=1;
- ctx.beginPath();ctx.ellipse(512,289,215,215,0,0,Math.PI*2);ctx.stroke();
- ctx.strokeStyle='rgba(240,240,240,.075)';
- ctx.beginPath();ctx.ellipse(512,289,224,224,0,0,Math.PI*2);ctx.stroke();
- if(!introStarted){
-  soft('TECHNO POESIS',144,'22px Arial','#cccccc');
-  soft('A T M O S P H E R E',254,'44px Arial');
- }else if(!introFinished){
-  const parts=lines[captionIndex];
-  soft(parts[0],259,'26px Arial');
-  soft(parts[1],313,'19px Arial','#bbbbbb');
- }else soft('A T M O S P H E R E',273,'39px Arial');
- soft('Ricardo P. Tapia Fernández',411,'19px Arial','#d9d9d9');
- soft('OKTOPUS ART STUDIO   /   @oktopus.art',445,'14px Arial','#aaaaaa');
- soft(introFinished?'PINCH TO BEGIN':introStarted?'LISTEN':'START',524,'19px Arial','#dedede');
- ctx.restore();boardTex.needsUpdate=true;
+ ctx.textAlign='left';
+ ctx.fillStyle='#c3c3c3';ctx.font='23px Arial';
+ ctx.fillText('TECHNO POESIS',67,76);
+ ctx.fillStyle='#e5e5e5';ctx.font='20px Arial';
+ ctx.fillText('AN IMMERSIVE XR EXPERIENCE',67,110);
+ ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;
+ ctx.beginPath();ctx.arc(754,280,207,0,Math.PI*2);ctx.stroke();
+ if(introStarted&&!introFinished){
+  ctx.fillStyle='#fff';ctx.font='28px Arial';
+  ctx.fillText(lines[captionIndex][0],67,255,885);
+  ctx.fillStyle='#b6b6b6';ctx.font='23px Arial';
+  ctx.fillText(lines[captionIndex][1],67,308,885);
+ }else{
+  ctx.fillStyle='#f1f1f1';ctx.font='27px Arial';
+  ctx.fillText('INVISIBLE NETWORKS   /   RESONANCE',67,261);
+ }
+ ctx.fillStyle='#fff';ctx.font='bold 91px Arial';
+ ctx.fillText('ATMOSPHERE',62,438,940);
+ ctx.fillStyle='#ddd';ctx.font='20px Arial';
+ ctx.fillText('Ricardo P. Tapia Fernández  /  Oktopus Art Studio',68,500);
+ ctx.fillStyle='#a5a5a5';ctx.font='17px Arial';
+ ctx.fillText('@oktopus.art',68,529);
+ ctx.fillStyle='#fff';ctx.font='20px Arial';ctx.textAlign='right';
+ ctx.fillText(introFinished?'ENTER EXPERIENCE':introStarted?'LISTEN':'ENTER VR',948,559);
+ boardTex.needsUpdate=true;
 }
 function setCaption(i){captionIndex=i;$('en').textContent=lines[i][0];$('es').textContent=lines[i][1];drawIntro()}
 function clearTimers(){timers.forEach(clearTimeout);timers=[]}
