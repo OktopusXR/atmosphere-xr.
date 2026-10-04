@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import {makeClouds} from './cloud.js?build=score-v6';
-import {createWatch} from './watch.js?build=score-v6';
-import {createForeground} from './stage.js?build=score-v6';
+import {makeClouds} from './cloud.js?build=score-v6b';
+import {createWatch} from './watch.js?build=score-v6b';
+import {createForeground} from './stage.js?build=score-v6b';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
