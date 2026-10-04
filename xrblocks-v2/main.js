@@ -32,7 +32,7 @@ const cues=[
  {sec:353,name:'RESPIRATION'},
  {sec:402,name:'END'}
 ];
-const params={intensity:1,density:.67,scale:1,speed:.6,motion:.8,variation:.55};
+const params={intensity:1.32,density:.79,scale:1,speed:.6,motion:.8,variation:.55};
 function caption(i){$('en').textContent=phrases[i][0];$('es').textContent=phrases[i][1];paintIntro();}
 function finishIntro(){
  if(introFinished)return;
@@ -125,7 +125,7 @@ class Atmosphere extends xb.Script {
   const t=(music.currentTime>0||!music.paused)?music.currentTime*402/duration:Math.min(402,Math.max(0,(performance.now()-visualStartedAt)/1000));
   const env=scoreEnvelope(t);
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
-  cloudEngine.update(t,{...params,intensity:params.intensity*.38},0,env.bass,env.mid,env.high,env.attack);
+  cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,env.bass,env.mid,env.high,env.attack);
   foreground.update(t,env,params);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
