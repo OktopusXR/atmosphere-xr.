@@ -42,10 +42,14 @@ function beginIntro(){
  if(introStarted)return;
  introStarted=true;$('start').hidden=true;$('skip').hidden=false;$('voice').style.display='block';
  caption(0);
- const duration=Number.isFinite(narration.duration)&&narration.duration>6?narration.duration:12.6;
+ const duration=Number.isFinite(narration.duration)&&narration.duration>1?narration.duration:7.51;
  for(const [i,at] of [[1,.32],[2,.66]])timers.push(setTimeout(()=>{if(!introFinished)caption(i)},duration*at*1000));
- timers.push(setTimeout(finishIntro,Math.max(10.2,duration+1.1)*1000));
- narration.play().catch(()=>{$('status').textContent='Voice playback unavailable; subtitles remain visible'});
+ timers.push(setTimeout(finishIntro,Math.max(10,duration+1.1)*1000));
+ narration.onended=finishIntro;
+ narration.play().catch(()=>{
+   $('status').textContent='Voice playback unavailable; using speech synthesis';
+   if('speechSynthesis' in window){const v=new SpeechSynthesisUtterance(phrases.map(p=>p[0]).join(' ... '));v.lang='en-US';speechSynthesis.speak(v)}
+ });
 }
 $('start').onclick=beginIntro;$('skip').onclick=finishIntro;
 async function startMusic(){
@@ -101,22 +105,21 @@ const cx=canvas.getContext('2d'),introTexture=new THREE.CanvasTexture(canvas);
 let introPlane;
 function paintIntro(){
  cx.clearRect(0,0,1024,512);
- cx.fillStyle=mode==='VR'?'rgba(0,0,0,.94)':'rgba(0,0,0,.72)';
- cx.fillRect(0,0,1024,512);
- cx.fillStyle='#fff';cx.textAlign='center';
- cx.font='23px Arial';cx.fillText('TECHNO POESIS',512,58);
- cx.font='59px Arial';cx.fillText('ATMOSPHERE',512,141);
+ cx.textAlign='center';
+ cx.strokeStyle='rgba(242,242,242,.22)';cx.lineWidth=1;
+ cx.beginPath();cx.ellipse(512,255,184,184,0,0,Math.PI*2);cx.stroke();
+ cx.font='19px Arial';cx.fillStyle='#bbb';cx.fillText('TECHNO POESIS',512,80);
  if(introStarted&&!introFinished){
   const l=phrases.find(p=>p[0]===$('en').textContent)||phrases[0];
-  cx.font='29px Arial';cx.fillText(l[0],512,226);
-  cx.font='22px Arial';cx.fillText(l[1],512,270);
- }else if(!introFinished){
-  cx.font='22px Arial';cx.fillText('Invisible networks connect all forms of life.',512,235);
+  cx.fillStyle='#fff';cx.font='25px Arial';cx.fillText(l[0],512,226);
+  cx.fillStyle='#bbb';cx.font='18px Arial';cx.fillText(l[1],512,268);
+ }else{
+  cx.fillStyle='#fff';cx.font='38px Arial';cx.fillText('A T M O S P H E R E',512,239);
  }
- cx.fillStyle='#bbb';cx.font='20px Arial';cx.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,328);
- cx.font='19px Arial';cx.fillText('@oktopus.art',512,360);
- cx.fillStyle='#fff';cx.font='27px Arial';
- cx.fillText(introFinished?'PINCH / TRIGGER · ENTER EXPERIENCE':introStarted?'PINCH / TRIGGER · SKIP':'PINCH / TRIGGER · START',512,430);
+ cx.font='17px Arial';cx.fillStyle='#bbb';cx.fillText('Ricardo P. Tapia Fernández · Oktopus Art Studio',512,348);
+ cx.font='15px Arial';cx.fillText('@oktopus.art',512,379);
+ cx.fillStyle='#eee';cx.font='20px Arial';
+ cx.fillText(introFinished?'PINCH TO BEGIN':introStarted?'LISTEN':'ENTER VR',512,453);
  introTexture.needsUpdate=true;
 }
 paintIntro();
