@@ -59,8 +59,11 @@ export function createWatch(scene,controls,onMode){
   const i=Math.round((y-245)/55);
   if(i<0||i>=rows.length||Math.abs(y-(245+i*55))>25)return false;
   const r=rows[i],v=clamp((x-215)/225,0,1);
-  controls[r.key]=r.min+(r.max-r.min)*v;
-  highlight=i;paint();return true;
+  const next=r.min+(r.max-r.min)*v;
+  if(Math.abs(controls[r.key]-next)>.007||highlight!==i){
+   controls[r.key]=next;highlight=i;paint();
+  }
+  return true;
  }
  function hitRay(origin,vector){
   if(!watch.visible)return false;
