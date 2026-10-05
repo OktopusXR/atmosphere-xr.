@@ -78,7 +78,7 @@ export function createEndMenu(scene,onChoose){
  }
  draw();
  const overlay=document.createElement('div');
- overlay.style.cssText=`display:none;position:fixed;inset:0;z-index:185;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:22px;font-family:Arial;text-align:center;background:#050509`;
+ overlay.style.cssText=`display:none;position:fixed;inset:0;z-index:185;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:22px;font-family:Arial;text-align:center;background:radial-gradient(circle at 28% 35%,rgba(236,69,140,.10),transparent 24%),radial-gradient(circle at 72% 68%,rgba(170,190,255,.07),transparent 28%),#050509`;
  const h=document.createElement('div');h.innerHTML='<div style="font-size:clamp(20px,4vw,34px);letter-spacing:.35em">ATMOSPHERE</div><div style="font-size:clamp(48px,9vw,82px);font-weight:200;line-height:1.1;margin:14px 0">XR</div><div style="font-size:clamp(18px,3.5vw,29px);letter-spacing:.42em">THE END</div>';h.style.cssText='font-weight:300;text-shadow:0 2px 18px #000;margin-bottom:8px';
  overlay.appendChild(h);
  const buttons=document.createElement('div');buttons.style.cssText='display:flex;flex-wrap:wrap;gap:20px;justify-content:center;max-width:760px;background:rgba(0,0,0,.22);backdrop-filter:blur(4px);padding:18px 20px;border-radius:28px';
