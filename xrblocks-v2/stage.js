@@ -4,6 +4,22 @@ import * as THREE from 'three';
 const PI=Math.PI, TAU=2*PI;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const descriptions=[
+ 'Resonancia: vibraciones que atraviesan el espacio.',
+ 'Formacion: la materia comienza a organizarse.',
+ 'Anatomia de luz: estructuras emergen de la radiacion.',
+ 'Dispersion: fragmentos se expanden en el espacio.',
+ 'Transmision: conexiones transportan energia.',
+ 'Campos: fuerzas invisibles deforman el entorno.',
+ 'Difusion: la materia se propaga y transforma.',
+ 'Entrelazamiento: redes de relaciones simultaneas.',
+ 'Orbita: trayectorias y ciclos en movimiento.',
+ 'Presencia: ondas que revelan la percepcion.',
+ 'Morfogenesis: crecimiento y transformacion organica.',
+ 'Simetria: correspondencias sin principio ni final.',
+ 'Persistencia: huellas que permanecen en el tiempo.',
+ 'Disolucion: la forma retorna al espacio.'
+];
 const chapters=[
  {end:26,title:'RESONANCE',kind:'tunnel'},
  {end:57,title:'FORMATION',kind:'condensation'},
@@ -277,6 +293,12 @@ export function createForeground(root){
   new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
  titlePlane.renderOrder=60;root.add(titlePlane);
  let previous=-1,active='';
+ const descriptionCanvas=document.createElement('canvas');descriptionCanvas.width=1536;descriptionCanvas.height=128;
+ const descriptionCtx=descriptionCanvas.getContext('2d'),descriptionTex=new THREE.CanvasTexture(descriptionCanvas);
+ const descriptionPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.15,.18),new THREE.MeshBasicMaterial({map:descriptionTex,transparent:true,opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+ descriptionPlane.renderOrder=65;root.add(descriptionPlane);
+ function drawDescription(i){descriptionCtx.clearRect(0,0,1536,128);descriptionCtx.fillStyle='#ddd';descriptionCtx.textAlign='center';descriptionCtx.font='36px Arial';descriptionCtx.fillText(descriptions[i],768,73,1490);descriptionTex.needsUpdate=true;}
+
  const focus=new THREE.Vector3(0,1.6,-3);
  function drawCaption(title){
   ctx.clearRect(0,0,1536,320);
@@ -330,7 +352,7 @@ export function createForeground(root){
   const time=Math.max(0,Math.min(401.999,Number.isFinite(t)?t:0));
   let index=chapters.findIndex(c=>time<c.end);
   if(index<0)index=chapters.length-1;
-  if(index!==previous){previous=index;drawCaption(chapters[index].title)}
+  if(index!==previous){previous=index;drawCaption(chapters[index].title);drawDescription(index)}
   active=chapters[index].title;
   const intensity=controls.intensity??1,scale=controls.scale??1;
   const variation=controls.variation??.55,motion=controls.motion??.8,speed=controls.speed??.6;
@@ -400,6 +422,10 @@ export function createForeground(root){
   titlePlane.lookAt(0,1.6,0);
   const start=index===0?0:chapters[index-1].end;
   const end=chapters[index].end;
+  // Head-relative caption: below the visual center, never attached to artwork.
+  // The main app's XR camera is supplied separately through the next update.
+  descriptionPlane.position.set(0,.92,-1.65);
+  descriptionPlane.material.opacity=.62*smooth((time-start)/2)*(1-smooth((time-(end-2))/2));
   titlePlane.material.opacity=.94*
    smooth((time-start)/2.0)*(1-smooth((time-(end-2.0))/2.0));
  }
