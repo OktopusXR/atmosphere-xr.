@@ -112,7 +112,7 @@ export function createWatch(scene,controls,onMode){
  const eyeDir=new THREE.Vector3(),eyeToWatch=new THREE.Vector3(),cameraPos=new THREE.Vector3();
  let gazeVisible=false;
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3(),temp=new THREE.Vector3(),look=new THREE.Vector3();
- let highlight=-1,modeLock=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false;
+ let highlight=-1,modeLock=0,modeHoldStart=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
@@ -148,10 +148,17 @@ export function createWatch(scene,controls,onMode){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&y>=585){
-   if(performance.now()>modeLock){modeLock=performance.now()+1700;onMode?.()}
+  if(activeRow<0&&y>=588&&y<=645&&x>=40&&x<=472){
+   // Long, deliberate hold avoids accidentally ending the XR session
+   // when Quest switches between controllers and tracked hands.
+   const now=performance.now();
+   if(!modeHoldStart)modeHoldStart=now;
+   if(now-modeHoldStart>=950&&now>modeLock){
+    modeLock=now+2000;modeHoldStart=0;onMode?.();
+   }
    return true;
   }
+  modeHoldStart=0;
   const i=activeRow>=0?activeRow:Math.round((y-245)/55);
   if(i<0||i>=rows.length||(activeRow<0&&Math.abs(y-(245+i*55))>36))return false;
   if(activeRow<0)activeRow=i;
@@ -187,7 +194,7 @@ export function createWatch(scene,controls,onMode){
   return hitRay(temp,direction);
  }
  let lastPinch=false;
- function releaseSelection(){if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
+ function releaseSelection(){modeHoldStart=0;if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
  function update(frame,renderer,enabled){
   if(!renderer?.xr?.isPresenting||!frame){
    watch.visible=false;handMesh.visible=false;fingertip.visible=false;leftMesh.visible=false;leftTip.visible=false;laser.visible=false;gazeVisible=false;lastPinch=false;controllerPressed=false;releaseSelection();return;
