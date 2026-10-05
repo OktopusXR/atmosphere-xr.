@@ -39,10 +39,20 @@ export function createEndMenu(scene,onChoose){
   base+=vec3(.9,.05,.37)*pink+vec3(stars);
   gl_FragColor=vec4(base,1.);
  }`;
- const sky=new THREE.Mesh(new THREE.SphereGeometry(28,48,32),
-  new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms:{uTime:{value:0}},
-   side:THREE.BackSide,depthWrite:false,depthTest:false}));
+ const fallbackSkyMaterial=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms:{uTime:{value:0}},
+  side:THREE.BackSide,depthWrite:false,depthTest:false});
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(28,64,40),fallbackSkyMaterial);
  sky.frustumCulled=false;sky.renderOrder=-1000;sky.visible=false;scene.add(sky);
+ // Production ending uses a separate 5.7K equirectangular texture. UI remains a distinct interactive layer.
+ const skyLoader=new THREE.TextureLoader();
+ skyLoader.load('./assets/atmosphere-end-skybox-5.7k.jpg',texture=>{
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.mapping=THREE.EquirectangularReflectionMapping;
+  texture.wrapS=THREE.RepeatWrapping;texture.repeat.x=-1;
+  texture.anisotropy=4;
+  sky.material.dispose();
+  sky.material=new THREE.MeshBasicMaterial({map:texture,side:THREE.BackSide,depthWrite:false,depthTest:false});
+ },undefined,()=>console.warn('5.7K end skybox not found; procedural fallback remains active.'));
  const raycaster=new THREE.Raycaster(),origin=new THREE.Vector3(),q=new THREE.Quaternion(),local=new THREE.Vector3();
  const cursor=new THREE.Mesh(new THREE.SphereGeometry(.009,8,6),
   new THREE.MeshBasicMaterial({color:0xee5599,depthTest:false,depthWrite:false}));
@@ -133,7 +143,7 @@ export function createEndMenu(scene,onChoose){
   camera.getWorldPosition(origin);camera.getWorldQuaternion(q);
   panel.position.copy(origin).add(new THREE.Vector3(0,0,-2.3).applyQuaternion(q));
   panel.quaternion.copy(q);
-  sky.position.copy(origin);sky.material.uniforms.uTime.value=performance.now()*.001;
+  sky.position.copy(origin);if(sky.material.uniforms?.uTime)if(sky.material.uniforms?.uTime)sky.material.uniforms.uTime.value=performance.now()*.001;
  }
  function animate(camera){
   if(!visible)return;
