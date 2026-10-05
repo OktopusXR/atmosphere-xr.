@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createDirectionCue} from './direction.js?build=score-v17';
 import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v16b';
 import {createCountdown} from './countdown.js?build=score-v16b';
 import {scoreEnvelope} from './score.js?build=score-v16b';
@@ -110,6 +111,7 @@ const endMenu=createEndMenu(root,onEndAction);
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
 const countdown=createCountdown(root,402);
+const directionCue=createDirectionCue(root);
 const wrist=createWatch(root,params,()=>{
  const xr=xb.core?.transition;
  if(mode==='VR'){mode='MR';wrist.setMode('MR');xr?.toAR?.();}
@@ -195,7 +197,7 @@ class Atmosphere extends xb.Script {
     }
    }
   }
-  if(!started){countdown.update(null,0,false);return;}
+  if(!started){countdown.update(null,0,false);directionCue.update(null,null,false);return;}
   // XR Blocks supplies selected controller rays, including trigger drag.
   for(const ctl of xb.core?.input?.controllers||[]){
    if(ctl?.userData?.selected&&ctl?.userData?.handedness!=='left')wrist.controllerSelect(ctl);
@@ -207,6 +209,7 @@ class Atmosphere extends xb.Script {
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
   cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,env.bass,env.mid,env.high,env.attack);
   foreground.update(t,env,params);
+  directionCue.update(xb.core?.camera,foreground.focus,started&&!completed);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectStart(event){
@@ -220,8 +223,9 @@ class Atmosphere extends xb.Script {
  onSelectEnd(){
   if(completed)return;
   if(started){wrist.releaseSelection();return;}
-  if(!introStarted)beginIntro();else if(!introFinished)finishIntro();
-  else startMusic().catch(err=>$('status').textContent=err.message);
+  // XR input source handoffs also synthesize selectend. They must not
+  // advance or interrupt narration or the musical experience.
+  return;
  }
 }
 // XR Blocks creates the ONE renderer, camera and WebXR lifecycle.
