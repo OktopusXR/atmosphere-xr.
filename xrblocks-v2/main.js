@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v29';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v29';
-import {createCountdown} from './countdown.js?build=score-v29';
-import {scoreEnvelope} from './score.js?build=score-v29';
-import {makeClouds} from './cloud.js?build=score-v29';
-import {createWatch} from './watch.js?build=score-v29';
-import {createForeground} from './stage.js?build=score-v29';
+import {createDirectionCue} from './direction.js?build=score-v30';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v30';
+import {createCountdown} from './countdown.js?build=score-v30';
+import {scoreEnvelope} from './score.js?build=score-v30';
+import {makeClouds} from './cloud.js?build=score-v30';
+import {createWatch} from './watch.js?build=score-v30';
+import {createForeground} from './stage.js?build=score-v30';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
@@ -72,7 +72,8 @@ let completed=false,menuPositioned=false,pinchWasDown=false;
 const previewEnd=new URLSearchParams(location.search).get('preview')==='end';
 let replayMode=null;
 function showEnd(){
- started=false;completed=true;root.visible=false;
+ started=false;completed=true;
+ // root must remain visible because the end menu and skybox are children of it.
  menuPositioned=false;
  endMenu.reset();
  const xr=xb.core?.renderer||xb.core?.engine?.renderer;
