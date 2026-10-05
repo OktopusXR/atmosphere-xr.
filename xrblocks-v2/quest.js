@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v38';
+import {createDirectionCue} from './direction.js?build=score-v39';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
-import {createCountdown} from './countdown.js?build=score-v38';
-import {scoreEnvelope} from './score.js?build=score-v38';
-import {makeClouds} from './cloud.js?build=score-v38';
-import {createWatch} from './watch.js?build=score-v38';
-import {createForeground} from './stage.js?build=score-v38';
+import {createCountdown} from './countdown.js?build=score-v39';
+import {scoreEnvelope} from './score.js?build=score-v39';
+import {makeClouds} from './cloud.js?build=score-v39';
+import {createWatch} from './watch.js?build=score-v39';
+import {createForeground} from './stage.js?build=score-v39';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -125,13 +125,14 @@ async function startMusic(){
 function showEnd(){
  if(completed)return;
  entered=false;completed=true;music.pause();introBoard.visible=false;
+ watch.setEndMode(true);
  menuPositioned=false;endMenu.reset();
  endMenu.show(true,renderer.xr.isPresenting,selectedMode);
  $('status').textContent='THE END';
 }
 async function restartExperience(){
  if(!completed)return;
- completed=false;root.visible=true;endMenu.show(false);menuPositioned=false;
+ completed=false;root.visible=true;endMenu.show(false);menuPositioned=false;watch.setEndMode(false);
  Object.assign(params,{intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1});
  watch.paint();
  music.pause();music.currentTime=0;lastCue=-1;visualStartedAt=performance.now();
@@ -173,7 +174,7 @@ function updateScore(){
 
 const controller1=renderer.xr.getController(0),controller2=renderer.xr.getController(1);
 scene.add(controller1,controller2);
-const watch=createWatch(scene,params,()=>changeMode());
+const watch=createWatch(scene,params,()=>changeMode(),id=>onEndAction(id));
 watch.setMode('VR');
 let lastAdvance=0;
 function advance(){
