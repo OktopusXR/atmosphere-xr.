@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 // ATMOSPHERE / WATCH V6 - one wearable interface for XR Blocks and Quest.
 // All controller and hand interactions map into the same watch canvas coordinates.
-export function createWatch(scene,controls,onMode){
+export function createWatch(scene,controls,onMode,onEndAction){
  const size={w:.35,h:.46};
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=676;
  const cx=canvas.getContext('2d'),texture=new THREE.CanvasTexture(canvas);
@@ -112,7 +112,7 @@ export function createWatch(scene,controls,onMode){
  const eyeDir=new THREE.Vector3(),eyeToWatch=new THREE.Vector3(),cameraPos=new THREE.Vector3();
  let gazeVisible=false;
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3(),temp=new THREE.Vector3(),look=new THREE.Vector3();
- let highlight=-1,modeLock=0,modeHoldStart=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false;
+ let highlight=-1,modeLock=0,modeHoldStart=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false,endMode=false;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
@@ -137,9 +137,16 @@ export function createWatch(scene,controls,onMode){
   });
   cx.strokeStyle='#888';cx.strokeRect(40,574,432,70);
   cx.fillStyle='#fff';cx.font='bold 19px Arial';cx.textAlign='center';
-  cx.fillText(modeName==='VR'?'MIXED REALITY':'VIRTUAL REALITY',256,602);
-  cx.fillStyle='#aaa';cx.font='15px Arial';
-  cx.fillText(modeName==='VR'?'PINCH TO SWITCH':'PINCH TO SWITCH',256,628);
+  if(endMode){
+   cx.fillStyle='#fff';cx.font='bold 17px Arial';
+   cx.fillText('WATCH AGAIN · VR',256,568);
+   cx.fillText('MIXED REALITY',256,596);
+   cx.fillText('SPOTIFY   ·   APPLE MUSIC',256,624);
+   cx.fillText('INSTAGRAM · @OKTOPUS.ART',256,650);
+  }else{
+   cx.fillText(modeName==='VR'?'MIXED REALITY':'VIRTUAL REALITY',256,602);
+   cx.fillStyle='#aaa';cx.font='15px Arial';cx.fillText('PINCH TO SWITCH',256,628);
+  }
   texture.needsUpdate=true;
  }
  paint();
@@ -150,7 +157,11 @@ export function createWatch(scene,controls,onMode){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&y>=568&&y<=650&&x>=32&&x<=480){
+  if(activeRow<0&&endMode&&y>=548&&y<=668&&x>=28&&x<=484){
+   const id=y<582?'VR':y<610?'MR':y<638?(x<256?'spotify':'apple'):'instagram';
+   onEndAction?.(id);modeLock=performance.now()+700;return true;
+  }
+  if(activeRow<0&&!endMode&&y>=568&&y<=650&&x>=32&&x<=480){
    // Long, deliberate hold avoids accidentally ending the XR session
    // when Quest switches between controllers and tracked hands.
    const now=performance.now();
@@ -227,7 +238,7 @@ export function createWatch(scene,controls,onMode){
    eyeToWatch.copy(watch.position).sub(cameraPos);
    const near=eyeToWatch.length()<.85;
    const score=eyeToWatch.normalize().dot(eyeDir);
-   gazeVisible=!!enabled&&near&&score>(gazeVisible?.76:.86);
+   gazeVisible=!!enabled&&near&&score>(gazeVisible?.70:.80);
    watch.visible=gazeVisible;
    if(!gazeVisible&&!controllerPressed&&!lastPinch)releaseSelection();
   }else{watch.visible=false;gazeVisible=false;}
@@ -266,5 +277,5 @@ export function createWatch(scene,controls,onMode){
   if(!pinching&&lastPinch&&!controllerPressed)releaseSelection();
   lastPinch=pinching;
  }
- return {watch,update,controllerSelect,paint,hitPosition,releaseSelection,setMode(mode){if(modeName!==mode){modeName=mode;paint()}}};
+ return {watch,update,controllerSelect,paint,hitPosition,releaseSelection,setMode(mode){if(modeName!==mode){modeName=mode;paint()}},setEndMode(v){endMode=!!v;paint()}};
 }
