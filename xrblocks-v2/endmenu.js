@@ -6,11 +6,11 @@ export const MUSIC_LINKS={
  instagram:'https://www.instagram.com/oktopus.art/'
 };
 const items=[
- {id:'VR',label:'VR',sub:'REPLAY'},
- {id:'MR',label:'MR',sub:'REPLAY'},
- {id:'spotify',label:'SPOTIFY',sub:'LISTEN'},
- {id:'apple',label:'APPLE MUSIC',sub:'LISTEN'},
- {id:'instagram',label:'@OKTOPUS.ART',sub:'FOLLOW'}
+ {id:'VR',label:'WATCH AGAIN',sub:'IN VR'},
+ {id:'MR',label:'MIXED REALITY',sub:'WATCH AGAIN'},
+ {id:'spotify',label:'SPOTIFY',sub:'FOLLOW'},
+ {id:'apple',label:'APPLE MUSIC',sub:'FOLLOW'},
+ {id:'instagram',label:'INSTAGRAM',sub:'@OKTOPUS.ART'}
 ];
 export function createEndMenu(scene,onChoose){
  const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=720;
@@ -70,7 +70,7 @@ export function createEndMenu(scene,onChoose){
    ctx.fillStyle='#ddd';ctx.font='20px Arial';ctx.fillText(item.label,x,cy+99,242);
    ctx.fillStyle='#999';ctx.font='15px Arial';ctx.fillText(item.sub,x,cy+122);
   });
-  ctx.fillStyle='#bbb';ctx.font='18px Arial';ctx.fillText('GRACIAS POR SER PARTE',768,641);
+  ctx.fillStyle='#bbb';ctx.font='18px Arial';ctx.fillText('THANK YOU FOR BEING PART OF IT',768,641);
   tex.needsUpdate=true;
  }
  draw();
