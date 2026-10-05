@@ -355,7 +355,7 @@ renderer.setAnimationLoop((t,frame)=>{
  }
  const elapsed=entered?updateScore():0;
  const view=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
- directionCue.update(view,foreground.focus,entered&&!completed);
+ directionCue.update(view,foreground.focus,entered&&!completed&&!foreground.allAround);
  countdown.update(view,elapsed,entered&&!completed);
  renderer.render(scene,camera);
 });
