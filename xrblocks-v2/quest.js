@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v45';
+import {createDirectionCue} from './direction.js?build=score-v46';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
-import {createCountdown} from './countdown.js?build=score-v45';
-import {scoreEnvelope} from './score.js?build=score-v45';
-import {makeClouds} from './cloud.js?build=score-v45';
-import {createWatch} from './watch.js?build=score-v45';
-import {createForeground} from './stage.js?build=score-v45';
+import {createCountdown} from './countdown.js?build=score-v46';
+import {scoreEnvelope} from './score.js?build=score-v46';
+import {makeClouds} from './cloud.js?build=score-v46';
+import {createWatch} from './watch.js?build=score-v46';
+import {createForeground} from './stage.js?build=score-v46';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -17,7 +17,9 @@ const lines=[
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
 let selectedMode=vrMode,introStarted=false,introFinished=false,entered=false,completed=false,timers=[],captionIndex=0;
-const previewEnd=new URLSearchParams(location.search).get('preview')==='end';
+const query=new URLSearchParams(location.search);
+const previewEnd=query.get('preview')==='end';
+const xrEndTest=query.get('test')==='end';
 let context,source,analyser,fft,td,bass=0,mid=0,high=0,rms=0,attack=0,previousRms=0,lastCue=-1,prevRawBass=0,prevRawMid=0;
 const soundtrackDuration=402;
 const cues=[
@@ -252,6 +254,11 @@ async function enterXR(mode='VR'){
     {optionalFeatures:['local-floor','hand-tracking']});
   await renderer.xr.setSession(session);
   $('status').textContent='ATMOSPHERE '+mode+' · PLAYING';
+  if(xrEndTest&&!completed){
+   // Diagnostic route: enter a genuine immersive session first, then activate
+   // the exact same final state used after the full 6m42s experience.
+   setTimeout(()=>showEnd(),350);
+  }
   return true;
  }catch(e){
   $('status').textContent='XR ENTRY FAILED: '+e.message;
@@ -375,5 +382,10 @@ window.addEventListener('resize',()=>{
  renderer.setSize(innerWidth,innerHeight);
 });
 drawIntro();
+if(xrEndTest){
+ $('start').hidden=true;$('skip').hidden=true;$('enter').hidden=false;
+ $('enter').textContent='TEST FINAL MENU IN VR';
+ $('status').textContent='XR FINAL TEST · ENTER VR';
+}
 $('development').textContent='SCORE V5 READY';
 window.atmosAppReady=true;
