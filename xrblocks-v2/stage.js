@@ -348,7 +348,7 @@ export function createForeground(root){
   }
   return v;
  }
- function update(t,_score,controls={}){
+ function update(t,_score,controls={},camera=null){
   const time=Math.max(0,Math.min(401.999,Number.isFinite(t)?t:0));
   let index=chapters.findIndex(c=>time<c.end);
   if(index<0)index=chapters.length-1;
@@ -423,8 +423,13 @@ export function createForeground(root){
   const start=index===0?0:chapters[index-1].end;
   const end=chapters[index].end;
   // Head-relative caption: below the visual center, never attached to artwork.
-  // The main app's XR camera is supplied separately through the next update.
-  descriptionPlane.position.set(0,.92,-1.65);
+  // Camera-relative caption, below the central viewing area.
+  if(camera){
+   const eye=new THREE.Vector3(),orientation=new THREE.Quaternion();
+   camera.getWorldPosition(eye);camera.getWorldQuaternion(orientation);
+   descriptionPlane.position.copy(eye).add(new THREE.Vector3(0,-.37,-1.7).applyQuaternion(orientation));
+   descriptionPlane.quaternion.copy(orientation);
+  }
   descriptionPlane.material.opacity=.62*smooth((time-start)/2)*(1-smooth((time-(end-2))/2));
   titlePlane.material.opacity=.94*
    smooth((time-start)/2.0)*(1-smooth((time-(end-2.0))/2.0));
