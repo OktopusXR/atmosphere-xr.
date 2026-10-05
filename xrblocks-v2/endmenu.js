@@ -44,7 +44,7 @@ export function createEndMenu(scene,onChoose){
   beamPts.needsUpdate=true;beam.visible=true;return true;
  }
 
- const top=324,step=154,height=123,left=89,width=846;
+ const top=324,step=154,height=112,left=89,width=846;
  let busy=false;
  function draw(){
   ctx.clearRect(0,0,1024,1180);
@@ -54,12 +54,13 @@ export function createEndMenu(scene,onChoose){
   ctx.fillText('ATMOSPHERE · TECHNO POESIS',512,226);
   items.forEach((item,i)=>{
    const y=top+i*step;
-   ctx.fillStyle='#0e1013';ctx.fillRect(left,y,width,height);
-   ctx.strokeStyle='#f3f3f3';ctx.lineWidth=2;ctx.strokeRect(left,y,width,height);
+   ctx.beginPath();ctx.roundRect(left,y,width,height,56);ctx.fillStyle='#101115';ctx.fill();
+   ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=2;ctx.stroke();
+   ctx.beginPath();ctx.arc(left+46,y+height/2,6,0,Math.PI*2);ctx.fillStyle=i<2?'#ed0075':'#aaaaaa';ctx.fill();
    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 40px Arial';
-   ctx.fillText(item.label,512,y+55,790);
+   ctx.fillText(item.label,512,y+49,750);
    ctx.fillStyle='#bcbcbc';ctx.font='bold 22px Arial';
-   ctx.fillText(item.sub,512,y+91,790);
+   ctx.fillText(item.sub,512,y+83,750);
   });
   ctx.fillStyle='#888';ctx.font='22px Arial';ctx.textAlign='center';
   ctx.fillText('SELECCIONA CON PINZA O GATILLO',512,1155);
@@ -71,7 +72,7 @@ export function createEndMenu(scene,onChoose){
  const h=document.createElement('h1');h.textContent='THE END';h.style.cssText='font-size:clamp(48px,9vw,92px);margin:0 0 22px';overlay.appendChild(h);
  items.forEach(item=>{
   const btn=document.createElement('button');btn.textContent=item.label;
-  btn.style.cssText='background:#111;color:#fff;border:1px solid #ccc;border-radius:6px;padding:16px 24px;min-height:52px;font:bold 16px Arial;width:min(460px,90vw)';
+  btn.style.cssText='background:#111;color:#fff;border:1px solid #ccc;border-radius:999px;padding:16px 24px;min-height:52px;font:bold 16px Arial;width:min(460px,90vw)';
   btn.onclick=()=>choose(item.id);
   overlay.appendChild(btn);
  });
