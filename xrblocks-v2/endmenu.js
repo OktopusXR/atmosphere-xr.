@@ -45,7 +45,7 @@ export function createEndMenu(scene,onChoose){
  sky.frustumCulled=false;sky.renderOrder=-1000;sky.visible=false;scene.add(sky);
  // Production ending uses a separate 5.7K equirectangular texture. UI remains a distinct interactive layer.
  const skyLoader=new THREE.TextureLoader();
- skyLoader.load('./assets/atmosphere-end-skybox-5.7k.jpg',texture=>{
+ skyLoader.load('https://raw.githubusercontent.com/OktopusXR/atmosphere-xr./refs/heads/main/atmosphere-end-skybox-5.7k.jpg',texture=>{
   texture.colorSpace=THREE.SRGBColorSpace;
   texture.mapping=THREE.EquirectangularReflectionMapping;
   texture.wrapS=THREE.RepeatWrapping;texture.repeat.x=-1;
