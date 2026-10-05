@@ -116,40 +116,47 @@ export function createWatch(scene,controls,onMode,onEndAction){
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
-  cx.fillStyle='rgba(7,9,12,.89)';cx.beginPath();
-  cx.roundRect(8,7,496,663,82);cx.fill();
+  cx.fillStyle='rgba(7,9,12,.94)';cx.beginPath();cx.roundRect(8,7,496,663,72);cx.fill();
   cx.strokeStyle='rgba(248,248,248,.65)';cx.lineWidth=2;cx.stroke();
-  cx.beginPath();cx.arc(256,120,68,0,Math.PI*2);cx.stroke();
-  cx.strokeStyle='rgba(255,255,255,.25)';cx.beginPath();
-  cx.arc(256,120,53,-Math.PI*.72,Math.PI*.72);cx.stroke();
   cx.fillStyle='#fff';cx.textAlign='center';
-  cx.font='bold 25px Arial';cx.fillText('ATMOSPHERE',256,34);
-  cx.font='bold 25px Arial';cx.fillText('XR / CONTROL',256,105);
-  cx.font='bold 22px Arial';cx.fillStyle='#eee';cx.fillText('INTERACTIVE SCORE',256,131);
-  cx.strokeStyle='#fff';cx.beginPath();cx.moveTo(53,197);cx.lineTo(459,197);cx.stroke();
-  rows.forEach((r,i)=>{
-   const y=245+i*55,raw=controls[r.key],v=clamp((raw-r.min)/(r.max-r.min),0,1);
-   if(highlight===i){cx.fillStyle='rgba(255,255,255,.18)';cx.fillRect(35,y-26,444,52)}
-   cx.textAlign='left';cx.fillStyle='#ddd';cx.font='bold 25px Arial';cx.fillText(r.label,45,y+5);
-   cx.fillStyle='#40464c';cx.fillRect(215,y-6,225,5);
-   cx.fillStyle='#fff';cx.fillRect(215,y-6,225*v,5);
-   cx.beginPath();cx.arc(215+225*v,y-3.5,10,0,Math.PI*2);cx.fill();
-  });
-  cx.strokeStyle='#888';cx.strokeRect(40,574,432,70);
-  cx.fillStyle='#fff';cx.font='bold 19px Arial';cx.textAlign='center';
+  cx.font='bold 25px Arial';cx.fillText('ATMOSPHERE',256,40);
   if(endMode){
-   cx.fillStyle='#fff';cx.font='bold 17px Arial';
-   cx.fillText('WATCH AGAIN · VR',256,568);
-   cx.fillText('MIXED REALITY',256,596);
-   cx.fillText('SPOTIFY   ·   APPLE MUSIC',256,624);
-   cx.fillText('INSTAGRAM · @OKTOPUS.ART',256,650);
+   cx.font='17px Arial';cx.fillStyle='#aaa';cx.fillText('END MENU',256,72);
+   const menu=[
+    ['VR','WATCH AGAIN','VIRTUAL REALITY'],
+    ['MR','WATCH AGAIN','MIXED REALITY'],
+    ['spotify','SPOTIFY','LISTEN / FOLLOW'],
+    ['instagram','INSTAGRAM','@OKTOPUS.ART']
+   ];
+   menu.forEach((m,i)=>{
+    const y=118+i*128;
+    cx.fillStyle='rgba(255,255,255,.035)';cx.strokeStyle='rgba(255,255,255,.55)';cx.lineWidth=2;
+    cx.beginPath();cx.roundRect(38,y,436,96,24);cx.fill();cx.stroke();
+    cx.textAlign='left';cx.fillStyle='#fff';cx.font='bold 24px Arial';cx.fillText(m[1],68,y+39);
+    cx.fillStyle='#aaa';cx.font='17px Arial';cx.fillText(m[2],68,y+67);
+    cx.textAlign='right';cx.fillStyle='#fff';cx.font='28px Arial';cx.fillText('›',442,y+58);
+   });
+   cx.textAlign='center';cx.fillStyle='#777';cx.font='14px Arial';cx.fillText('PINCH WITH RIGHT HAND TO SELECT',256,650);
   }else{
+   cx.beginPath();cx.arc(256,120,68,0,Math.PI*2);cx.stroke();
+   cx.strokeStyle='rgba(255,255,255,.25)';cx.beginPath();cx.arc(256,120,53,-Math.PI*.72,Math.PI*.72);cx.stroke();
+   cx.font='bold 25px Arial';cx.fillText('XR / CONTROL',256,105);
+   cx.font='bold 22px Arial';cx.fillStyle='#eee';cx.fillText('INTERACTIVE SCORE',256,131);
+   cx.strokeStyle='#fff';cx.beginPath();cx.moveTo(53,197);cx.lineTo(459,197);cx.stroke();
+   rows.forEach((r,i)=>{
+    const y=245+i*55,raw=controls[r.key],v=clamp((raw-r.min)/(r.max-r.min),0,1);
+    if(highlight===i){cx.fillStyle='rgba(255,255,255,.18)';cx.fillRect(35,y-26,444,52)}
+    cx.textAlign='left';cx.fillStyle='#ddd';cx.font='bold 25px Arial';cx.fillText(r.label,45,y+5);
+    cx.fillStyle='#40464c';cx.fillRect(215,y-6,225,5);cx.fillStyle='#fff';cx.fillRect(215,y-6,225*v,5);
+    cx.beginPath();cx.arc(215+225*v,y-3.5,10,0,Math.PI*2);cx.fill();
+   });
+   cx.strokeStyle='#888';cx.strokeRect(40,574,432,70);
+   cx.fillStyle='#fff';cx.font='bold 19px Arial';cx.textAlign='center';
    cx.fillText(modeName==='VR'?'MIXED REALITY':'VIRTUAL REALITY',256,602);
    cx.fillStyle='#aaa';cx.font='15px Arial';cx.fillText('PINCH TO SWITCH',256,628);
   }
   texture.needsUpdate=true;
- }
- paint();
+ } paint();
  function hitPosition(world,dragging=false){
   if(!watch.visible)return false;
   watch.updateMatrixWorld(true);
@@ -157,9 +164,13 @@ export function createWatch(scene,controls,onMode,onEndAction){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&endMode&&y>=548&&y<=668&&x>=28&&x<=484){
-   const id=y<582?'VR':y<610?'MR':y<638?(x<256?'spotify':'apple'):'instagram';
-   onEndAction?.(id);modeLock=performance.now()+700;return true;
+  if(activeRow<0&&endMode&&x>=28&&x<=484&&y>=108&&y<=630){
+   const idx=Math.floor((y-108)/128);
+   if(idx>=0&&idx<4){
+    const id=['VR','MR','spotify','instagram'][idx];
+    if(performance.now()>modeLock){modeLock=performance.now()+900;onEndAction?.(id)}
+    return true;
+   }
   }
   if(activeRow<0&&!endMode&&y>=568&&y<=650&&x>=32&&x<=480){
    // Long, deliberate hold avoids accidentally ending the XR session
