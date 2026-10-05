@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v21';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v21';
-import {createCountdown} from './countdown.js?build=score-v21';
-import {scoreEnvelope} from './score.js?build=score-v21';
-import {makeClouds} from './cloud.js?build=score-v21';
-import {createWatch} from './watch.js?build=score-v21';
-import {createForeground} from './stage.js?build=score-v21';
+import {createDirectionCue} from './direction.js?build=score-v22';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v22';
+import {createCountdown} from './countdown.js?build=score-v22';
+import {scoreEnvelope} from './score.js?build=score-v22';
+import {makeClouds} from './cloud.js?build=score-v22';
+import {createWatch} from './watch.js?build=score-v22';
+import {createForeground} from './stage.js?build=score-v22';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -124,7 +124,7 @@ async function startMusic(){
 function showEnd(){
  entered=false;completed=true;root.visible=false;introBoard.visible=false;
  menuPositioned=false;endMenu.reset();
- endMenu.show(true,renderer.xr.isPresenting);
+ endMenu.show(true,renderer.xr.isPresenting,selectedMode);
  $('status').textContent='THE END';
 }
 async function restartExperience(){
@@ -301,12 +301,12 @@ async function changeMode(){
 renderer.xr.addEventListener('sessionstart',()=>{
  $('xrButton').style.display='none';
  watch.watch.visible=false;
- if(completed){endMenu.show(true,true);menuPositioned=false}
+ if(completed){endMenu.show(true,true,selectedMode);menuPositioned=false}
 });
 renderer.xr.addEventListener('sessionend',()=>{
  watch.watch.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
- if(completed){endMenu.show(true,false);menuPositioned=false}
+ if(completed){endMenu.show(true,false,selectedMode);menuPositioned=false}
  if(requestedMode){const next=requestedMode;requestedMode=null;offerContinue(next)}
 });
 $('modebar').style.display='none';
@@ -320,13 +320,14 @@ renderer.setAnimationLoop((t,frame)=>{
   if(ctl.userData.watchSelecting)watch.controllerSelect(ctl);
  }
  introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
- endMenu.show(completed,renderer.xr.isPresenting);
+ endMenu.show(completed,renderer.xr.isPresenting,selectedMode);
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
   cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
   introBoard.position.copy(pos).add(offset.clone().applyQuaternion(quat));
   introBoard.quaternion.copy(quat);
  }
+ if(completed)endMenu.animate(renderer.xr.isPresenting?renderer.xr.getCamera():camera);
  if(completed&&renderer.xr.isPresenting){
   if(!menuPositioned){endMenu.update(renderer.xr.getCamera());menuPositioned=true}
   if(frame){
