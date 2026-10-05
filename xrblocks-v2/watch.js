@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // ATMOSPHERE / WATCH V6 - one wearable interface for XR Blocks and Quest.
 // All controller and hand interactions map into the same watch canvas coordinates.
 export function createWatch(scene,controls,onMode,onEndAction){
- const size={w:.34,h:.40};
+ const size={w:.285,h:.335};
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=676;
  const cx=canvas.getContext('2d'),texture=new THREE.CanvasTexture(canvas);
  const watch=new THREE.Mesh(new THREE.PlaneGeometry(size.w,size.h),
