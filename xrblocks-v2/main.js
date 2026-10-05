@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v26';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v26';
-import {createCountdown} from './countdown.js?build=score-v26';
-import {scoreEnvelope} from './score.js?build=score-v26';
-import {makeClouds} from './cloud.js?build=score-v26';
-import {createWatch} from './watch.js?build=score-v26';
-import {createForeground} from './stage.js?build=score-v26';
+import {createDirectionCue} from './direction.js?build=score-v27';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v27';
+import {createCountdown} from './countdown.js?build=score-v27';
+import {scoreEnvelope} from './score.js?build=score-v27';
+import {makeClouds} from './cloud.js?build=score-v27';
+import {createWatch} from './watch.js?build=score-v27';
+import {createForeground} from './stage.js?build=score-v27';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
