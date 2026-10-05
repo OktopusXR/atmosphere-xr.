@@ -190,12 +190,12 @@ function makeChapter(root,kind,index){
     float t=uTime;
     // Slow separation, aggregation and re-formation with authored easing.
     float part=pow(.5+.5*sin(t*.27-.7),2.0);
-    float dist=.15+part*(.92+.26*uVariation);
+    float dist=.12+part*(.62+.16*uVariation);
     float fusion=.53-.35*part;
     p.xz=rot(t*.18)*p.xz;
     p.yz=rot(t*.105)*p.yz;
-    vec3 a=vec3(-dist, .15*sin(t*.33),0.);
-    vec3 b=vec3( dist,-.10*sin(t*.24),0.);
+    vec3 a=vec3(-dist, .12*sin(t*.33),0.);
+    vec3 b=vec3( dist,-.08*sin(t*.24),0.);
     vec3 c=vec3(.12*sin(t*.18),dist*.67,.28*cos(t*.27));
     vec3 d=vec3(.19*cos(t*.26),-dist*.67,-.3*sin(t*.2));
     float v=length(p-a)-.53;
@@ -220,7 +220,7 @@ function makeChapter(root,kind,index){
      float d=field(p);
      if(d<.018){hit=true;break;}
      p+=dir*clamp(d*.8,.022,.18);
-     if(any(greaterThan(abs(p),vec3(1.62))))break;
+     if(any(greaterThan(abs(p),vec3(2.15))))break;
     }
     if(!hit)discard;
     vec3 n=normalAt(p);
@@ -235,7 +235,7 @@ function makeChapter(root,kind,index){
    uniforms:{uTime:{value:0},uAlpha:{value:0},uVariation:{value:.55}},
    transparent:true,depthWrite:false,side:THREE.FrontSide
   });
-  const mesh=new THREE.Mesh(new THREE.BoxGeometry(3.24,3.24,3.24),mat);
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(4.3,4.3,4.3),mat);
   mesh.frustumCulled=false;g.add(mesh);add(mesh);
  }else if(kind==='axis'){
   // SYMMETRY is a whole-environment 360° field, centred on the observer.
@@ -444,7 +444,7 @@ export function createForeground(root){
     kind==='tunnel'?.025*Math.sin(slow*.32):time*(.045+.025*speed)+i*.29,
     kind==='tunnel'?0:.06*Math.sin(slow*.39+i));
    const breathe=1+.065*Math.sin(slow*.78+i*.67)+.038*note;
-   group.scale.setScalar((kind==='tunnel'||kind==='axis')?1:(kind==='crystal'?.40:1)*scale*breathe*(1+.12*variation*((i%4)/4)));
+   group.scale.setScalar((kind==='tunnel'||kind==='axis')?1:(kind==='crystal'?.34:1)*scale*breathe*(1+.12*variation*((i%4)/4)));
    for(let j=0;j<objects.length;j++){
     const o=objects[j];o.visible=true;
     const opacity=Math.min(1,weight*intensity*
