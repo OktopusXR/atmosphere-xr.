@@ -9,7 +9,7 @@ const items=[
  {id:'VR',label:'VOLVER A VER EN VR',sub:'EXPERIENCIA INMERSIVA'},
  {id:'MR',label:'VOLVER A VER EN MR',sub:'REALIDAD MIXTA'},
  {id:'spotify',label:'ESCUCHAR EN SPOTIFY',sub:'ATMOSPHERE · OKTOPUS ART STUDIO'},
- {id:'apple',label:'APPLE MUSIC · DOLBY ATMOS',sub:'ATMOSPHERE · OKTOPUS ART STUDIO'},
+ {id:'apple',label:'ESCUCHAR EN APPLE MUSIC',sub:'DOLBY ATMOS · SI ESTÁ DISPONIBLE'},
  {id:'instagram',label:'SEGUIR @OKTOPUS.ART',sub:'INSTAGRAM'}
 ];
 export function createEndMenu(scene,onChoose){
