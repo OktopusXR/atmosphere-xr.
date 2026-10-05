@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v42';
+import {createDirectionCue} from './direction.js?build=score-v43';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
-import {createCountdown} from './countdown.js?build=score-v42';
-import {scoreEnvelope} from './score.js?build=score-v42';
-import {makeClouds} from './cloud.js?build=score-v42';
-import {createWatch} from './watch.js?build=score-v42';
-import {createForeground} from './stage.js?build=score-v42';
+import {createCountdown} from './countdown.js?build=score-v43';
+import {scoreEnvelope} from './score.js?build=score-v43';
+import {makeClouds} from './cloud.js?build=score-v43';
+import {createWatch} from './watch.js?build=score-v43';
+import {createForeground} from './stage.js?build=score-v43';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -273,7 +273,7 @@ $('enter').onclick=enterExperience;
 let changingMode=false,requestedMode=null;
 function offerContinue(mode){
  const overlay=$('xrButton');
- overlay.style.display='block';
+ overlay.style.display='flex';
  overlay.innerHTML='';
  const action=document.createElement('button');
  action.textContent='CONTINUE IN '+(mode==='VR'?'VR':'MIXED REALITY');
@@ -285,7 +285,7 @@ function offerContinue(mode){
    requestedMode=null;overlay.style.display='none';
    if(replayAfterMode){replayAfterMode=false;restartExperience()}
   }
-  else overlay.style.display='block';
+  else overlay.style.display='flex';
  };
  overlay.appendChild(action);
  $('status').textContent='MODE READY · SELECT CONTINUE IN '+mode;
@@ -316,7 +316,7 @@ renderer.xr.addEventListener('sessionstart',()=>{
 renderer.xr.addEventListener('sessionend',()=>{
  watch.watch.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
- if(completed){endMenu.show(true,false,selectedMode);menuPositioned=false}
+ if(completed&&!requestedMode){endMenu.show(true,false,selectedMode);menuPositioned=false}
  if(requestedMode){const next=requestedMode;requestedMode=null;pendingEndAction=null;offerContinue(next)}
 });
 $('modebar').style.display='none';
