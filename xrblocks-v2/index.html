@@ -55,9 +55,9 @@ button{background:#080808;color:#fff;border:1px solid #aaa;padding:12px 18px;let
  const isQuest=/OculusBrowser|Quest|Oculus|MetaQuest/i.test(navigator.userAgent);
  if(isQuest){
   const p=new URLSearchParams(location.search);
-  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr')+(p.get('preview')?'&preview='+encodeURIComponent(p.get('preview')):'')+'&build=score-v36');
+  location.replace('./quest.html?mode='+encodeURIComponent(p.get('mode')||'vr')+(p.get('preview')?'&preview='+encodeURIComponent(p.get('preview')):'')+'&build=score-v37');
  }
 })();
 </script>
-<script type="module" src="./main.js?build=score-v36"></script>
+<script type="module" src="./main.js?build=score-v37"></script>
 </body></html>
