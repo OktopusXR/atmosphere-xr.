@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v48';
+import {createDirectionCue} from './direction.js?build=score-v49';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
-import {createCountdown} from './countdown.js?build=score-v48';
-import {scoreEnvelope} from './score.js?build=score-v48';
-import {makeClouds} from './cloud.js?build=score-v48';
-import {createWatch} from './watch.js?build=score-v48';
-import {createForeground} from './stage.js?build=score-v48';
+import {createCountdown} from './countdown.js?build=score-v49';
+import {scoreEnvelope} from './score.js?build=score-v49';
+import {makeClouds} from './cloud.js?build=score-v49';
+import {createWatch} from './watch.js?build=score-v49';
+import {createForeground} from './stage.js?build=score-v49';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -144,12 +144,6 @@ async function restartExperience(){
 }
 function onEndAction(id){
  $('status').textContent='END ACTION · '+id;
- if(MUSIC_LINKS[id]){
-  // Do not tear down immersive XR for external links. Opening a browser tab from
-  // an XR hand event is unreliable on Quest, so keep the final menu active.
-  window.open(MUSIC_LINKS[id],'_blank','noopener');
-  endMenu.reset();return;
- }
  if(id!=='VR'&&id!=='MR'){endMenu.reset();return}
  if(id===selectedMode){
   endMenu.reset();restartExperience();return;
@@ -189,9 +183,11 @@ for(const ctl of [controller1,controller2]){
  ctl.userData.watchSelecting=false;
  ctl.addEventListener('selectstart',event=>{
  if(completed){
-  const origin=new THREE.Vector3(),dir=new THREE.Vector3();
-  ctl.getWorldPosition(origin);ctl.getWorldDirection(dir).negate();
-  endMenu.selectRay(origin,dir);return;
+  const handed=event?.data?.handedness||event?.inputSource?.handedness;
+  if(handed==='right'||(!handed&&ctl===controller2)){
+   ctl.userData.watchSelecting=true;watch.controllerSelect(ctl);
+  }
+  return;
  }
  if(entered){
   const handed=event?.data?.handedness||event?.inputSource?.handedness;
