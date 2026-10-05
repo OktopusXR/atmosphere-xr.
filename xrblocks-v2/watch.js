@@ -189,7 +189,7 @@ export function createWatch(scene,controls,onMode){
  let lastPinch=false;
  function releaseSelection(){if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
  function update(frame,renderer,enabled){
-  if(!renderer?.xr?.isPresenting||!frame||!enabled){
+  if(!renderer?.xr?.isPresenting||!frame){
    watch.visible=false;handMesh.visible=false;fingertip.visible=false;leftMesh.visible=false;leftTip.visible=false;laser.visible=false;gazeVisible=false;lastPinch=false;controllerPressed=false;releaseSelection();return;
   }
   const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
@@ -218,7 +218,7 @@ export function createWatch(scene,controls,onMode){
    eyeToWatch.copy(watch.position).sub(cameraPos);
    const near=eyeToWatch.length()<.85;
    const score=eyeToWatch.normalize().dot(eyeDir);
-   gazeVisible=near&&score>(gazeVisible?.76:.86);
+   gazeVisible=!!enabled&&near&&score>(gazeVisible?.76:.86);
    watch.visible=gazeVisible;
    if(!gazeVisible&&!controllerPressed&&!lastPinch)releaseSelection();
   }else{watch.visible=false;gazeVisible=false;}
