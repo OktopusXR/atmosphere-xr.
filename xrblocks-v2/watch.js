@@ -124,28 +124,26 @@ export function createWatch(scene,controls,onMode,onEndAction){
    cx.fillStyle='#8993a2';cx.font='13px Arial';cx.fillText('FINAL MENU',256,70);
    const menu=[
     ['↻','WATCH AGAIN','VIRTUAL REALITY'],
-    ['◇','WATCH AGAIN','MIXED REALITY'],
-    ['◉','SPOTIFY','LISTEN · FOLLOW'],
-    ['◎','INSTAGRAM','@OKTOPUS.ART']
+    ['◇','WATCH AGAIN','MIXED REALITY']
    ];
    menu.forEach((m,i)=>{
-    const y=100+i*132,active=i===endPress,hover=i===endHover;
+    const y=178+i*158,active=i===endPress,hover=i===endHover;
     cx.fillStyle=active?'rgba(178,210,255,.20)':hover?'rgba(120,160,210,.12)':'rgba(10,15,24,.56)';cx.strokeStyle='rgba(190,215,255,.28)';cx.lineWidth=1.25;
-    cx.beginPath();cx.roundRect(34,y,444,104,34);cx.fill();cx.stroke();
+    cx.beginPath();cx.roundRect(34,y,444,122,38);cx.fill();cx.stroke();
     if(active&&endProgress>0){
      const w=444*clamp(endProgress,0,1);
-     cx.save();cx.beginPath();cx.roundRect(34,y,444,104,34);cx.clip();
-     cx.fillStyle='rgba(210,230,255,.24)';cx.fillRect(34,y,w,104);cx.restore();
-     cx.strokeStyle='rgba(235,245,255,.9)';cx.lineWidth=2;cx.beginPath();cx.roundRect(34,y,444,104,34);cx.stroke();
+     cx.save();cx.beginPath();cx.roundRect(34,y,444,122,38);cx.clip();
+     cx.fillStyle='rgba(210,230,255,.24)';cx.fillRect(34,y,w,122);cx.restore();
+     cx.strokeStyle='rgba(235,245,255,.9)';cx.lineWidth=2;cx.beginPath();cx.roundRect(34,y,444,122,38);cx.stroke();
     }
-    cx.fillStyle='rgba(215,230,255,.08)';cx.beginPath();cx.arc(82,y+52,31,0,Math.PI*2);cx.fill();
-    cx.strokeStyle='rgba(225,238,255,.58)';cx.beginPath();cx.arc(82,y+52,31,0,Math.PI*2);cx.stroke();
-    cx.textAlign='center';cx.fillStyle='#eef4ff';cx.font='30px Arial';cx.fillText(m[0],82,y+62);
-    cx.textAlign='left';cx.fillStyle='#f5f7fb';cx.font='500 22px Arial';cx.fillText(m[1],130,y+44);
-    cx.fillStyle='#929cab';cx.font='14px Arial';cx.fillText(m[2],130,y+69);
-    cx.textAlign='right';cx.fillStyle='#dce8f8';cx.font='18px Arial';cx.fillText('•',451,y+59);
+    cx.fillStyle='rgba(215,230,255,.08)';cx.beginPath();cx.arc(82,y+61,31,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='rgba(225,238,255,.58)';cx.beginPath();cx.arc(82,y+61,31,0,Math.PI*2);cx.stroke();
+    cx.textAlign='center';cx.fillStyle='#eef4ff';cx.font='30px Arial';cx.fillText(m[0],82,y+71);
+    cx.textAlign='left';cx.fillStyle='#f5f7fb';cx.font='500 22px Arial';cx.fillText(m[1],130,y+52);
+    cx.fillStyle='#929cab';cx.font='14px Arial';cx.fillText(m[2],130,y+82);
+    cx.textAlign='right';cx.fillStyle='#dce8f8';cx.font='18px Arial';cx.fillText('•',451,y+68);
    });
-   cx.textAlign='center';cx.fillStyle='#687382';cx.font='12px Arial';cx.fillText('LOOK · AIM · PINCH',256,649);
+   cx.textAlign='center';cx.fillStyle='#687382';cx.font='12px Arial';cx.fillText('TOUCH WITH INDEX · OR USE RIGHT TRIGGER',256,575);
   }else{
    cx.fillStyle='#8993a2';cx.font='13px Arial';cx.fillText('INTERACTIVE SCORE',256,70);
    rows.forEach((r,i)=>{
@@ -169,9 +167,9 @@ export function createWatch(scene,controls,onMode,onEndAction){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&endMode&&x>=28&&x<=484&&y>=92&&y<=636){
-   const idx=Math.floor((y-92)/132);
-   if(idx>=0&&idx<4){endHover=idx;return true}
+  if(activeRow<0&&endMode&&x>=28&&x<=484&&y>=168&&y<=468){
+   const idx=Math.floor((y-168)/158);
+   if(idx>=0&&idx<2){endHover=idx;return true}
   }
   if(activeRow<0&&!endMode&&y>=568&&y<=650&&x>=32&&x<=480){
    // Long, deliberate hold avoids accidentally ending the XR session
@@ -214,8 +212,21 @@ export function createWatch(scene,controls,onMode,onEndAction){
  }
  function controllerSelect(controller){
   if(!watch.visible)return false;
-  controller.getWorldPosition(temp);
-  controller.getWorldDirection(direction).negate();
+  controller.getWorldPosition(temp);controller.getWorldDirection(direction).negate();
+  if(endMode){
+   ray.set(temp,direction.clone().normalize());
+   const result=ray.intersectObject(watch,false)[0];if(!result)return false;
+   watch.updateMatrixWorld(true);const p=watch.worldToLocal(result.point.clone());
+   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
+   if(x>=28&&x<=484&&y>=168&&y<=468){
+    const idx=Math.floor((y-168)/158);
+    if(idx>=0&&idx<2&&performance.now()>modeLock){
+     modeLock=performance.now()+900;endPress=idx;endProgress=1;paint();
+     onEndAction?.(['VR','MR'][idx]);return true;
+    }
+   }
+   return false;
+  }
   return hitRay(temp,direction);
  }
  let lastPinch=false;
@@ -281,16 +292,16 @@ export function createWatch(scene,controls,onMode,onEndAction){
    watch.updateMatrixWorld(true);
    const lp=watch.worldToLocal(tip.clone());
    const x=(lp.x/size.w+.5)*512,y=(.5-lp.y/size.h)*676;
-   const touching=Math.abs(lp.z)<.035&&x>=28&&x<=484&&y>=92&&y<=636;
-   const idx=touching?Math.floor((y-92)/132):-1;
-   if(idx>=0&&idx<4){
+   const touching=Math.abs(lp.z)<.035&&x>=28&&x<=484&&y>=168&&y<=468;
+   const idx=touching?Math.floor((y-168)/158):-1;
+   if(idx>=0&&idx<2){
     if(endHover!==idx){endHover=idx;paint()}
     if(endPress!==idx){endPress=idx;endProgress=0;endFired=false;paint()}
     endProgress=Math.min(1,endProgress+.055);
     paint();
     if(endProgress>=1&&!endFired){
      endFired=true;modeLock=performance.now()+900;
-     onEndAction?.(['VR','MR','spotify','instagram'][idx]);
+     onEndAction?.(['VR','MR'][idx]);
     }
    }else if(endPress!==-1||endHover!==-1){endPress=-1;endHover=-1;endProgress=0;endFired=false;paint()}
   }else if(pinching){
