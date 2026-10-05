@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v21';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v21';
-import {createCountdown} from './countdown.js?build=score-v21';
-import {scoreEnvelope} from './score.js?build=score-v21';
-import {makeClouds} from './cloud.js?build=score-v21';
-import {createWatch} from './watch.js?build=score-v21';
-import {createForeground} from './stage.js?build=score-v21';
+import {createDirectionCue} from './direction.js?build=score-v22';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v22';
+import {createCountdown} from './countdown.js?build=score-v22';
+import {scoreEnvelope} from './score.js?build=score-v22';
+import {makeClouds} from './cloud.js?build=score-v22';
+import {createWatch} from './watch.js?build=score-v22';
+import {createForeground} from './stage.js?build=score-v22';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
@@ -75,7 +75,7 @@ function showEnd(){
  menuPositioned=false;
  endMenu.reset();
  const xr=xb.core?.renderer||xb.core?.engine?.renderer;
- endMenu.show(true,!!xr?.xr?.isPresenting);
+ endMenu.show(true,!!xr?.xr?.isPresenting,mode);
  $('status').textContent='THE END';
 }
 async function restartExperience(){
@@ -163,7 +163,8 @@ class Atmosphere extends xb.Script {
   const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
   if(renderer?.xr){wrist.update(frame||renderer.xr.getFrame?.(),renderer,started)}
   if(completed){
-   endMenu.show(true,!!renderer?.xr?.isPresenting);
+   endMenu.animate(xb.core?.camera);
+   endMenu.show(true,!!renderer?.xr?.isPresenting,mode);
    if(!menuPositioned&&renderer?.xr?.isPresenting){
     endMenu.update(xb.core.camera);menuPositioned=true;
    }
