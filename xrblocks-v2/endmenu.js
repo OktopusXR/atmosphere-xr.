@@ -20,6 +20,30 @@ export function createEndMenu(scene,onChoose){
  panel.visible=false;panel.renderOrder=250;scene.add(panel);
  const origin=new THREE.Vector3(),orientation=new THREE.Quaternion();
  const raycaster=new THREE.Raycaster(),inv=new THREE.Vector3();
+ // One tiny pointer indicates exactly which action the right hand/ray is targeting.
+ const cursor=new THREE.Mesh(new THREE.SphereGeometry(.018,8,6),
+  new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false,depthWrite:false}));
+ cursor.renderOrder=265;cursor.visible=false;scene.add(cursor);
+ const beamGeo=new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(),new THREE.Vector3()]);
+ const beam=new THREE.Line(beamGeo,new THREE.LineBasicMaterial({
+  color:0xffffff,transparent:true,opacity:.65,depthTest:false}));
+ beam.renderOrder=260;beam.visible=false;scene.add(beam);
+ const beamPts=beamGeo.getAttribute('position'),aimOrigin=new THREE.Vector3(),
+  aimDir=new THREE.Vector3();
+ function aimRay(start,dir){
+  cursor.visible=false;beam.visible=false;
+  if(!panel.visible)return false;
+  panel.updateMatrixWorld(true);raycaster.set(start,dir.clone().normalize());
+  const hit=raycaster.intersectObject(panel,false)[0];
+  if(!hit)return false;
+  cursor.position.copy(hit.point).addScaledVector(raycaster.ray.direction,-.015);
+  cursor.visible=true;
+  beamPts.setXYZ(0,start.x,start.y,start.z);
+  beamPts.setXYZ(1,hit.point.x,hit.point.y,hit.point.z);
+  beamPts.needsUpdate=true;beam.visible=true;return true;
+ }
+
  const top=324,step=154,height=123,left=89,width=846;
  let busy=false;
  function draw(){
@@ -62,7 +86,7 @@ export function createEndMenu(scene,onChoose){
  function show(visible,immersive=false){
   panel.visible=!!(visible&&immersive);
   overlay.style.display=visible&&!immersive?'flex':'none';
-  if(!visible)busy=false;
+  if(!visible){busy=false;beam.visible=false;cursor.visible=false}
  }
  function update(camera){
   if(!panel.visible||!camera)return;
@@ -88,5 +112,5 @@ export function createEndMenu(scene,onChoose){
   return hit?selectPoint(hit.point):false;
  }
  function reset(){busy=false}
- return {panel,overlay,show,update,selectPoint,selectRay,reset};
+ return {panel,overlay,show,update,aimRay,selectPoint,selectRay,reset};
 }
