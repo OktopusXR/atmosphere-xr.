@@ -3,18 +3,18 @@ import * as THREE from 'three';
 export function createDirectionCue(scene){
  const canvas=document.createElement('canvas');canvas.width=192;canvas.height=192;
  const ctx=canvas.getContext('2d'),texture=new THREE.CanvasTexture(canvas);
- const arrow=new THREE.Mesh(new THREE.PlaneGeometry(.14,.14),
-  new THREE.MeshBasicMaterial({map:texture,transparent:true,opacity:.72,depthTest:false,depthWrite:false}));
+ const arrow=new THREE.Mesh(new THREE.PlaneGeometry(.105,.105),
+  new THREE.MeshBasicMaterial({map:texture,transparent:true,opacity:.57,depthTest:false,depthWrite:false}));
  arrow.visible=false;arrow.renderOrder=190;scene.add(arrow);
  const eye=new THREE.Vector3(),q=new THREE.Quaternion(),local=new THREE.Vector3();
- const offset=new THREE.Vector3(.37,-.02,-1.5);
+ const offset=new THREE.Vector3(.43,-.13,-1.5);
  let prev=-999;
  function draw(angle,back){
   ctx.clearRect(0,0,192,192);
   ctx.translate(96,96);ctx.rotate(angle);
-  ctx.strokeStyle='#ffffff';ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.beginPath();ctx.moveTo(0,54);ctx.lineTo(0,-43);
-  ctx.moveTo(-24,-18);ctx.lineTo(0,-45);ctx.lineTo(24,-18);ctx.stroke();
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=5;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(0,35);ctx.lineTo(0,-37);
+  ctx.moveTo(-18,-18);ctx.lineTo(0,-38);ctx.lineTo(18,-18);ctx.stroke();
   if(back){
    ctx.globalAlpha=.5;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,4,64,.16*Math.PI,.84*Math.PI);ctx.stroke();
   }
