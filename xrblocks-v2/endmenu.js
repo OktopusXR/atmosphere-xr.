@@ -85,16 +85,16 @@ export function createEndMenu(scene,onChoose){
  }
  draw();
  const overlay=document.createElement('div');
- overlay.style.cssText='display:none;position:fixed;inset:0;z-index:185;background:#050509;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:13px;font-family:Arial;text-align:center';
- const h=document.createElement('h1');h.textContent='ATMOSPHERE · THE END';h.style.cssText='font-weight:300;letter-spacing:.15em;font-size:clamp(25px,5vw,46px)';
+ overlay.style.cssText=`display:none;position:fixed;inset:0;z-index:185;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:22px;font-family:Arial;text-align:center;background-color:#050509;background-image:linear-gradient(rgba(0,0,0,.32),rgba(0,0,0,.48)),url('https://raw.githubusercontent.com/OktopusXR/atmosphere-xr./refs/heads/main/atmosphere-end-skybox-5.7k.jpg');background-size:cover;background-position:center;background-repeat:no-repeat`;
+ const h=document.createElement('div');h.innerHTML='<div style="font-size:clamp(20px,4vw,34px);letter-spacing:.35em">ATMOSPHERE</div><div style="font-size:clamp(48px,9vw,82px);font-weight:200;line-height:1.1;margin:14px 0">XR</div><div style="font-size:clamp(18px,3.5vw,29px);letter-spacing:.42em">THE END</div>';h.style.cssText='font-weight:300;text-shadow:0 2px 18px #000;margin-bottom:8px';
  overlay.appendChild(h);
- const buttons=document.createElement('div');buttons.style.cssText='display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:700px';
+ const buttons=document.createElement('div');buttons.style.cssText='display:flex;flex-wrap:wrap;gap:20px;justify-content:center;max-width:760px;background:rgba(0,0,0,.22);backdrop-filter:blur(4px);padding:18px 20px;border-radius:28px';
  items.forEach(item=>{
   const btn=document.createElement('button');btn.textContent=item.label;
-  btn.style.cssText='border:1px solid #666;border-radius:50%;background:#101015;color:white;width:105px;height:105px;font:12px Arial;letter-spacing:.07em;cursor:pointer';
+  btn.style.cssText='border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(8,8,13,.62);color:white;width:96px;height:96px;font:11px Arial;letter-spacing:.08em;cursor:pointer;box-shadow:0 0 22px rgba(236,69,140,.12)'
   btn.onclick=()=>choose(item.id);buttons.appendChild(btn);
  });
- overlay.appendChild(buttons);document.body.appendChild(overlay);
+ overlay.appendChild(buttons);const thanks=document.createElement('div');thanks.textContent='THANK YOU FOR BEING PART OF IT';thanks.style.cssText='font-size:12px;letter-spacing:.28em;color:#ddd;text-shadow:0 2px 12px #000;margin-top:10px';overlay.appendChild(thanks);document.body.appendChild(overlay);
  function tone(freq,at,dur,vol,type='sine'){
   if(!audioCtx||!audioMaster)return;
   const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
