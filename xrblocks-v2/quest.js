@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import {createDirectionCue} from './direction.js?build=score-v17';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v16b';
-import {createCountdown} from './countdown.js?build=score-v16b';
-import {scoreEnvelope} from './score.js?build=score-v16b';
-import {makeClouds} from './cloud.js?build=score-v16b';
-import {createWatch} from './watch.js?build=score-v16b';
-import {createForeground} from './stage.js?build=score-v16b';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v17';
+import {createCountdown} from './countdown.js?build=score-v17';
+import {scoreEnvelope} from './score.js?build=score-v17';
+import {makeClouds} from './cloud.js?build=score-v17';
+import {createWatch} from './watch.js?build=score-v17';
+import {createForeground} from './stage.js?build=score-v17';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
