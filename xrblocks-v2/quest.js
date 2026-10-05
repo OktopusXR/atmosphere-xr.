@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v16';
 import {createCountdown} from './countdown.js?build=score-v15';
 import {scoreEnvelope} from './score.js?build=score-v15';
 import {makeClouds} from './cloud.js?build=score-v15';
@@ -46,25 +47,9 @@ const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.35),
  new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false,depthTest:false}));
 
 introBoard.renderOrder=100;scene.add(introBoard);
-// In-headset ending: a real legible end panel plus a clearly marked replay target.
-const endCanvas=document.createElement('canvas');endCanvas.width=1024;endCanvas.height=576;
-const endCtx=endCanvas.getContext('2d'),endTexture=new THREE.CanvasTexture(endCanvas);
-endCtx.clearRect(0,0,1024,576);
-endCtx.textAlign='center';endCtx.fillStyle='#ffffff';
-endCtx.font='bold 112px Arial';endCtx.fillText('THE END',512,224);
-endCtx.strokeStyle='#dddddd';endCtx.lineWidth=2;endCtx.strokeRect(174,334,676,104);
-endCtx.font='bold 42px Arial';endCtx.fillText('COMENZAR NUEVAMENTE',512,400);
-endTexture.needsUpdate=true;
-const endBoard=new THREE.Mesh(new THREE.PlaneGeometry(2.25,1.265),
- new THREE.MeshBasicMaterial({map:endTexture,transparent:true,depthWrite:false,depthTest:false}));
-endBoard.renderOrder=210;endBoard.visible=false;scene.add(endBoard);
-const endOverlay=document.createElement('div');
-endOverlay.style.cssText='display:none;position:fixed;inset:0;z-index:180;background:#000e;color:white;align-items:center;justify-content:center;flex-direction:column;gap:36px;font-family:Arial';
-endOverlay.innerHTML='<div style="font-size:clamp(48px,10vw,100px);font-weight:700">THE END</div>';
-const replayButton=document.createElement('button');replayButton.textContent='COMENZAR NUEVAMENTE';
-replayButton.style.cssText='font:bold 21px Arial;padding:22px 34px;color:#fff;border:2px solid #fff;background:#111';
-endOverlay.appendChild(replayButton);document.body.appendChild(endOverlay);
-
+// Shared five-action immersive final menu; no automatic replay on any click.
+const endMenu=createEndMenu(scene,onEndAction);
+let menuPositioned=false,replayAfterMode=false;
 function drawIntro(){
  // Editorial layout inspired by the user's NODE Institute reference.
  ctx.clearRect(0,0,1024,600);
@@ -136,13 +121,13 @@ async function startMusic(){
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
 function showEnd(){
  entered=false;completed=true;root.visible=false;introBoard.visible=false;
- endBoard.visible=renderer.xr.isPresenting;
- endOverlay.style.display=renderer.xr.isPresenting?'none':'flex';
+ menuPositioned=false;endMenu.reset();
+ endMenu.show(true,renderer.xr.isPresenting);
  $('status').textContent='THE END';
 }
 async function restartExperience(){
  if(!completed)return;
- completed=false;root.visible=true;endBoard.visible=false;endOverlay.style.display='none';
+ completed=false;root.visible=true;endMenu.show(false);menuPositioned=false;
  Object.assign(params,{intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1});
  watch.paint();
  music.pause();music.currentTime=0;lastCue=-1;visualStartedAt=performance.now();
@@ -150,7 +135,23 @@ async function restartExperience(){
  $('status').textContent='ATMOSPHERE · RESTARTED';
  try{await music.play()}catch(e){$('status').textContent='Audio pending · '+e.message}
 }
-replayButton.onclick=restartExperience;
+function onEndAction(id){
+ if(MUSIC_LINKS[id]){
+  const opened=window.open(MUSIC_LINKS[id],'_blank','noopener');
+  if(!opened){window.location.href=MUSIC_LINKS[id]}
+  endMenu.reset();return;
+ }
+ if(id!=='VR'&&id!=='MR')return;
+ if(renderer.xr.isPresenting&&selectedMode===id){
+  restartExperience();return;
+ }
+ if(renderer.xr.isPresenting){
+  replayAfterMode=true;requestedMode=id;
+  renderer.xr.getSession().end().catch(()=>offerContinue(id));
+ }else{
+  replayAfterMode=true;offerContinue(id);
+ }
+}
 music.onended=showEnd;
 // Playback time alone drives a precomposed, continuously interpolated score.
 function updateScore(){
@@ -179,7 +180,11 @@ function advance(){
 for(const ctl of [controller1,controller2]){
  ctl.userData.watchSelecting=false;
  ctl.addEventListener('selectstart',event=>{
- if(completed){restartExperience();return;}
+ if(completed){
+  const origin=new THREE.Vector3(),dir=new THREE.Vector3();
+  ctl.getWorldPosition(origin);ctl.getWorldDirection(dir).negate();
+  endMenu.selectRay(origin,dir);return;
+ }
  if(entered){
   const handed=event?.data?.handedness||event?.inputSource?.handedness;
   if(handed==='right'||(!handed&&ctl===controller2)){
@@ -205,7 +210,23 @@ function handInput(frame){
   const p=a.transform.position,q=b.transform.position;
   if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032)touching=true;
  }
- if(touching&&!pinched){if(completed)restartExperience();else advance()}pinched=touching;
+ if(touching&&!pinched){
+  if(completed){
+   // Right-hand index ray must intersect a specific menu action.
+   const right=[...session.inputSources].find(src=>src.handedness==='right'&&src.hand);
+   if(right){
+    const a=frame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
+    const b=frame.getJointPose(right.hand.get('index-finger-tip'),space);
+    if(a&&b){
+     const p=a.transform.position,q=b.transform.position;
+     const o=new THREE.Vector3(q.x,q.y,q.z);
+     const dir=new THREE.Vector3(q.x-p.x,q.y-p.y,q.z-p.z).normalize();
+     endMenu.selectRay(o,dir);
+    }
+   }
+  }else advance();
+ }
+ pinched=touching;
 }
 
 async function enterXR(mode='VR'){
@@ -247,7 +268,10 @@ function offerContinue(mode){
  action.style.cssText='font-size:16px;padding:18px 28px;background:#161616;color:white;border:2px solid #fff';
  action.onclick=async()=>{
   const ok=await enterXR(mode);
-  if(ok){requestedMode=null;overlay.style.display='none'}
+  if(ok){
+   requestedMode=null;overlay.style.display='none';
+   if(replayAfterMode){replayAfterMode=false;restartExperience()}
+  }
   else overlay.style.display='block';
  };
  overlay.appendChild(action);
@@ -274,10 +298,12 @@ async function changeMode(){
 renderer.xr.addEventListener('sessionstart',()=>{
  $('xrButton').style.display='none';
  watch.watch.visible=false;
+ if(completed){endMenu.show(true,true);menuPositioned=false}
 });
 renderer.xr.addEventListener('sessionend',()=>{
  watch.watch.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
+ if(completed){endMenu.show(true,false);menuPositioned=false}
  if(requestedMode){const next=requestedMode;requestedMode=null;offerContinue(next)}
 });
 $('modebar').style.display='none';
@@ -291,19 +317,15 @@ renderer.setAnimationLoop((t,frame)=>{
   if(ctl.userData.watchSelecting)watch.controllerSelect(ctl);
  }
  introBoard.visible=renderer.xr.isPresenting&&!entered&&!completed;
- endBoard.visible=renderer.xr.isPresenting&&completed;
- endOverlay.style.display=completed&&!renderer.xr.isPresenting?'flex':'none';
+ endMenu.show(completed,renderer.xr.isPresenting);
  if(!entered&&!completed){
   const cam=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
   cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
   introBoard.position.copy(pos).add(offset.clone().applyQuaternion(quat));
   introBoard.quaternion.copy(quat);
  }
- if(completed&&renderer.xr.isPresenting){
-  const cam=renderer.xr.getCamera();
-  cam.getWorldPosition(pos);cam.getWorldQuaternion(quat);
-  endBoard.position.copy(pos).add(new THREE.Vector3(0,0,-1.8).applyQuaternion(quat));
-  endBoard.quaternion.copy(quat);
+ if(completed&&renderer.xr.isPresenting&&!menuPositioned){
+  endMenu.update(renderer.xr.getCamera());menuPositioned=true;
  }
  const elapsed=entered?updateScore():0;
  countdown.update(renderer.xr.isPresenting?renderer.xr.getCamera():camera,elapsed,entered&&!completed);
