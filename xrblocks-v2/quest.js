@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v40';
+import {createDirectionCue} from './direction.js?build=score-v41';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
-import {createCountdown} from './countdown.js?build=score-v40';
-import {scoreEnvelope} from './score.js?build=score-v40';
-import {makeClouds} from './cloud.js?build=score-v40';
-import {createWatch} from './watch.js?build=score-v40';
-import {createForeground} from './stage.js?build=score-v40';
+import {createCountdown} from './countdown.js?build=score-v41';
+import {scoreEnvelope} from './score.js?build=score-v41';
+import {makeClouds} from './cloud.js?build=score-v41';
+import {createWatch} from './watch.js?build=score-v41';
+import {createForeground} from './stage.js?build=score-v41';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -76,8 +76,8 @@ function drawIntro(){
  ctx.fillText('ATMOSPHERE',62,438,940);
  ctx.fillStyle='#ddd';ctx.font='20px Arial';
  ctx.fillText('Ricardo P. Tapia Fernández  /  Oktopus Art Studio',68,500);
- ctx.fillStyle='#a5a5a5';ctx.font='17px Arial';
- ctx.fillText('@oktopus.art',68,529);
+ ctx.fillStyle='#fff';ctx.font='bold 27px Arial';
+ ctx.fillText('@oktopus.art',68,535);
  ctx.fillStyle='#fff';ctx.font='20px Arial';ctx.textAlign='right';
  ctx.fillText(introFinished?'ENTER EXPERIENCE':introStarted?'LISTEN':'ENTER VR',948,559);
  boardTex.needsUpdate=true;
