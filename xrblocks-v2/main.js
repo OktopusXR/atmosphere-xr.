@@ -175,12 +175,22 @@ class Atmosphere extends xb.Script {
      const base=xrFrame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
      if(thumb&&index&&base){
       const a=thumb.transform.position,b=index.transform.position,d=base.transform.position;
+      endMenu.aimRay(new THREE.Vector3(b.x,b.y,b.z),
+       new THREE.Vector3(b.x-d.x,b.y-d.y,b.z-d.z));
       const pinch=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<.033;
       if(pinch&&!pinchWasDown){
        endMenu.selectRay(new THREE.Vector3(b.x,b.y,b.z),
         new THREE.Vector3(b.x-d.x,b.y-d.y,b.z-d.z));
       }
       pinchWasDown=pinch;
+     }
+    }else if(right?.targetRaySpace&&space){
+     const pose=xrFrame.getPose(right.targetRaySpace,space);
+     if(pose){
+      const p=pose.transform.position,o=pose.transform.orientation;
+      endMenu.aimRay(new THREE.Vector3(p.x,p.y,p.z),
+       new THREE.Vector3(0,0,-1).applyQuaternion(
+        new THREE.Quaternion(o.x,o.y,o.z,o.w)));
      }
     }
    }
