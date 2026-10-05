@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v39';
+import {createDirectionCue} from './direction.js?build=score-v40';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
-import {createCountdown} from './countdown.js?build=score-v39';
-import {scoreEnvelope} from './score.js?build=score-v39';
-import {makeClouds} from './cloud.js?build=score-v39';
-import {createWatch} from './watch.js?build=score-v39';
-import {createForeground} from './stage.js?build=score-v39';
+import {createCountdown} from './countdown.js?build=score-v40';
+import {scoreEnvelope} from './score.js?build=score-v40';
+import {makeClouds} from './cloud.js?build=score-v40';
+import {createWatch} from './watch.js?build=score-v40';
+import {createForeground} from './stage.js?build=score-v40';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -325,7 +325,7 @@ const clock=new THREE.Clock(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(
 renderer.setAnimationLoop((t,frame)=>{
  const dt=Math.min(.06,clock.getDelta());
  handInput(frame);
- watch.update(frame,renderer,entered);
+ watch.update(frame,renderer,entered||completed);
  if(entered)for(const ctl of [controller1,controller2]){
   if(ctl.userData.watchSelecting)watch.controllerSelect(ctl);
  }
