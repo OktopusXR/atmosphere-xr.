@@ -324,8 +324,31 @@ renderer.setAnimationLoop((t,frame)=>{
   introBoard.position.copy(pos).add(offset.clone().applyQuaternion(quat));
   introBoard.quaternion.copy(quat);
  }
- if(completed&&renderer.xr.isPresenting&&!menuPositioned){
-  endMenu.update(renderer.xr.getCamera());menuPositioned=true;
+ if(completed&&renderer.xr.isPresenting){
+  if(!menuPositioned){endMenu.update(renderer.xr.getCamera());menuPositioned=true}
+  if(frame){
+   const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
+   const right=session?.inputSources&&[...session.inputSources].find(src=>src.handedness==='right');
+   if(right&&space){
+    if(right.hand){
+     const tip=frame.getJointPose(right.hand.get('index-finger-tip'),space);
+     const base=frame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
+     if(tip&&base){
+      const p=tip.transform.position,d=base.transform.position;
+      endMenu.aimRay(new THREE.Vector3(p.x,p.y,p.z),
+       new THREE.Vector3(p.x-d.x,p.y-d.y,p.z-d.z));
+     }
+    }else if(right.targetRaySpace){
+     const pose=frame.getPose(right.targetRaySpace,space);
+     if(pose){
+      const p=pose.transform.position,o=pose.transform.orientation;
+      endMenu.aimRay(new THREE.Vector3(p.x,p.y,p.z),
+       new THREE.Vector3(0,0,-1).applyQuaternion(
+        new THREE.Quaternion(o.x,o.y,o.z,o.w)));
+     }
+    }
+   }
+  }
  }
  const elapsed=entered?updateScore():0;
  countdown.update(renderer.xr.isPresenting?renderer.xr.getCamera():camera,elapsed,entered&&!completed);
