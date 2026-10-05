@@ -5,20 +5,20 @@ const PI=Math.PI, TAU=2*PI;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
 const descriptions=[
- 'Resonancia: vibraciones que atraviesan el espacio.',
- 'Formacion: la materia comienza a organizarse.',
- 'Anatomia de luz: estructuras emergen de la radiacion.',
- 'Dispersion: fragmentos se expanden en el espacio.',
- 'Transmision: conexiones transportan energia.',
- 'Campos: fuerzas invisibles deforman el entorno.',
- 'Difusion: la materia se propaga y transforma.',
- 'Entrelazamiento: redes de relaciones simultaneas.',
- 'Orbita: trayectorias y ciclos en movimiento.',
- 'Presencia: ondas que revelan la percepcion.',
- 'Morfogenesis: crecimiento y transformacion organica.',
- 'Simetria: correspondencias sin principio ni final.',
- 'Persistencia: huellas que permanecen en el tiempo.',
- 'Disolucion: la forma retorna al espacio.'
+ 'The body listens through networks beyond its boundaries.',
+ 'Unseen relations gather into living matter.',
+ 'Between the visible and hidden, perception unfolds.',
+ 'Certainty fragments into unfamiliar ways of sensing.',
+ 'Fascia, mycelium and cosmos communicate without a centre.',
+ 'Subtle forces connect bodies, Earth and distant space.',
+ 'Boundaries soften between the synthetic and the organic.',
+ 'Every form exists through its relations with others.',
+ 'Time expands beyond a human measure.',
+ 'To listen is to coexist with more-than-human worlds.',
+ 'Technology becomes a poetic extension of living processes.',
+ 'Different scales echo a shared architecture of connection.',
+ 'Encountering the shadow opens another state of awareness.',
+ 'Separate forms dissolve into a field of interdependence.'
 ];
 const chapters=[
  {end:26,title:'RESONANCE',kind:'tunnel'},
