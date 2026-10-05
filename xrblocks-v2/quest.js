@@ -137,8 +137,8 @@ async function restartExperience(){
 }
 function onEndAction(id){
  if(MUSIC_LINKS[id]){
-  const opened=window.open(MUSIC_LINKS[id],'_blank','noopener');
-  if(!opened){window.location.href=MUSIC_LINKS[id]}
+  const opened=window.open(MUSIC_LINKS[id],'_blank');
+  if(opened)opened.opener=null;else window.location.href=MUSIC_LINKS[id];
   endMenu.reset();return;
  }
  if(id!=='VR'&&id!=='MR')return;
