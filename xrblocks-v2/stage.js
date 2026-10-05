@@ -212,10 +212,41 @@ function makeChapter(root,kind,index){
   const mesh=new THREE.Mesh(new THREE.BoxGeometry(3.24,3.24,3.24),mat);
   mesh.frustumCulled=false;g.add(mesh);add(mesh);
  }else if(kind==='axis'){
-  for(let i=0;i<14;i++){
-   const a=i*TAU/14,rad=.45+(i%3)*.38;
-   add(line(g,[new THREE.Vector3(rad*Math.cos(a),-1.55,rad*Math.sin(a)),
-    new THREE.Vector3(rad*.5*Math.cos(a),1.55,rad*.5*Math.sin(a))]));
+  // SYMMETRY is a whole-environment 360° field, centred on the observer.
+  // Every trace is a mathematically CLOSED periodic curve. LineLoop
+  // joins its last vertex to its first: no visible start/end caps.
+  // Paired, mirrored bands preserve the chapter's symmetry concept.
+  const bands=12,segments=240;
+  for(let i=0;i<bands;i++){
+   const layer=i%6,mirror=i<6?1:-1;
+   const phase=layer*TAU/6,rad=3.7+.29*layer;
+   const verts=[];
+   for(let j=0;j<segments;j++){
+    const u=TAU*j/segments;
+    const radial=rad+.38*Math.sin(4*u+phase);
+    const angular=u+phase*.22;
+    const x=radial*Math.cos(angular);
+    const z=radial*Math.sin(angular);
+    const y=mirror*(1.5*Math.sin(2*u+phase)+.58*Math.sin(4*u-phase));
+    verts.push(new THREE.Vector3(x,y,z));
+   }
+   const geo=new THREE.BufferGeometry().setFromPoints(verts);
+   const trace=new THREE.LineLoop(geo,lineMaterial());
+   trace.frustumCulled=false;g.add(trace);add(trace);
+  }
+  // Additional seamless vertical arcs carry the traces overhead and below.
+  for(let i=0;i<8;i++){
+   const verts=[],az=i*TAU/8,rad=4.25+(i%2)*.55;
+   for(let j=0;j<240;j++){
+    const u=TAU*j/240;
+    const x=rad*Math.cos(u)*Math.cos(az)-.5*Math.sin(3*u)*Math.sin(az);
+    const z=rad*Math.cos(u)*Math.sin(az)+.5*Math.sin(3*u)*Math.cos(az);
+    const y=2.85*Math.sin(u);
+    verts.push(new THREE.Vector3(x,y,z));
+   }
+   const geo=new THREE.BufferGeometry().setFromPoints(verts);
+   const trace=new THREE.LineLoop(geo,lineMaterial());
+   trace.frustumCulled=false;g.add(trace);add(trace);
   }
  }else if(kind==='shards'){
   for(let i=0;i<33;i++){
@@ -321,7 +352,7 @@ export function createForeground(root){
    // Smooth musical phrasing: translation in tangent / vertical directions.
    // Crucially NO bass-driven forward-back Z jumps and no frame FFT input.
    const sway=movement*Math.sin(slow*.42+i*.7);
-   if(kind==='tunnel')group.position.set(0,1.6,0);
+   if(kind==='tunnel'||kind==='axis')group.position.set(0,1.6,0);
    else group.position.set(x+Math.cos(azimuth)*sway,
     height+.12*Math.sin(slow*.54+i*.41)+.06*note,
     z+Math.sin(azimuth)*sway);
@@ -329,7 +360,7 @@ export function createForeground(root){
     kind==='tunnel'?.025*Math.sin(slow*.32):time*(.045+.025*speed)+i*.29,
     kind==='tunnel'?0:.06*Math.sin(slow*.39+i));
    const breathe=1+.065*Math.sin(slow*.78+i*.67)+.038*note;
-   group.scale.setScalar(kind==='tunnel'?1:(kind==='crystal'?.52:1)*scale*breathe*(1+.12*variation*((i%4)/4)));
+   group.scale.setScalar((kind==='tunnel'||kind==='axis')?1:(kind==='crystal'?.52:1)*scale*breathe*(1+.12*variation*((i%4)/4)));
    for(let j=0;j<objects.length;j++){
     const o=objects[j];o.visible=true;
     const opacity=Math.min(1,weight*intensity*
@@ -362,6 +393,7 @@ export function createForeground(root){
   // generic scene-direction guess. Metaballs remain at a safe distance.
   focus.copy(chapter.position);
   if(index===0)focus.set(0,1.6,-3.4);
+  if(index===11)focus.set(0,1.6,-4); // 360° field: no single directional focus
   titlePlane.position.set(chapter.position.x,
    Math.min(3.25,Math.max(1.12,chapter.position.y+1.27)),
    chapter.position.z+(index===0?-3.3:0));
@@ -371,6 +403,6 @@ export function createForeground(root){
   titlePlane.material.opacity=.94*
    smooth((time-start)/2.0)*(1-smooth((time-(end-2.0))/2.0));
  }
- return {update,chapters,get active(){return active},get focus(){return focus}};
+ return {update,chapters,get active(){return active},get focus(){return focus},get allAround(){return previous===11}};
 }
 export const createStage=createForeground;
