@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // ATMOSPHERE / WATCH V6 - one wearable interface for XR Blocks and Quest.
 // All controller and hand interactions map into the same watch canvas coordinates.
 export function createWatch(scene,controls,onMode,onEndAction){
- const size={w:.40,h:.50};
+ const size={w:.43,h:.54};
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=676;
  const cx=canvas.getContext('2d'),texture=new THREE.CanvasTexture(canvas);
  const watch=new THREE.Mesh(new THREE.PlaneGeometry(size.w,size.h),
@@ -121,7 +121,7 @@ export function createWatch(scene,controls,onMode,onEndAction){
   cx.fillStyle='#fff';cx.textAlign='center';
   cx.font='bold 25px Arial';cx.fillText('ATMOSPHERE',256,40);
   if(endMode){
-   cx.font='15px Arial';cx.fillStyle='#8f99a8';cx.fillText('FINAL MENU · LEFT WRIST',256,72);
+   cx.font='15px Arial';cx.fillStyle='#8f99a8';cx.fillText('FINAL MENU · LEFT WRIST',256,70);
    const menu=[
     ['VR','WATCH AGAIN','VIRTUAL REALITY'],
     ['MR','WATCH AGAIN','MIXED REALITY'],
@@ -129,12 +129,13 @@ export function createWatch(scene,controls,onMode,onEndAction){
     ['instagram','INSTAGRAM','@OKTOPUS.ART']
    ];
    menu.forEach((m,i)=>{
-    const y=112+i*130;
+    const y=105+i*132;
     cx.fillStyle='rgba(20,29,43,.72)';cx.strokeStyle='rgba(190,215,255,.62)';cx.lineWidth=2;
-    cx.shadowColor='rgba(150,195,255,.22)';cx.shadowBlur=10;cx.beginPath();cx.roundRect(32,y,448,102,25);cx.fill();cx.stroke();cx.shadowBlur=0;
-    cx.textAlign='left';cx.fillStyle='#fff';cx.font='bold 25px Arial';cx.fillText(m[1],64,y+41);
-    cx.fillStyle='#aeb8c7';cx.font='17px Arial';cx.fillText(m[2],64,y+70);
-    cx.textAlign='right';cx.fillStyle='#fff';cx.font='28px Arial';cx.fillText('›',450,y+61);
+    cx.shadowColor='rgba(150,195,255,.22)';cx.shadowBlur=10;cx.beginPath();cx.roundRect(24,y,464,108,28);cx.fill();cx.stroke();cx.shadowBlur=0;
+    cx.strokeStyle='rgba(255,255,255,.16)';cx.beginPath();cx.arc(62,y+54,19,0,Math.PI*2);cx.stroke();
+    cx.textAlign='left';cx.fillStyle='#fff';cx.font='bold 25px Arial';cx.fillText(m[1],94,y+43);
+    cx.fillStyle='#aeb8c7';cx.font='17px Arial';cx.fillText(m[2],94,y+72);
+    cx.textAlign='right';cx.fillStyle='#fff';cx.font='28px Arial';cx.fillText('›',456,y+64);
    });
    cx.textAlign='center';cx.fillStyle='#777';cx.font='14px Arial';cx.fillText('LOOK · AIM · PINCH',256,654);
   }else{
@@ -164,8 +165,8 @@ export function createWatch(scene,controls,onMode,onEndAction){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&endMode&&x>=24&&x<=488&&y>=102&&y<=638){
-   const idx=Math.floor((y-102)/130);
+  if(activeRow<0&&endMode&&x>=18&&x<=494&&y>=96&&y<=642){
+   const idx=Math.floor((y-96)/132);
    if(idx>=0&&idx<4){
     const id=['VR','MR','spotify','instagram'][idx];
     if(performance.now()>modeLock){modeLock=performance.now()+900;onEndAction?.(id)}
