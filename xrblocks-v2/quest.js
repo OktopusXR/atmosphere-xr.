@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v25';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v25';
-import {createCountdown} from './countdown.js?build=score-v25';
-import {scoreEnvelope} from './score.js?build=score-v25';
-import {makeClouds} from './cloud.js?build=score-v25';
-import {createWatch} from './watch.js?build=score-v25';
-import {createForeground} from './stage.js?build=score-v25';
+import {createDirectionCue} from './direction.js?build=score-v26';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v26';
+import {createCountdown} from './countdown.js?build=score-v26';
+import {scoreEnvelope} from './score.js?build=score-v26';
+import {makeClouds} from './cloud.js?build=score-v26';
+import {createWatch} from './watch.js?build=score-v26';
+import {createForeground} from './stage.js?build=score-v26';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -17,6 +17,7 @@ const lines=[
  ['Listen. You are part of this resonance.','Escucha. Eres parte de esta resonancia.']
 ];
 let selectedMode=vrMode,introStarted=false,introFinished=false,entered=false,completed=false,timers=[],captionIndex=0;
+const previewEnd=new URLSearchParams(location.search).get('preview')==='end';
 let context,source,analyser,fft,td,bass=0,mid=0,high=0,rms=0,attack=0,previousRms=0,lastCue=-1,prevRawBass=0,prevRawMid=0;
 const soundtrackDuration=402;
 const cues=[
