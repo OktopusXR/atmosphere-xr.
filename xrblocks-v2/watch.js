@@ -135,9 +135,11 @@ export function createWatch(scene,controls,onMode){
    cx.fillStyle='#fff';cx.fillRect(215,y-6,225*v,5);
    cx.beginPath();cx.arc(215+225*v,y-3.5,10,0,Math.PI*2);cx.fill();
   });
-  cx.strokeStyle='#888';cx.strokeRect(40,588,432,55);
+  cx.strokeStyle='#888';cx.strokeRect(40,574,432,70);
   cx.fillStyle='#fff';cx.font='bold 19px Arial';cx.textAlign='center';
-  cx.fillText(modeName==='VR'?'SWITCH TO MR':'SWITCH TO VR',256,624);
+  cx.fillText(modeName==='VR'?'MIXED REALITY':'VIRTUAL REALITY',256,602);
+  cx.fillStyle='#aaa';cx.font='15px Arial';
+  cx.fillText(modeName==='VR'?'PINCH TO SWITCH':'PINCH TO SWITCH',256,628);
   texture.needsUpdate=true;
  }
  paint();
@@ -148,13 +150,13 @@ export function createWatch(scene,controls,onMode){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&y>=588&&y<=645&&x>=40&&x<=472){
+  if(activeRow<0&&y>=568&&y<=650&&x>=32&&x<=480){
    // Long, deliberate hold avoids accidentally ending the XR session
    // when Quest switches between controllers and tracked hands.
    const now=performance.now();
    if(!modeHoldStart)modeHoldStart=now;
-   if(now-modeHoldStart>=950&&now>modeLock){
-    modeLock=now+2000;modeHoldStart=0;onMode?.();
+   if(now-modeHoldStart>=180&&now>modeLock){
+    modeLock=now+900;modeHoldStart=0;onMode?.();
    }
    return true;
   }
