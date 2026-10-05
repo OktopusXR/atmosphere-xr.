@@ -112,7 +112,7 @@ export function createWatch(scene,controls,onMode,onEndAction){
  const eyeDir=new THREE.Vector3(),eyeToWatch=new THREE.Vector3(),cameraPos=new THREE.Vector3();
  let gazeVisible=false;
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3(),temp=new THREE.Vector3(),look=new THREE.Vector3();
- let highlight=-1,modeLock=0,modeHoldStart=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false,endMode=false;
+ let highlight=-1,modeLock=0,modeHoldStart=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false,endMode=false,endHover=-1,endPress=-1,endProgress=0,endFired=false;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
@@ -129,9 +129,15 @@ export function createWatch(scene,controls,onMode,onEndAction){
     ['◎','INSTAGRAM','@OKTOPUS.ART']
    ];
    menu.forEach((m,i)=>{
-    const y=100+i*132;
-    cx.fillStyle='rgba(10,15,24,.56)';cx.strokeStyle='rgba(190,215,255,.28)';cx.lineWidth=1.25;
+    const y=100+i*132,active=i===endPress,hover=i===endHover;
+    cx.fillStyle=active?'rgba(178,210,255,.20)':hover?'rgba(120,160,210,.12)':'rgba(10,15,24,.56)';cx.strokeStyle='rgba(190,215,255,.28)';cx.lineWidth=1.25;
     cx.beginPath();cx.roundRect(34,y,444,104,34);cx.fill();cx.stroke();
+    if(active&&endProgress>0){
+     const w=444*clamp(endProgress,0,1);
+     cx.save();cx.beginPath();cx.roundRect(34,y,444,104,34);cx.clip();
+     cx.fillStyle='rgba(210,230,255,.24)';cx.fillRect(34,y,w,104);cx.restore();
+     cx.strokeStyle='rgba(235,245,255,.9)';cx.lineWidth=2;cx.beginPath();cx.roundRect(34,y,444,104,34);cx.stroke();
+    }
     cx.fillStyle='rgba(215,230,255,.08)';cx.beginPath();cx.arc(82,y+52,31,0,Math.PI*2);cx.fill();
     cx.strokeStyle='rgba(225,238,255,.58)';cx.beginPath();cx.arc(82,y+52,31,0,Math.PI*2);cx.stroke();
     cx.textAlign='center';cx.fillStyle='#eef4ff';cx.font='30px Arial';cx.fillText(m[0],82,y+62);
@@ -165,11 +171,7 @@ export function createWatch(scene,controls,onMode,onEndAction){
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
   if(activeRow<0&&endMode&&x>=28&&x<=484&&y>=92&&y<=636){
    const idx=Math.floor((y-92)/132);
-   if(idx>=0&&idx<4){
-    const id=['VR','MR','spotify','instagram'][idx];
-    if(performance.now()>modeLock){modeLock=performance.now()+900;onEndAction?.(id)}
-    return true;
-   }
+   if(idx>=0&&idx<4){endHover=idx;return true}
   }
   if(activeRow<0&&!endMode&&y>=568&&y<=650&&x>=32&&x<=480){
    // Long, deliberate hold avoids accidentally ending the XR session
@@ -217,7 +219,7 @@ export function createWatch(scene,controls,onMode,onEndAction){
   return hitRay(temp,direction);
  }
  let lastPinch=false;
- function releaseSelection(){modeHoldStart=0;if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
+ function releaseSelection(){modeHoldStart=0;endPress=-1;endProgress=0;endFired=false;if(endHover!==-1){endHover=-1;paint()}if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
  function update(frame,renderer,enabled){
   if(!renderer?.xr?.isPresenting||!frame){
    watch.visible=false;handMesh.visible=false;fingertip.visible=false;leftMesh.visible=false;leftTip.visible=false;laser.visible=false;gazeVisible=false;lastPinch=false;controllerPressed=false;releaseSelection();return;
@@ -274,18 +276,34 @@ export function createWatch(scene,controls,onMode,onEndAction){
   if(!thumb||!index)return;
   const a=thumb.transform.position,b=index.transform.position;
   const pinching=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<.033;
-  if(pinching){
+  if(endMode){
+   const tip=new THREE.Vector3(b.x,b.y,b.z);
+   watch.updateMatrixWorld(true);
+   const lp=watch.worldToLocal(tip.clone());
+   const x=(lp.x/size.w+.5)*512,y=(.5-lp.y/size.h)*676;
+   const touching=Math.abs(lp.z)<.035&&x>=28&&x<=484&&y>=92&&y<=636;
+   const idx=touching?Math.floor((y-92)/132):-1;
+   if(idx>=0&&idx<4){
+    if(endHover!==idx){endHover=idx;paint()}
+    if(endPress!==idx){endPress=idx;endProgress=0;endFired=false;paint()}
+    endProgress=Math.min(1,endProgress+.055);
+    paint();
+    if(endProgress>=1&&!endFired){
+     endFired=true;modeLock=performance.now()+900;
+     onEndAction?.(['VR','MR','spotify','instagram'][idx]);
+    }
+   }else if(endPress!==-1||endHover!==-1){endPress=-1;endHover=-1;endProgress=0;endFired=false;paint()}
+  }else if(pinching){
    const tip=new THREE.Vector3(b.x,b.y,b.z);
    let did=hitPosition(tip,true);
-   // Project the right index finger forward toward the watch for distant selection.
    if(!did&&distal){
     const d=distal.transform.position;
     const vec=new THREE.Vector3(b.x-d.x,b.y-d.y,b.z-d.z).normalize();
     did=hitRay(tip,vec);
    }
   }
-  if(!pinching&&lastPinch&&!controllerPressed)releaseSelection();
-  lastPinch=pinching;
+  if(!endMode&&!pinching&&lastPinch&&!controllerPressed)releaseSelection();
+  lastPinch=endMode?false:pinching;
  }
- return {watch,update,controllerSelect,paint,hitPosition,releaseSelection,setMode(mode){if(modeName!==mode){modeName=mode;paint()}},setEndMode(v){endMode=!!v;paint()}};
+ return {watch,update,controllerSelect,paint,hitPosition,releaseSelection,setMode(mode){if(modeName!==mode){modeName=mode;paint()}},setEndMode(v){endMode=!!v;endHover=-1;endPress=-1;endProgress=0;endFired=false;paint()}};
 }
