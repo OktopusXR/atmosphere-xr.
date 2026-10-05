@@ -267,7 +267,7 @@ export function createForeground(root){
   [3.15,2.15,3.25],   // fully behind
   [-2.45,2.78,3.35],  // above behind-left
   [1.8,1.23,3.5],     // right
-  [-1.63,2.45,3.4],   // upper left
+  [-1.53,2.15,5.8],   // metaballs safely beyond near-camera viewing volume
   [.68,.77,3.05],     // below right
   [3.72,1.75,3.45],   // behind-left
   [-.8,1.88,3.2]      // left front
@@ -328,7 +328,7 @@ export function createForeground(root){
     kind==='tunnel'?.025*Math.sin(slow*.32):time*(.045+.025*speed)+i*.29,
     kind==='tunnel'?0:.06*Math.sin(slow*.39+i));
    const breathe=1+.065*Math.sin(slow*.78+i*.67)+.038*note;
-   group.scale.setScalar(kind==='tunnel'?1:scale*breathe*(1+.12*variation*((i%4)/4)));
+   group.scale.setScalar(kind==='tunnel'?1:(kind==='crystal'?.52:1)*scale*breathe*(1+.12*variation*((i%4)/4)));
    for(let j=0;j<objects.length;j++){
     const o=objects[j];o.visible=true;
     const opacity=Math.min(1,weight*intensity*
