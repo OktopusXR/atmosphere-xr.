@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v18';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v18';
-import {createCountdown} from './countdown.js?build=score-v18';
-import {scoreEnvelope} from './score.js?build=score-v18';
-import {makeClouds} from './cloud.js?build=score-v18';
-import {createWatch} from './watch.js?build=score-v18';
-import {createForeground} from './stage.js?build=score-v18';
+import {createDirectionCue} from './direction.js?build=score-v21';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v21';
+import {createCountdown} from './countdown.js?build=score-v21';
+import {scoreEnvelope} from './score.js?build=score-v21';
+import {makeClouds} from './cloud.js?build=score-v21';
+import {createWatch} from './watch.js?build=score-v21';
+import {createForeground} from './stage.js?build=score-v21';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -162,7 +162,7 @@ function updateScore(){
  const env=scoreEnvelope(t);
  cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,
   env.bass,env.mid,env.high,env.attack);
- foreground.update(t,env,params);
+ foreground.update(t,env,params,renderer.xr.isPresenting?renderer.xr.getCamera():camera);
  const marker=Math.floor(t/2);
  if(marker!==lastCue){lastCue=marker;$('status').textContent=foreground.active+' · '+Math.floor(t)+'s'}
  return t;
