@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // ATMOSPHERE / WATCH V6 - one wearable interface for XR Blocks and Quest.
 // All controller and hand interactions map into the same watch canvas coordinates.
 export function createWatch(scene,controls,onMode,onEndAction){
- const size={w:.43,h:.54};
+ const size={w:.34,h:.40};
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=676;
  const cx=canvas.getContext('2d'),texture=new THREE.CanvasTexture(canvas);
  const watch=new THREE.Mesh(new THREE.PlaneGeometry(size.w,size.h),
@@ -116,45 +116,43 @@ export function createWatch(scene,controls,onMode,onEndAction){
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function paint(){
   cx.clearRect(0,0,512,676);
-  cx.fillStyle='rgba(5,8,14,.94)';cx.beginPath();cx.roundRect(8,7,496,663,72);cx.fill();
-  cx.strokeStyle='rgba(248,248,248,.65)';cx.lineWidth=2;cx.stroke();
-  cx.fillStyle='#fff';cx.textAlign='center';
-  cx.font='bold 25px Arial';cx.fillText('ATMOSPHERE',256,40);
+  // Actual Quest-renderable design: flat transparent plane, no fake 3D cuff.
+  cx.fillStyle='rgba(3,6,11,.78)';cx.beginPath();cx.roundRect(22,12,468,652,58);cx.fill();
+  cx.strokeStyle='rgba(205,225,255,.32)';cx.lineWidth=1.5;cx.stroke();
+  cx.fillStyle='#f5f7fb';cx.textAlign='center';cx.font='500 22px Arial';cx.fillText('A T M O S P H E R E',256,43);
   if(endMode){
-   cx.font='15px Arial';cx.fillStyle='#8f99a8';cx.fillText('FINAL MENU · LEFT WRIST',256,70);
+   cx.fillStyle='#8993a2';cx.font='13px Arial';cx.fillText('FINAL MENU',256,70);
    const menu=[
-    ['VR','WATCH AGAIN','VIRTUAL REALITY'],
-    ['MR','WATCH AGAIN','MIXED REALITY'],
-    ['spotify','SPOTIFY','LISTEN / FOLLOW'],
-    ['instagram','INSTAGRAM','@OKTOPUS.ART']
+    ['↻','WATCH AGAIN','VIRTUAL REALITY'],
+    ['◇','WATCH AGAIN','MIXED REALITY'],
+    ['◉','SPOTIFY','LISTEN · FOLLOW'],
+    ['◎','INSTAGRAM','@OKTOPUS.ART']
    ];
    menu.forEach((m,i)=>{
-    const y=105+i*132;
-    cx.fillStyle='rgba(20,29,43,.72)';cx.strokeStyle='rgba(190,215,255,.62)';cx.lineWidth=2;
-    cx.shadowColor='rgba(150,195,255,.22)';cx.shadowBlur=10;cx.beginPath();cx.roundRect(24,y,464,108,28);cx.fill();cx.stroke();cx.shadowBlur=0;
-    cx.strokeStyle='rgba(255,255,255,.16)';cx.beginPath();cx.arc(62,y+54,19,0,Math.PI*2);cx.stroke();
-    cx.textAlign='left';cx.fillStyle='#fff';cx.font='bold 25px Arial';cx.fillText(m[1],94,y+43);
-    cx.fillStyle='#aeb8c7';cx.font='17px Arial';cx.fillText(m[2],94,y+72);
-    cx.textAlign='right';cx.fillStyle='#fff';cx.font='28px Arial';cx.fillText('›',456,y+64);
+    const y=100+i*132;
+    cx.fillStyle='rgba(10,15,24,.56)';cx.strokeStyle='rgba(190,215,255,.28)';cx.lineWidth=1.25;
+    cx.beginPath();cx.roundRect(34,y,444,104,34);cx.fill();cx.stroke();
+    cx.fillStyle='rgba(215,230,255,.08)';cx.beginPath();cx.arc(82,y+52,31,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='rgba(225,238,255,.58)';cx.beginPath();cx.arc(82,y+52,31,0,Math.PI*2);cx.stroke();
+    cx.textAlign='center';cx.fillStyle='#eef4ff';cx.font='30px Arial';cx.fillText(m[0],82,y+62);
+    cx.textAlign='left';cx.fillStyle='#f5f7fb';cx.font='500 22px Arial';cx.fillText(m[1],130,y+44);
+    cx.fillStyle='#929cab';cx.font='14px Arial';cx.fillText(m[2],130,y+69);
+    cx.textAlign='right';cx.fillStyle='#dce8f8';cx.font='18px Arial';cx.fillText('•',451,y+59);
    });
-   cx.textAlign='center';cx.fillStyle='#777';cx.font='14px Arial';cx.fillText('LOOK · AIM · PINCH',256,654);
+   cx.textAlign='center';cx.fillStyle='#687382';cx.font='12px Arial';cx.fillText('LOOK · AIM · PINCH',256,649);
   }else{
-   cx.beginPath();cx.arc(256,120,68,0,Math.PI*2);cx.stroke();
-   cx.strokeStyle='rgba(255,255,255,.25)';cx.beginPath();cx.arc(256,120,53,-Math.PI*.72,Math.PI*.72);cx.stroke();
-   cx.font='bold 25px Arial';cx.fillText('XR / CONTROL',256,105);
-   cx.font='bold 22px Arial';cx.fillStyle='#eee';cx.fillText('INTERACTIVE SCORE',256,131);
-   cx.strokeStyle='#fff';cx.beginPath();cx.moveTo(53,197);cx.lineTo(459,197);cx.stroke();
+   cx.fillStyle='#8993a2';cx.font='13px Arial';cx.fillText('INTERACTIVE SCORE',256,70);
    rows.forEach((r,i)=>{
-    const y=245+i*55,raw=controls[r.key],v=clamp((raw-r.min)/(r.max-r.min),0,1);
-    if(highlight===i){cx.fillStyle='rgba(255,255,255,.18)';cx.fillRect(35,y-26,444,52)}
-    cx.textAlign='left';cx.fillStyle='#ddd';cx.font='bold 25px Arial';cx.fillText(r.label,45,y+5);
-    cx.fillStyle='#40464c';cx.fillRect(215,y-6,225,5);cx.fillStyle='#fff';cx.fillRect(215,y-6,225*v,5);
-    cx.beginPath();cx.arc(215+225*v,y-3.5,10,0,Math.PI*2);cx.fill();
+    const y=132+i*70,raw=controls[r.key],v=clamp((raw-r.min)/(r.max-r.min),0,1);
+    if(highlight===i){cx.fillStyle='rgba(205,225,255,.07)';cx.beginPath();cx.roundRect(38,y-27,436,50,18);cx.fill()}
+    cx.textAlign='left';cx.fillStyle='#cdd4df';cx.font='500 17px Arial';cx.fillText(r.label,48,y);
+    cx.fillStyle='#303844';cx.fillRect(202,y-5,235,2);cx.fillStyle='#dce8f8';cx.fillRect(202,y-5,235*v,2);
+    cx.beginPath();cx.arc(202+235*v,y-4,6,0,Math.PI*2);cx.fill();
    });
-   cx.strokeStyle='#888';cx.strokeRect(40,574,432,70);
-   cx.fillStyle='#fff';cx.font='bold 19px Arial';cx.textAlign='center';
-   cx.fillText(modeName==='VR'?'MIXED REALITY':'VIRTUAL REALITY',256,602);
-   cx.fillStyle='#aaa';cx.font='15px Arial';cx.fillText('PINCH TO SWITCH',256,628);
+   cx.strokeStyle='rgba(190,215,255,.28)';cx.beginPath();cx.roundRect(38,562,436,68,24);cx.stroke();
+   cx.fillStyle='#f5f7fb';cx.font='500 17px Arial';cx.textAlign='center';
+   cx.fillText(modeName==='VR'?'MIXED REALITY':'VIRTUAL REALITY',256,590);
+   cx.fillStyle='#7f8998';cx.font='12px Arial';cx.fillText('PINCH TO SWITCH',256,613);
   }
   texture.needsUpdate=true;
  } paint();
@@ -165,8 +163,8 @@ export function createWatch(scene,controls,onMode,onEndAction){
   if(Math.abs(p.z)>.18||(activeRow<0&&Math.abs(p.x)>size.w/2)||
     (activeRow<0&&Math.abs(p.y)>size.h/2))return false;
   const x=(p.x/size.w+.5)*512,y=(.5-p.y/size.h)*676;
-  if(activeRow<0&&endMode&&x>=18&&x<=494&&y>=96&&y<=642){
-   const idx=Math.floor((y-96)/132);
+  if(activeRow<0&&endMode&&x>=28&&x<=484&&y>=92&&y<=636){
+   const idx=Math.floor((y-92)/132);
    if(idx>=0&&idx<4){
     const id=['VR','MR','spotify','instagram'][idx];
     if(performance.now()>modeLock){modeLock=performance.now()+900;onEndAction?.(id)}
