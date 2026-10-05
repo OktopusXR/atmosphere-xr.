@@ -54,7 +54,8 @@ export function createEndMenu(scene,onChoose){
    texture.minFilter=THREE.LinearFilter;
    texture.magFilter=THREE.LinearFilter;
   sky.material.dispose();
-  sky.material=new THREE.MeshBasicMaterial({map:texture,side:THREE.BackSide,depthWrite:false,depthTest:false});skyReady=true;
+  skyTexture=texture;sky.material=new THREE.MeshBasicMaterial({map:texture,side:THREE.BackSide,depthWrite:false,depthTest:false});skyReady=true;
+   if(visible&&immersive&&isVR)sky.visible=true;
  },undefined,()=>console.warn('5.7K end skybox not found; procedural fallback remains active.'));
  const raycaster=new THREE.Raycaster(),origin=new THREE.Vector3(),q=new THREE.Quaternion(),local=new THREE.Vector3();
  const cursor=new THREE.Mesh(new THREE.SphereGeometry(.009,8,6),
@@ -65,7 +66,7 @@ export function createEndMenu(scene,onChoose){
  beam.visible=false;beam.renderOrder=260;scene.add(beam);
  const beamPts=beamGeo.getAttribute('position');
  const centers=[215,490,768,1046,1320],cy=432,rad=57;
- let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0,skyReady=false;
+ let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0,skyReady=false,skyTexture=null;
  function draw(){
   ctx.clearRect(0,0,1536,720);
   ctx.textAlign='center';
@@ -176,5 +177,5 @@ export function createEndMenu(scene,onChoose){
   return hit?selectPoint(hit.point):false;
  }
  function reset(){busy=false}
- return {panel,sky,overlay,show,update,animate,aimRay,selectPoint,selectRay,reset};
+ return {panel,sky,overlay,show,update,animate,aimRay,selectPoint,selectRay,reset,get skyReady(){return skyReady}};
 }
