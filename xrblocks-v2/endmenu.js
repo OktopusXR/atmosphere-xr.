@@ -41,7 +41,7 @@ export function createEndMenu(scene,onChoose){
  }`;
  const fallbackSkyMaterial=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms:{uTime:{value:0}},
   side:THREE.BackSide,depthWrite:false,depthTest:false});
- const sky=new THREE.Mesh(new THREE.SphereGeometry(28,64,40),fallbackSkyMaterial);
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(28,36,20),fallbackSkyMaterial);
  sky.frustumCulled=false;sky.renderOrder=-1000;sky.visible=false;scene.add(sky);
  // Production ending uses a separate 5.7K equirectangular texture. UI remains a distinct interactive layer.
  const skyLoader=new THREE.TextureLoader();
@@ -49,9 +49,12 @@ export function createEndMenu(scene,onChoose){
   texture.colorSpace=THREE.SRGBColorSpace;
   texture.mapping=THREE.EquirectangularReflectionMapping;
   texture.wrapS=THREE.RepeatWrapping;texture.repeat.x=-1;
-  texture.anisotropy=4;
+  texture.anisotropy=1;
+   texture.generateMipmaps=false;
+   texture.minFilter=THREE.LinearFilter;
+   texture.magFilter=THREE.LinearFilter;
   sky.material.dispose();
-  sky.material=new THREE.MeshBasicMaterial({map:texture,side:THREE.BackSide,depthWrite:false,depthTest:false});
+  sky.material=new THREE.MeshBasicMaterial({map:texture,side:THREE.BackSide,depthWrite:false,depthTest:false});skyReady=true;
  },undefined,()=>console.warn('5.7K end skybox not found; procedural fallback remains active.'));
  const raycaster=new THREE.Raycaster(),origin=new THREE.Vector3(),q=new THREE.Quaternion(),local=new THREE.Vector3();
  const cursor=new THREE.Mesh(new THREE.SphereGeometry(.009,8,6),
@@ -62,7 +65,7 @@ export function createEndMenu(scene,onChoose){
  beam.visible=false;beam.renderOrder=260;scene.add(beam);
  const beamPts=beamGeo.getAttribute('position');
  const centers=[215,490,768,1046,1320],cy=432,rad=57;
- let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0;
+ let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0,skyReady=false;
  function draw(){
   ctx.clearRect(0,0,1536,720);
   ctx.textAlign='center';
@@ -132,7 +135,7 @@ export function createEndMenu(scene,onChoose){
  function show(next,vrImmersive=false,mode='VR'){
   const was=visible;visible=!!next;immersive=!!vrImmersive;isVR=mode!=='MR';
   panel.visible=visible&&immersive;
-  sky.visible=visible&&immersive&&isVR;
+  sky.visible=visible&&immersive&&isVR&&skyReady;
   overlay.style.display=visible&&!immersive?'flex':'none';
   if(visible&&!was)startAudio();
   if(!visible&&was)stopAudio();
