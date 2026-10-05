@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v30';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v30';
-import {createCountdown} from './countdown.js?build=score-v30';
-import {scoreEnvelope} from './score.js?build=score-v30';
-import {makeClouds} from './cloud.js?build=score-v30';
-import {createWatch} from './watch.js?build=score-v30';
-import {createForeground} from './stage.js?build=score-v30';
+import {createDirectionCue} from './direction.js?build=score-v31';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v31';
+import {createCountdown} from './countdown.js?build=score-v31';
+import {scoreEnvelope} from './score.js?build=score-v31';
+import {makeClouds} from './cloud.js?build=score-v31';
+import {createWatch} from './watch.js?build=score-v31';
+import {createForeground} from './stage.js?build=score-v31';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -123,7 +123,7 @@ async function startMusic(){
 }
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
 function showEnd(){
- entered=false;completed=true;root.visible=false;introBoard.visible=false;
+ entered=false;completed=true;introBoard.visible=false;
  menuPositioned=false;endMenu.reset();
  endMenu.show(true,renderer.xr.isPresenting,selectedMode);
  $('status').textContent='THE END';
