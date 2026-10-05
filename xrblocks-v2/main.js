@@ -90,8 +90,8 @@ async function restartExperience(){
 }
 function onEndAction(id){
  if(MUSIC_LINKS[id]){
-  const win=window.open(MUSIC_LINKS[id],'_blank','noopener');
-  if(!win)location.href=MUSIC_LINKS[id];
+  const win=window.open(MUSIC_LINKS[id],'_blank');
+  if(win)win.opener=null;else location.href=MUSIC_LINKS[id];
   endMenu.reset();return;
  }
  if(id!=='VR'&&id!=='MR')return;
@@ -142,6 +142,8 @@ let lastCue=-1;
 class Atmosphere extends xb.Script {
  init(){
   this.add(root);
+  // Final UI must remain renderable when artwork root is hidden.
+  this.add(endMenu.panel);
   introPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.15),
     new THREE.MeshBasicMaterial({map:introTexture,transparent:true,depthWrite:false,depthTest:false}));
   introPlane.renderOrder=110;this.add(introPlane);
