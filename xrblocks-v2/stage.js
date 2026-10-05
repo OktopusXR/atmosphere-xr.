@@ -246,6 +246,7 @@ export function createForeground(root){
   new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
  titlePlane.renderOrder=60;root.add(titlePlane);
  let previous=-1,active='';
+ const focus=new THREE.Vector3(0,1.6,-3);
  function drawCaption(title){
   ctx.clearRect(0,0,1536,320);
   ctx.fillStyle='#ffffff';ctx.textAlign='center';
@@ -357,6 +358,10 @@ export function createForeground(root){
   // The single floating concept caption follows the active chapter into
   // the spatial sector; readable regardless of where user turns their head.
   const chapter=chapters3d[index].group;
+  // Point to the actual current composition in world space, not a
+  // generic scene-direction guess. Metaballs remain at a safe distance.
+  focus.copy(chapter.position);
+  if(index===0)focus.set(0,1.6,-3.4);
   titlePlane.position.set(chapter.position.x,
    Math.min(3.25,Math.max(1.12,chapter.position.y+1.27)),
    chapter.position.z+(index===0?-3.3:0));
@@ -366,6 +371,6 @@ export function createForeground(root){
   titlePlane.material.opacity=.94*
    smooth((time-start)/2.0)*(1-smooth((time-(end-2.0))/2.0));
  }
- return {update,chapters,get active(){return active}};
+ return {update,chapters,get active(){return active},get focus(){return focus}};
 }
 export const createStage=createForeground;
