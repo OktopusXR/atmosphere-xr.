@@ -13,9 +13,9 @@ const items=[
  {id:'instagram',label:'INSTAGRAM',sub:'@OKTOPUS.ART'}
 ];
 export function createEndMenu(scene,onChoose){
- const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=720;
+ const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=1024;
  const ctx=canvas.getContext('2d'),tex=new THREE.CanvasTexture(canvas);
- const panel=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.125),
+ const panel=new THREE.Mesh(new THREE.PlaneGeometry(2.85,1.425),
   new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
  panel.renderOrder=250;panel.visible=false;scene.add(panel);
  const vertexShader=`varying vec3 vDir;void main(){vDir=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
@@ -65,14 +65,14 @@ export function createEndMenu(scene,onChoose){
  const beam=new THREE.Line(beamGeo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.3,depthTest:false}));
  beam.visible=false;beam.renderOrder=260;scene.add(beam);
  const beamPts=beamGeo.getAttribute('position');
- const centers=[215,490,768,1046,1320],cy=432,rad=57;
+ const centers=[286,655,1024,1393,1762],cy=615,rad=86;
  let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0,skyReady=false,skyTexture=null;
  function draw(){
   ctx.clearRect(0,0,1536,720);
   ctx.textAlign='center';
-  ctx.fillStyle='#d8d8de';ctx.font='29px Arial';ctx.fillText('A T M O S P H E R E',768,119);
-  ctx.fillStyle='#fff';ctx.font='300 51px Arial';ctx.fillText('THE END',768,212);
-  ctx.fillStyle='#777';ctx.font='18px Arial';ctx.fillText('TECHNO POESIS',768,250);
+  ctx.fillStyle='#d8d8de';ctx.font='38px Arial';ctx.fillText('A T M O S P H E R E',1024,150);
+  ctx.fillStyle='#fff';ctx.font='300 76px Arial';ctx.fillText('THE END',1024,285);
+  ctx.fillStyle='#777';ctx.font='24px Arial';ctx.fillText('TECHNO POESIS',1024,335);
   const symbols=['↺','◇','♫','♪','◎'];
   items.forEach((item,i)=>{
    const x=centers[i];
@@ -80,11 +80,11 @@ export function createEndMenu(scene,onChoose){
    ctx.strokeStyle='rgba(255,255,255,.52)';ctx.lineWidth=2;ctx.stroke();
    ctx.beginPath();ctx.arc(x+rad*.7,cy-rad*.7,4,0,Math.PI*2);
    ctx.fillStyle='#ec458c';ctx.fill();
-   ctx.fillStyle='#f4f4f4';ctx.font='39px Arial';ctx.fillText(symbols[i],x,cy+13);
-   ctx.fillStyle='#ddd';ctx.font='20px Arial';ctx.fillText(item.label,x,cy+99,242);
-   ctx.fillStyle='#999';ctx.font='15px Arial';ctx.fillText(item.sub,x,cy+122);
+   ctx.fillStyle='#f4f4f4';ctx.font='54px Arial';ctx.fillText(symbols[i],x,cy+13);
+   ctx.fillStyle='#ddd';ctx.font='bold 27px Arial';ctx.fillText(item.label,x,cy+132,320);
+   ctx.fillStyle='#999';ctx.font='21px Arial';ctx.fillText(item.sub,x,cy+163);
   });
-  ctx.fillStyle='#bbb';ctx.font='18px Arial';ctx.fillText('THANK YOU FOR BEING PART OF IT',768,641);
+  ctx.fillStyle='#bbb';ctx.font='24px Arial';ctx.fillText('THANK YOU FOR BEING PART OF IT',1024,910);
   tex.needsUpdate=true;
  }
  draw();
@@ -145,7 +145,7 @@ export function createEndMenu(scene,onChoose){
  function update(camera){
   if(!panel.visible||!camera)return;
   camera.getWorldPosition(origin);camera.getWorldQuaternion(q);
-  panel.position.copy(origin).add(new THREE.Vector3(0,0,-2.3).applyQuaternion(q));
+  panel.position.copy(origin).add(new THREE.Vector3(0,0,-2.05).applyQuaternion(q));
   panel.quaternion.copy(q);
   sky.position.copy(origin);if(sky.material.uniforms?.uTime)if(sky.material.uniforms?.uTime)sky.material.uniforms.uTime.value=performance.now()*.001;
  }
@@ -166,7 +166,7 @@ export function createEndMenu(scene,onChoose){
   if(!panel.visible)return false;
   panel.updateMatrixWorld(true);local.copy(point);panel.worldToLocal(local);
   if(Math.abs(local.z)>.15)return false;
-  const x=(local.x/2.4+.5)*1536,y=(.5-local.y/1.125)*720;
+  const x=(local.x/2.85+.5)*2048,y=(.5-local.y/1.425)*1024;
   const i=centers.findIndex(cx=>Math.hypot(x-cx,y-cy)<rad+17);
   return i<0?false:choose(items[i].id);
  }
