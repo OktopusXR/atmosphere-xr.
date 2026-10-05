@@ -57,26 +57,16 @@ export function createEndMenu(scene,onChoose){
  const centers=[286,655,1024,1393,1762],cy=615,rad=86;
  let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0;
  function draw(){
-  ctx.clearRect(0,0,2048,1024);
-  ctx.textAlign='center';
-  ctx.fillStyle='#d8d8de';ctx.font='38px Arial';ctx.fillText('A T M O S P H E R E',1024,150);
-  ctx.fillStyle='#fff';ctx.font='300 76px Arial';ctx.fillText('THE END',1024,285);
-  ctx.fillStyle='#777';ctx.font='24px Arial';ctx.fillText('TECHNO POESIS',1024,335);
-  const symbols=['↺','◇','♫','♪','◎'];
-  items.forEach((item,i)=>{
-   const x=centers[i];
-   ctx.beginPath();ctx.arc(x,cy,rad,0,Math.PI*2);
-   ctx.strokeStyle='rgba(255,255,255,.52)';ctx.lineWidth=2;ctx.stroke();
-   ctx.beginPath();ctx.arc(x+rad*.7,cy-rad*.7,4,0,Math.PI*2);
-   ctx.fillStyle='#ec458c';ctx.fill();
-   ctx.fillStyle='#f4f4f4';ctx.font='54px Arial';ctx.fillText(symbols[i],x,cy+13);
-   ctx.fillStyle='#ddd';ctx.font='bold 27px Arial';ctx.fillText(item.label,x,cy+132,320);
-   ctx.fillStyle='#999';ctx.font='21px Arial';ctx.fillText(item.sub,x,cy+163);
-  });
-  ctx.fillStyle='#bbb';ctx.font='24px Arial';ctx.fillText('THANK YOU FOR BEING PART OF IT',1024,910);
+  ctx.clearRect(0,0,2048,1024);ctx.textAlign='center';
+  ctx.fillStyle='#d8d8de';ctx.font='38px Arial';ctx.fillText('A T M O S P H E R E',1024,155);
+  ctx.fillStyle='#fff';ctx.font='300 72px Arial';ctx.fillText('THANK YOU FOR BEING PART OF THIS',1024,290);
+  ctx.fillStyle='#cfcfd4';ctx.font='34px Arial';ctx.fillText('YOU TRAVELED FROM DARKNESS INTO LIGHT',1024,375);
+  ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(590,455);ctx.lineTo(1458,455);ctx.stroke();
+  ctx.fillStyle='#eee';ctx.font='30px Arial';ctx.fillText('LOOK AT YOUR LEFT HAND',1024,570);
+  ctx.fillStyle='#999';ctx.font='25px Arial';ctx.fillText('TO ACCESS THE MENU AND RESTART THE EXPERIENCE',1024,625);
+  ctx.fillStyle='#ec458c';ctx.beginPath();ctx.arc(1024,730,5,0,Math.PI*2);ctx.fill();
   tex.needsUpdate=true;
- }
- draw();
+ } draw();
  const overlay=document.createElement('div');
  overlay.style.cssText=`display:none;position:fixed;inset:0;z-index:185;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:22px;font-family:Arial;text-align:center;background:radial-gradient(circle at 28% 35%,rgba(236,69,140,.10),transparent 24%),radial-gradient(circle at 72% 68%,rgba(170,190,255,.07),transparent 28%),#050509`;
  const h=document.createElement('div');h.innerHTML='<div style="font-size:clamp(20px,4vw,34px);letter-spacing:.35em">ATMOSPHERE</div><div style="font-size:clamp(48px,9vw,82px);font-weight:200;line-height:1.1;margin:14px 0">XR</div><div style="font-size:clamp(18px,3.5vw,29px);letter-spacing:.42em">THE END</div>';h.style.cssText='font-weight:300;text-shadow:0 2px 18px #000;margin-bottom:8px';
@@ -154,12 +144,15 @@ export function createEndMenu(scene,onChoose){
   beamPts.needsUpdate=true;beam.visible=true;return true;
  }
  function selectPoint(point){
+  return false;
+  /*
   if(!panel.visible)return false;
   panel.updateMatrixWorld(true);local.copy(point);panel.worldToLocal(local);
   if(Math.abs(local.z)>.15)return false;
   const x=(local.x/2.85+.5)*2048,y=(.5-local.y/1.425)*1024;
   const i=centers.findIndex(cx=>Math.hypot(x-cx,y-cy)<rad+42);
   return i<0?false:choose(items[i].id);
+  */
  }
  function selectRay(start,dir){
   if(!panel.visible)return false;
