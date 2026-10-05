@@ -107,6 +107,16 @@ function makeChapter(root,kind,index){
       .13*Math.sin(a*4+j*.3),Math.cos(a)*.6));
    }add(line(g,pts));
   }
+  // Additional porous, mycelium-inspired connections, kept within the existing scene.
+  for(let ring=0;ring<9;ring++){
+   const pts=[];
+   for(let j=0;j<=96;j++){
+    const u=j/96*TAU,phase=ring*.47;
+    const radius=.58+.07*ring+.13*Math.sin(5*u+phase);
+    pts.push(new THREE.Vector3(radius*Math.cos(u),.8*Math.sin(u*2+phase),radius*Math.sin(u)));
+   }
+   add(line(g,pts));
+  }
  }else if(kind==='fold'){
   const geo=new THREE.SphereGeometry(1.08,28,18);
   const v=geo.attributes.position;
