@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v16';
 import {createCountdown} from './countdown.js?build=score-v15';
 import {scoreEnvelope} from './score.js?build=score-v15';
 import {makeClouds} from './cloud.js?build=score-v15';
@@ -66,25 +67,20 @@ async function startMusic(){
 }
 $('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='Audio pending; visual animation active · '+e.message);
 
-let completed=false,endPlane;
-const endOverlay=document.createElement('div');
-endOverlay.style.cssText='display:none;position:fixed;inset:0;z-index:180;background:#000e;color:white;align-items:center;justify-content:center;flex-direction:column;gap:36px;font-family:Arial';
-endOverlay.innerHTML='<div style="font-size:clamp(48px,10vw,100px);font-weight:700">THE END</div>';
-const replayButton=document.createElement('button');
-replayButton.textContent='COMENZAR NUEVAMENTE';
-replayButton.style.cssText='font:bold 22px Arial;padding:22px 34px;border:2px solid white;background:#111;color:white';
-endOverlay.appendChild(replayButton);document.body.appendChild(endOverlay);
+let completed=false,menuPositioned=false,pinchWasDown=false;
+let replayMode=null;
 function showEnd(){
  started=false;completed=true;root.visible=false;
- if(endPlane)endPlane.visible=true;
- endOverlay.style.display='flex';
+ menuPositioned=false;
+ endMenu.reset();
+ const xr=xb.core?.renderer||xb.core?.engine?.renderer;
+ endMenu.show(true,!!xr?.xr?.isPresenting);
  $('status').textContent='THE END';
 }
 async function restartExperience(){
  if(!completed)return;
  completed=false;root.visible=true;
- if(endPlane)endPlane.visible=false;
- endOverlay.style.display='none';
+ endMenu.show(false);menuPositioned=false;
  Object.assign(params,{intensity:2,density:1,scale:1.9,speed:2,motion:1.8,variation:1});
  wrist.paint();
  music.pause();music.currentTime=0;
@@ -92,10 +88,25 @@ async function restartExperience(){
  $('status').textContent='ATMOSPHERE · RESTARTED';
  try{await music.play()}catch(e){$('status').textContent='Audio pending · '+e.message}
 }
-replayButton.onclick=restartExperience;
+function onEndAction(id){
+ if(MUSIC_LINKS[id]){
+  const win=window.open(MUSIC_LINKS[id],'_blank','noopener');
+  if(!win)location.href=MUSIC_LINKS[id];
+  endMenu.reset();return;
+ }
+ if(id!=='VR'&&id!=='MR')return;
+ if(id!==mode){
+  // XR Blocks manages session transitions; mode choice is explicit.
+  mode=id;
+  wrist.setMode(mode);
+  const tr=xb.core?.transition;
+  if(mode==='MR')tr?.toAR?.();else tr?.toVR?.({color:0x000000});
+ }
+ restartExperience();
+}
 music.onended=showEnd;
-
 const root=new THREE.Group();
+const endMenu=createEndMenu(root,onEndAction);
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
 const countdown=createCountdown(root,402);
@@ -134,15 +145,6 @@ class Atmosphere extends xb.Script {
   introPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.15),
     new THREE.MeshBasicMaterial({map:introTexture,transparent:true,depthWrite:false,depthTest:false}));
   introPlane.renderOrder=110;this.add(introPlane);
-  const c=document.createElement('canvas');c.width=1024;c.height=576;
-  const x=c.getContext('2d');x.textAlign='center';x.fillStyle='#fff';
-  x.font='bold 112px Arial';x.fillText('THE END',512,222);
-  x.strokeStyle='#fff';x.lineWidth=2;x.strokeRect(174,334,676,104);
-  x.font='bold 42px Arial';x.fillText('COMENZAR NUEVAMENTE',512,400);
-  const tex=new THREE.CanvasTexture(c);
-  endPlane=new THREE.Mesh(new THREE.PlaneGeometry(2.25,1.265),
-   new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));
-  endPlane.renderOrder=210;endPlane.visible=false;this.add(endPlane);
   this.last=0;
  }
  update(time,frame){
@@ -156,14 +158,30 @@ class Atmosphere extends xb.Script {
   }
   const renderer=xb.core?.renderer||xb.core?.engine?.renderer;
   if(renderer?.xr){wrist.update(frame||renderer.xr.getFrame?.(),renderer,started)}
-  if(completed&&endPlane){
-   const cam=xb.core.camera,p=new THREE.Vector3(),q=new THREE.Quaternion();
-   cam.getWorldPosition(p);cam.getWorldQuaternion(q);
-   endPlane.position.copy(p).add(new THREE.Vector3(0,0,-1.8).applyQuaternion(q));
-   endPlane.quaternion.copy(q);
-   endPlane.visible=true;
-   // End panel in XR, HTML button remains a non-XR fallback.
-   endOverlay.style.display=renderer?.xr?.isPresenting?'none':'flex';
+  if(completed){
+   endMenu.show(true,!!renderer?.xr?.isPresenting);
+   if(!menuPositioned&&renderer?.xr?.isPresenting){
+    endMenu.update(xb.core.camera);menuPositioned=true;
+   }
+   if(renderer?.xr?.isPresenting&&(frame||renderer.xr.getFrame?.())){
+    const xrFrame=frame||renderer.xr.getFrame?.();
+    const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
+    const right=session?.inputSources&&[...session.inputSources].find(src=>src.handedness==='right');
+    if(right?.hand&&space){
+     const thumb=xrFrame.getJointPose(right.hand.get('thumb-tip'),space);
+     const index=xrFrame.getJointPose(right.hand.get('index-finger-tip'),space);
+     const base=xrFrame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
+     if(thumb&&index&&base){
+      const a=thumb.transform.position,b=index.transform.position,d=base.transform.position;
+      const pinch=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<.033;
+      if(pinch&&!pinchWasDown){
+       endMenu.selectRay(new THREE.Vector3(b.x,b.y,b.z),
+        new THREE.Vector3(b.x-d.x,b.y-d.y,b.z-d.z));
+      }
+      pinchWasDown=pinch;
+     }
+    }
+   }
   }
   if(!started){countdown.update(null,0,false);return;}
   // XR Blocks supplies selected controller rays, including trigger drag.
@@ -180,12 +198,15 @@ class Atmosphere extends xb.Script {
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectStart(event){
-  if(completed){restartExperience();return;}
+  if(completed){
+   if(event?.intersection?.point)endMenu.selectPoint(event.intersection.point);
+   return;
+  }
   if(!started)return;
   if(event?.intersection?.point)wrist.hitPosition(event.intersection.point);
  }
  onSelectEnd(){
-  if(completed){restartExperience();return;}
+  if(completed)return;
   if(started){wrist.releaseSelection();return;}
   if(!introStarted)beginIntro();else if(!introFinished)finishIntro();
   else startMusic().catch(err=>$('status').textContent=err.message);
@@ -203,7 +224,13 @@ xb.init(options).then(()=>{
  const xrRenderer=xb.core?.renderer||xb.core?.engine?.renderer;
  if(xrRenderer?.xr)for(let i=0;i<2;i++){
   xrRenderer.xr.getController(i)?.addEventListener('selectstart',e=>{
-   if(started&&e?.data?.handedness!=='left')wrist.controllerSelect(xrRenderer.xr.getController(i));
+   const ctl=xrRenderer.xr.getController(i);
+   if(completed){
+    const origin=new THREE.Vector3(),dir=new THREE.Vector3();
+    ctl.getWorldPosition(origin);ctl.getWorldDirection(dir).negate();
+    endMenu.selectRay(origin,dir);return;
+   }
+   if(started&&e?.data?.handedness!=='left')wrist.controllerSelect(ctl);
   });
  }
  const xrTransition=xb.core.transition;
