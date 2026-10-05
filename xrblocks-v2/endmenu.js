@@ -151,7 +151,7 @@ export function createEndMenu(scene,onChoose){
  }
  function animate(camera){
   if(!visible)return;
-  sky.material.uniforms.uTime.value=performance.now()*.001;
+  if(sky.material.uniforms?.uTime)sky.material.uniforms.uTime.value=performance.now()*.001;
   if(camera){camera.getWorldPosition(origin);sky.position.copy(origin);}
  }
  function aimRay(start,dir){
