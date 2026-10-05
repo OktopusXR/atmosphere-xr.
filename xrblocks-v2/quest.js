@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v35';
+import {createDirectionCue} from './direction.js?build=score-v36';
 import {createEndMenu,MUSIC_LINKS} from './endmenu-v35.js';
-import {createCountdown} from './countdown.js?build=score-v35';
-import {scoreEnvelope} from './score.js?build=score-v35';
-import {makeClouds} from './cloud.js?build=score-v35';
-import {createWatch} from './watch.js?build=score-v35';
-import {createForeground} from './stage.js?build=score-v35';
+import {createCountdown} from './countdown.js?build=score-v36';
+import {scoreEnvelope} from './score.js?build=score-v36';
+import {makeClouds} from './cloud.js?build=score-v36';
+import {createWatch} from './watch.js?build=score-v36';
+import {createForeground} from './stage.js?build=score-v36';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -52,7 +52,7 @@ const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.35),
 introBoard.renderOrder=100;scene.add(introBoard);
 // Shared five-action immersive final menu; no automatic replay on any click.
 const endMenu=createEndMenu(scene,onEndAction);
-let menuPositioned=false,replayAfterMode=false;
+let menuPositioned=false,replayAfterMode=false,pendingEndAction=null;
 function drawIntro(){
  // Editorial layout inspired by the user's NODE Institute reference.
  ctx.clearRect(0,0,1024,600);
@@ -140,20 +140,20 @@ async function restartExperience(){
 }
 function onEndAction(id){
  if(MUSIC_LINKS[id]){
-  const opened=window.open(MUSIC_LINKS[id],'_blank');
-  if(opened)opened.opener=null;else window.location.href=MUSIC_LINKS[id];
+  // Do not tear down immersive XR for external links. Opening a browser tab from
+  // an XR hand event is unreliable on Quest, so keep the final menu active.
+  window.open(MUSIC_LINKS[id],'_blank','noopener');
   endMenu.reset();return;
  }
- if(id!=='VR'&&id!=='MR')return;
- if(renderer.xr.isPresenting&&selectedMode===id){
+ if(id!=='VR'&&id!=='MR'){endMenu.reset();return}
+ if(id===selectedMode){
   restartExperience();return;
  }
- if(renderer.xr.isPresenting){
-  replayAfterMode=true;requestedMode=id;
-  renderer.xr.getSession().end().catch(()=>offerContinue(id));
- }else{
-  replayAfterMode=true;offerContinue(id);
- }
+ // WebXR cannot switch immersive-vr <-> immersive-ar inside one active session.
+ // Exit once, then expose the required browser-gesture Continue button.
+ replayAfterMode=true;requestedMode=id;pendingEndAction=id;
+ if(renderer.xr.isPresenting)renderer.xr.getSession().end().catch(()=>offerContinue(id));
+ else offerContinue(id);
 }
 music.onended=showEnd;
 // Playback time alone drives a precomposed, continuously interpolated score.
@@ -214,15 +214,15 @@ function handInput(frame){
   const p=a.transform.position,q=b.transform.position;
   if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032)touching=true;
  }
- if(touching&&!pinched&&performance.now()-handDetectedAt>900){
+ if(touching&&!pinched&&performance.now()-handDetectedAt>250){
   if(completed){
-   // Right-hand index ray must intersect a specific menu action.
+   // Select with the same index-finger ray that drives the visible cursor.
    const right=[...session.inputSources].find(src=>src.handedness==='right'&&src.hand);
    if(right){
-    const a=frame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
-    const b=frame.getJointPose(right.hand.get('index-finger-tip'),space);
-    if(a&&b){
-     const p=a.transform.position,q=b.transform.position;
+    const tip=frame.getJointPose(right.hand.get('index-finger-tip'),space);
+    const distal=frame.getJointPose(right.hand.get('index-finger-phalanx-distal'),space);
+    if(tip&&distal){
+     const q=tip.transform.position,p=distal.transform.position;
      const o=new THREE.Vector3(q.x,q.y,q.z);
      const dir=new THREE.Vector3(q.x-p.x,q.y-p.y,q.z-p.z).normalize();
      endMenu.selectRay(o,dir);
@@ -314,7 +314,7 @@ renderer.xr.addEventListener('sessionend',()=>{
  watch.watch.visible=false;
  scene.background=new THREE.Color(0);renderer.setClearColor(0,1);
  if(completed){endMenu.show(true,false,selectedMode);menuPositioned=false}
- if(requestedMode){const next=requestedMode;requestedMode=null;offerContinue(next)}
+ if(requestedMode){const next=requestedMode;requestedMode=null;pendingEndAction=null;offerContinue(next)}
 });
 $('modebar').style.display='none';
 $('xrButton').style.display='none';
