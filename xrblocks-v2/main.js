@@ -209,7 +209,7 @@ class Atmosphere extends xb.Script {
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
   cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,env.bass,env.mid,env.high,env.attack);
   foreground.update(t,env,params);
-  directionCue.update(xb.core?.camera,foreground.focus,started&&!completed);
+  directionCue.update(xb.core?.camera,foreground.focus,started&&!completed&&!foreground.allAround);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
  onSelectStart(event){
