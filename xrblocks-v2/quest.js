@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createDirectionCue} from './direction.js?build=score-v17';
 import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v16b';
 import {createCountdown} from './countdown.js?build=score-v16b';
 import {scoreEnvelope} from './score.js?build=score-v16b';
@@ -41,6 +42,7 @@ const root=new THREE.Group();scene.add(root);
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
 const countdown=createCountdown(scene,soundtrackDuration);
+const directionCue=createDirectionCue(scene);
 const board=document.createElement('canvas');board.width=1024;board.height=600;
 const ctx=board.getContext('2d'),boardTex=new THREE.CanvasTexture(board);
 const introBoard=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.35),
@@ -196,21 +198,22 @@ for(const ctl of [controller1,controller2]){
  });
  ctl.addEventListener('selectend',()=>{ctl.userData.watchSelecting=false;watch.releaseSelection()});
 }
-let pinched=false;
+let pinched=false,handDetectedAt=0;
 function handInput(frame){
- if(!renderer.xr.isPresenting||!frame||entered)return;
+ if(!renderer.xr.isPresenting||!frame||entered){handDetectedAt=0;pinched=false;return;}
  const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
  if(!space)return;
  let touching=false;
  for(const src of session.inputSources){
-  if(!src.hand)continue;
+  if(!src.hand||src.handedness!=='right')continue;
+  if(!handDetectedAt)handDetectedAt=performance.now();
   const a=frame.getJointPose(src.hand.get('thumb-tip'),space);
   const b=frame.getJointPose(src.hand.get('index-finger-tip'),space);
   if(!a||!b)continue;
   const p=a.transform.position,q=b.transform.position;
   if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<.032)touching=true;
  }
- if(touching&&!pinched){
+ if(touching&&!pinched&&performance.now()-handDetectedAt>900){
   if(completed){
    // Right-hand index ray must intersect a specific menu action.
    const right=[...session.inputSources].find(src=>src.handedness==='right'&&src.hand);
@@ -351,7 +354,9 @@ renderer.setAnimationLoop((t,frame)=>{
   }
  }
  const elapsed=entered?updateScore():0;
- countdown.update(renderer.xr.isPresenting?renderer.xr.getCamera():camera,elapsed,entered&&!completed);
+ const view=renderer.xr.isPresenting?renderer.xr.getCamera():camera;
+ directionCue.update(view,foreground.focus,entered&&!completed);
+ countdown.update(view,elapsed,entered&&!completed);
  renderer.render(scene,camera);
 });
 window.addEventListener('resize',()=>{
