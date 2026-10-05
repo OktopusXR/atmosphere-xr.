@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v31';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v31';
-import {createCountdown} from './countdown.js?build=score-v31';
-import {scoreEnvelope} from './score.js?build=score-v31';
-import {makeClouds} from './cloud.js?build=score-v31';
-import {createWatch} from './watch.js?build=score-v31';
-import {createForeground} from './stage.js?build=score-v31';
+import {createDirectionCue} from './direction.js?build=score-v32';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v32';
+import {createCountdown} from './countdown.js?build=score-v32';
+import {scoreEnvelope} from './score.js?build=score-v32';
+import {makeClouds} from './cloud.js?build=score-v32';
+import {createWatch} from './watch.js?build=score-v32';
+import {createForeground} from './stage.js?build=score-v32';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -235,7 +235,12 @@ function handInput(frame){
 
 async function enterXR(mode='VR'){
  if(!navigator.xr){$('status').textContent='WebXR unavailable';return false}
- if(renderer.xr.isPresenting) return true;
+ if(renderer.xr.isPresenting){
+  if(selectedMode===mode)return true;
+  $('status').textContent='EXITING '+selectedMode+' · CONTINUE IN '+mode;
+  try{await renderer.xr.getSession().end()}catch(e){}
+  return false;
+ }
  try{
   selectedMode=mode;watch.setMode(mode);drawIntro();
   const vr=mode==='VR';
@@ -271,6 +276,7 @@ function offerContinue(mode){
  action.textContent='CONTINUE IN '+(mode==='VR'?'VR':'MIXED REALITY');
  action.style.cssText='font-size:16px;padding:18px 28px;background:#161616;color:white;border:2px solid #fff';
  action.onclick=async()=>{
+  selectedMode=mode;watch.setMode(mode);
   const ok=await enterXR(mode);
   if(ok){
    requestedMode=null;overlay.style.display='none';
