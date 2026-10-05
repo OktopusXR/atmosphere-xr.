@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v18';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v18';
-import {createCountdown} from './countdown.js?build=score-v18';
-import {scoreEnvelope} from './score.js?build=score-v18';
-import {makeClouds} from './cloud.js?build=score-v18';
-import {createWatch} from './watch.js?build=score-v18';
-import {createForeground} from './stage.js?build=score-v18';
+import {createDirectionCue} from './direction.js?build=score-v20';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v20';
+import {createCountdown} from './countdown.js?build=score-v20';
+import {scoreEnvelope} from './score.js?build=score-v20';
+import {makeClouds} from './cloud.js?build=score-v20';
+import {createWatch} from './watch.js?build=score-v20';
+import {createForeground} from './stage.js?build=score-v20';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
@@ -208,7 +208,7 @@ class Atmosphere extends xb.Script {
   const env=scoreEnvelope(t);
   let cue=0;for(let i=cues.length-2;i>=0;i--)if(t>=cues[i].sec){cue=i;break}
   cloudEngine.update(t,{...params,intensity:params.intensity*.7},0,env.bass,env.mid,env.high,env.attack);
-  foreground.update(t,env,params);
+  foreground.update(t,env,params,xb.core?.camera);
   directionCue.update(xb.core?.camera,foreground.focus,started&&!completed&&!foreground.allAround);
   if(showScene!==cue){showScene=cue;$('status').textContent=cues[cue].name+' · '+Math.floor(t)+'s'}
  }
