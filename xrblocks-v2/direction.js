@@ -11,7 +11,7 @@ export function createDirectionCue(scene){
  let prev=-999;
  function draw(angle,back){
   ctx.clearRect(0,0,192,192);
-  ctx.translate(96,96);ctx.rotate(-angle);
+  ctx.translate(96,96);ctx.rotate(angle);
   ctx.strokeStyle='#ffffff';ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';
   ctx.beginPath();ctx.moveTo(0,54);ctx.lineTo(0,-43);
   ctx.moveTo(-24,-18);ctx.lineTo(0,-45);ctx.lineTo(24,-18);ctx.stroke();
