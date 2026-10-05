@@ -43,20 +43,9 @@ export function createEndMenu(scene,onChoose){
   side:THREE.BackSide,depthWrite:false,depthTest:false});
  const sky=new THREE.Mesh(new THREE.SphereGeometry(28,36,20),fallbackSkyMaterial);
  sky.frustumCulled=false;sky.renderOrder=-1000;sky.visible=false;scene.add(sky);
- // Production ending uses a separate 5.7K equirectangular texture. UI remains a distinct interactive layer.
- const skyLoader=new THREE.TextureLoader();
- skyLoader.load('https://raw.githubusercontent.com/OktopusXR/atmosphere-xr./refs/heads/main/atmosphere-end-skybox-5.7k.jpg',texture=>{
-  texture.colorSpace=THREE.SRGBColorSpace;
-  texture.mapping=THREE.EquirectangularReflectionMapping;
-  texture.wrapS=THREE.RepeatWrapping;texture.repeat.x=-1;
-  texture.anisotropy=1;
-   texture.generateMipmaps=false;
-   texture.minFilter=THREE.LinearFilter;
-   texture.magFilter=THREE.LinearFilter;
-  sky.material.dispose();
-  skyTexture=texture;sky.material=new THREE.MeshBasicMaterial({map:texture,side:THREE.BackSide,depthWrite:false,depthTest:false});skyReady=true;
-   if(visible&&immersive&&isVR)sky.visible=true;
- },undefined,()=>console.warn('5.7K end skybox not found; procedural fallback remains active.'));
+ // Quest ending is fully generative: no panoramic bitmap is decoded or uploaded to GPU.
+ // The procedural sphere is already resident from startup, eliminating the end-scene texture spike.
+ let skyReady=true,skyTexture=null;
  const raycaster=new THREE.Raycaster(),origin=new THREE.Vector3(),q=new THREE.Quaternion(),local=new THREE.Vector3();
  const cursor=new THREE.Mesh(new THREE.SphereGeometry(.009,8,6),
   new THREE.MeshBasicMaterial({color:0xee5599,depthTest:false,depthWrite:false}));
@@ -66,7 +55,7 @@ export function createEndMenu(scene,onChoose){
  beam.visible=false;beam.renderOrder=260;scene.add(beam);
  const beamPts=beamGeo.getAttribute('position');
  const centers=[286,655,1024,1393,1762],cy=615,rad=86;
- let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0,skyReady=false,skyTexture=null;
+ let busy=false,visible=false,immersive=false,isVR=true,audioCtx=null,audioTimer=null,audioMaster=null,beat=0;
  function draw(){
   ctx.clearRect(0,0,1536,720);
   ctx.textAlign='center';
@@ -89,7 +78,7 @@ export function createEndMenu(scene,onChoose){
  }
  draw();
  const overlay=document.createElement('div');
- overlay.style.cssText=`display:none;position:fixed;inset:0;z-index:185;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:22px;font-family:Arial;text-align:center;background-color:#050509;background-image:linear-gradient(rgba(0,0,0,.32),rgba(0,0,0,.48)),url('https://raw.githubusercontent.com/OktopusXR/atmosphere-xr./refs/heads/main/atmosphere-end-skybox-5.7k.jpg');background-size:cover;background-position:center;background-repeat:no-repeat`;
+ overlay.style.cssText=`display:none;position:fixed;inset:0;z-index:185;overflow:auto;color:#fff;align-items:center;justify-content:center;flex-direction:column;padding:22px;gap:22px;font-family:Arial;text-align:center;background:#050509`;
  const h=document.createElement('div');h.innerHTML='<div style="font-size:clamp(20px,4vw,34px);letter-spacing:.35em">ATMOSPHERE</div><div style="font-size:clamp(48px,9vw,82px);font-weight:200;line-height:1.1;margin:14px 0">XR</div><div style="font-size:clamp(18px,3.5vw,29px);letter-spacing:.42em">THE END</div>';h.style.cssText='font-weight:300;text-shadow:0 2px 18px #000;margin-bottom:8px';
  overlay.appendChild(h);
  const buttons=document.createElement('div');buttons.style.cssText='display:flex;flex-wrap:wrap;gap:20px;justify-content:center;max-width:760px;background:rgba(0,0,0,.22);backdrop-filter:blur(4px);padding:18px 20px;border-radius:28px';
@@ -136,7 +125,7 @@ export function createEndMenu(scene,onChoose){
  function show(next,vrImmersive=false,mode='VR'){
   const was=visible;visible=!!next;immersive=!!vrImmersive;isVR=mode!=='MR';
   panel.visible=visible&&immersive;
-  sky.visible=visible&&immersive&&isVR&&skyReady;
+  sky.visible=visible&&immersive&&isVR;
   overlay.style.display=visible&&!immersive?'flex':'none';
   if(visible&&!was)startAudio();
   if(!visible&&was)stopAudio();
@@ -177,5 +166,5 @@ export function createEndMenu(scene,onChoose){
   return hit?selectPoint(hit.point):false;
  }
  function reset(){busy=false}
- return {panel,sky,overlay,show,update,animate,aimRay,selectPoint,selectRay,reset,get skyReady(){return skyReady}};
+ return {panel,sky,overlay,show,update,animate,aimRay,selectPoint,selectRay,reset,get skyReady(){return true}};
 }
