@@ -81,6 +81,36 @@ export function createWatch(scene,controls,onMode){
   laserPositions.needsUpdate=true;
   laser.visible=watch.visible;
  }
+ // Lightweight white joint-and-bone outline for BOTH hands.
+ // Right-hand skeleton already exists; duplicate geometry for left without
+ // enabling XR Blocks' competing automatic hands renderer.
+ const leftHandGeo=new THREE.BufferGeometry(),leftData=new Float32Array(segmentCount*6);
+ leftHandGeo.setAttribute('position',new THREE.BufferAttribute(leftData,3).setUsage(THREE.DynamicDrawUsage));
+ const leftMesh=new THREE.LineSegments(leftHandGeo,handMesh.material);
+ leftMesh.frustumCulled=false;leftMesh.renderOrder=320;leftMesh.visible=false;scene.add(leftMesh);
+ const leftTip=fingertip.clone();leftTip.visible=false;scene.add(leftTip);
+ function updateLeftVisual(frame,space,left){
+  leftMesh.visible=false;leftTip.visible=false;
+  if(!left?.hand)return;
+  const poses=new Map();
+  for(const chain of fingerNames)for(const name of chain){
+   if(poses.has(name))continue;
+   const joint=left.hand.get(name);
+   if(joint){const pose=frame.getJointPose(joint,space);if(pose)poses.set(name,pose.transform.position)}
+  }
+  let n=0;
+  for(const chain of fingerNames)for(let j=1;j<chain.length;j++){
+   const u=poses.get(chain[j-1]),v=poses.get(chain[j]);if(!u||!v)continue;
+   const k=6*n++;leftData[k]=u.x;leftData[k+1]=u.y;leftData[k+2]=u.z;
+   leftData[k+3]=v.x;leftData[k+4]=v.y;leftData[k+5]=v.z;
+  }
+  leftHandGeo.setDrawRange(0,n*2);
+  leftHandGeo.attributes.position.needsUpdate=true;leftMesh.visible=n>4;
+  const tip=poses.get('index-finger-tip');
+  if(tip){leftTip.position.set(tip.x,tip.y,tip.z);leftTip.visible=true}
+ }
+ const eyeDir=new THREE.Vector3(),eyeToWatch=new THREE.Vector3(),cameraPos=new THREE.Vector3();
+ let gazeVisible=false;
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3(),temp=new THREE.Vector3(),look=new THREE.Vector3();
  let highlight=-1,modeLock=0,modeName='VR',activeRow=-1,controllerPressed=false,gesturePressed=false;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -160,7 +190,7 @@ export function createWatch(scene,controls,onMode){
  function releaseSelection(){if(activeRow!==-1){activeRow=-1;highlight=-1;paint()}}
  function update(frame,renderer,enabled){
   if(!renderer?.xr?.isPresenting||!frame||!enabled){
-   watch.visible=false;lastPinch=false;controllerPressed=false;releaseSelection();return;
+   watch.visible=false;handMesh.visible=false;fingertip.visible=false;leftMesh.visible=false;leftTip.visible=false;laser.visible=false;gazeVisible=false;lastPinch=false;controllerPressed=false;releaseSelection();return;
   }
   const session=renderer.xr.getSession(),space=renderer.xr.getReferenceSpace();
   if(!session||!space)return;
@@ -169,6 +199,7 @@ export function createWatch(scene,controls,onMode){
    if(src.handedness==='left')left=src;
    if(src.handedness==='right')right=src;
   }
+  updateLeftVisual(frame,space,left);
   let leftPose=null;
   if(left?.hand)leftPose=frame.getJointPose(left.hand.get('wrist'),space);
   if(!leftPose&&left?.gripSpace)leftPose=frame.getPose(left.gripSpace,space);
@@ -179,8 +210,18 @@ export function createWatch(scene,controls,onMode){
    else if(activeRow<0&&!controllerPressed&&!lastPinch)watch.position.lerp(target,.12);
    renderer.xr.getCamera().getWorldPosition(look);
    if(activeRow<0&&!controllerPressed&&!lastPinch)watch.lookAt(look);
-   watch.visible=true;
-  }else watch.visible=false;
+   // Show wrist settings only when the user intentionally looks at
+   // their left wrist (hysteresis prevents flashing during subtle gaze motion).
+   const cameraXR=renderer.xr.getCamera();
+   cameraXR.getWorldPosition(cameraPos);
+   cameraXR.getWorldDirection(eyeDir).normalize();
+   eyeToWatch.copy(watch.position).sub(cameraPos);
+   const near=eyeToWatch.length()<.85;
+   const score=eyeToWatch.normalize().dot(eyeDir);
+   gazeVisible=near&&score>(gazeVisible?.76:.86);
+   watch.visible=gazeVisible;
+   if(!gazeVisible&&!controllerPressed&&!lastPinch)releaseSelection();
+  }else{watch.visible=false;gazeVisible=false;}
   const handPresent=updateHandVisual(frame,space,right);
   updateLaser(frame,space,right,handPresent);
   // Right controller: targetRaySpace + live trigger works regardless of
