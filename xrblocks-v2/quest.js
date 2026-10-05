@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v37';
-import {createEndMenu,MUSIC_LINKS} from './endmenu-v35.js';
-import {createCountdown} from './countdown.js?build=score-v37';
-import {scoreEnvelope} from './score.js?build=score-v37';
-import {makeClouds} from './cloud.js?build=score-v37';
-import {createWatch} from './watch.js?build=score-v37';
-import {createForeground} from './stage.js?build=score-v37';
+import {createDirectionCue} from './direction.js?build=score-v38';
+import {createEndMenu,MUSIC_LINKS} from './endmenu-v38.js';
+import {createCountdown} from './countdown.js?build=score-v38';
+import {scoreEnvelope} from './score.js?build=score-v38';
+import {makeClouds} from './cloud.js?build=score-v38';
+import {createWatch} from './watch.js?build=score-v38';
+import {createForeground} from './stage.js?build=score-v38';
 const $=id=>document.getElementById(id),vrMode='VR';
 window.atmosAppReady=true;
 $('development').textContent='NATIVE QUEST · READY';
@@ -123,7 +123,8 @@ async function startMusic(){
 }
 // ENTER EXPERIENCE enters immersive VR and starts the sound together.
 function showEnd(){
- entered=false;completed=true;introBoard.visible=false;
+ if(completed)return;
+ entered=false;completed=true;music.pause();introBoard.visible=false;
  menuPositioned=false;endMenu.reset();
  endMenu.show(true,renderer.xr.isPresenting,selectedMode);
  $('status').textContent='THE END';
@@ -139,6 +140,7 @@ async function restartExperience(){
  try{await music.play()}catch(e){$('status').textContent='Audio pending · '+e.message}
 }
 function onEndAction(id){
+ $('status').textContent='END ACTION · '+id;
  if(MUSIC_LINKS[id]){
   // Do not tear down immersive XR for external links. Opening a browser tab from
   // an XR hand event is unreliable on Quest, so keep the final menu active.
@@ -147,11 +149,11 @@ function onEndAction(id){
  }
  if(id!=='VR'&&id!=='MR'){endMenu.reset();return}
  if(id===selectedMode){
-  restartExperience();return;
+  endMenu.reset();restartExperience();return;
  }
  // WebXR cannot switch immersive-vr <-> immersive-ar inside one active session.
  // Exit once, then expose the required browser-gesture Continue button.
- replayAfterMode=true;requestedMode=id;pendingEndAction=id;
+ endMenu.reset();replayAfterMode=true;requestedMode=id;pendingEndAction=id;
  if(renderer.xr.isPresenting)renderer.xr.getSession().end().catch(()=>offerContinue(id));
  else offerContinue(id);
 }
