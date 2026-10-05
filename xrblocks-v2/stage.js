@@ -289,6 +289,58 @@ function makeChapter(root,kind,index){
    return [Math.cos(a)*r,(v-.5)*2.3,Math.sin(a)*r]
   },.026));
  }
+ // One lightweight, distinct parametric motif per chapter, derived from
+ // porous membranes, branching filaments and cellular structures.
+ // Symmetry keeps its existing seamless, observer-centred 360-degree loops.
+ if(kind!=='axis'&&kind!=='crystal'&&kind!=='tunnel'){
+  const motif=index%5;
+  if(motif===0){ // perforated membrane contours
+   for(let ring=0;ring<8;ring++){
+    const pts=[],phase=ring*.37;
+    for(let k=0;k<96;k++){
+     const a=k*TAU/96,r=.52+ring*.105+.09*Math.sin(5*a+phase);
+     pts.push(new THREE.Vector3(r*Math.cos(a),.32*Math.sin(3*a+phase)+ring*.055,r*Math.sin(a)*.72));
+    }
+    const o=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),lineMaterial());
+    o.frustumCulled=false;g.add(o);add(o);
+   }
+  }else if(motif===1){ // woven organic webs
+   const nodes=[];
+   for(let k=0;k<65;k++){
+    const a=k*2.399963,z=1-2*(k+.5)/65,r=Math.sqrt(1-z*z);
+    nodes.push(new THREE.Vector3(1.2*r*Math.cos(a),1.1*r*Math.sin(a),1.2*z));
+   }
+   for(let k=0;k<65;k+=2)add(line(g,[nodes[k],nodes[(k+11)%65],nodes[(k+29)%65]]));
+  }else if(motif===2){ // fine parametric lattice
+   for(let band=0;band<12;band++){
+    const pts=[];
+    for(let k=0;k<76;k++){
+     const u=k/75,theta=u*TAU*2+band*.28;
+     pts.push(new THREE.Vector3((.36+u)*Math.cos(theta),2*(u-.5),(.36+u)*Math.sin(theta)));
+    }
+    add(line(g,pts));
+   }
+  }else if(motif===3){ // connected filament bridges
+   for(let band=0;band<16;band++){
+    const pts=[];
+    for(let k=0;k<50;k++){
+     const u=k/49,theta=band*TAU/16;
+     pts.push(new THREE.Vector3((u-.5)*2.3,.6*Math.sin(u*TAU+theta),Math.sin(theta)*.9+Math.cos(u*TAU)*.16));
+    }
+    add(line(g,pts));
+   }
+  }else{ // cellular rings
+   for(let ring=0;ring<10;ring++){
+    const pts=[];
+    for(let k=0;k<72;k++){
+     const a=k*TAU/72,theta=ring*TAU/10,r=.22+.06*Math.sin(6*a+theta);
+     pts.push(new THREE.Vector3(Math.cos(theta)*.9+r*Math.cos(a),Math.sin(theta)*.9+r*Math.sin(a),.35*Math.sin(a*2+theta)));
+    }
+    const o=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),lineMaterial());
+    o.frustumCulled=false;g.add(o);add(o);
+   }
+  }
+ }
  for(const item of objects)item.visible=false;
  return {group:g,objects,kind,index};
 }
