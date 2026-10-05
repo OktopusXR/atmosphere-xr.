@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import {createDirectionCue} from './direction.js?build=score-v25';
-import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v25';
-import {createCountdown} from './countdown.js?build=score-v25';
-import {scoreEnvelope} from './score.js?build=score-v25';
-import {makeClouds} from './cloud.js?build=score-v25';
-import {createWatch} from './watch.js?build=score-v25';
-import {createForeground} from './stage.js?build=score-v25';
+import {createDirectionCue} from './direction.js?build=score-v26';
+import {createEndMenu,MUSIC_LINKS} from './endmenu.js?build=score-v26';
+import {createCountdown} from './countdown.js?build=score-v26';
+import {scoreEnvelope} from './score.js?build=score-v26';
+import {makeClouds} from './cloud.js?build=score-v26';
+import {createWatch} from './watch.js?build=score-v26';
+import {createForeground} from './stage.js?build=score-v26';
 import * as xb from 'xrblocks';
 
 // ATMOSPHERE XR Blocks V2 — MUSIC MASTER CLOCK.
@@ -69,6 +69,7 @@ async function startMusic(){
 $('enter').onclick=()=>startMusic().catch(e=>$('status').textContent='Audio pending; visual animation active · '+e.message);
 
 let completed=false,menuPositioned=false,pinchWasDown=false;
+const previewEnd=new URLSearchParams(location.search).get('preview')==='end';
 let replayMode=null;
 function showEnd(){
  started=false;completed=true;root.visible=false;
@@ -108,6 +109,7 @@ function onEndAction(id){
 music.onended=showEnd;
 const root=new THREE.Group();
 const endMenu=createEndMenu(root,onEndAction);
+if(previewEnd){requestAnimationFrame(()=>{introFinished=true;showEnd();$('intro').style.display='none';});}
 const cloudEngine=makeClouds(root);
 const foreground=createForeground(root);
 const countdown=createCountdown(root,402);
